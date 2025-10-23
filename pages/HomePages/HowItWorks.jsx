@@ -24,7 +24,7 @@ const data = [
 
 const HowItWorks = () => {
   return (
-    <div className="relative min-h-[400px]">
+    <div className="relative">
       <Image
         src="/images/how-it-work-bg.png"
         alt="Left Background"
@@ -41,7 +41,7 @@ const HowItWorks = () => {
       />
 
       <PageContainer>
-        <div className="py-12 sm:py-20 text-center">
+        <div className="pt-12 pb-5 text-center">
           <div className="font-bold font-playfair text-2xl sm:text-3xl md:text-4xl">
             How It Works
           </div>
