@@ -24,6 +24,7 @@ const defaultValues = {
 };
 
 const Signup = ({ open, onClose }) => {
+  const [loading, setloadng] = useState(false);
   const [options, setOptions] = useState(null);
   const masterData1 = useSelector((state) => state.user);
 
@@ -42,7 +43,6 @@ const Signup = ({ open, onClose }) => {
 
   const onSubmit = (data) => {
     console.log("Form Submitted ✅", data);
-    // handle your API call or Redux action here
     onClose();
     reset();
   };
@@ -59,7 +59,9 @@ const Signup = ({ open, onClose }) => {
       }}
     >
       <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogTitle>Register Yourself</DialogTitle>
+        <DialogTitle>
+          <div className="font-bold">Register Yourself</div>
+        </DialogTitle>
         <DialogContent>
           <div className="grid grid-cols-2 gap-4">
             {/* Profile By */}
@@ -295,15 +297,17 @@ const Signup = ({ open, onClose }) => {
           <button
             type="button"
             onClick={onClose}
+            disabled={loading}
             className="outline-none text-primary border border-primary bg-white font-semibold text-sm px-3 py-2 rounded-lg cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="submit"
+            disabled={loading}
             className="outline-none bg-primary text-white font-semibold text-sm px-3 py-2 rounded-lg cursor-pointer"
           >
-            Accept & Register
+            {loading ? "Please wait..." : "Accept & Register"}
           </button>
         </DialogActions>
       </form>

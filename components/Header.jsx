@@ -138,8 +138,8 @@ function Header() {
             <Image
               src="/logo/Logo.png"
               alt="Logo"
-              width={50}
-              height={50}
+              width={100}
+              height={100}
               className="w-[65px] opacity-80"
             />
           </a>
@@ -387,15 +387,16 @@ function Header() {
           )}
         </div>
 
-        <IconButton
-          edge="end"
-          color="inherit"
-          aria-label="menu"
-          onClick={() => setDrawerOpen(true)}
-          className="md:hidden"
-        >
-          <MenuIcon />
-        </IconButton>
+        <div className="sm:hidden">
+          <IconButton
+            edge="end"
+            color="inherit"
+            aria-label="menu"
+            onClick={() => setDrawerOpen(true)}
+          >
+            <MenuIcon />
+          </IconButton>
+        </div>
       </div>
 
       <Drawer
