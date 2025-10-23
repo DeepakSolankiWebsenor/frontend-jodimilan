@@ -138,9 +138,9 @@ function Header() {
             <Image
               src="/logo/Logo.png"
               alt="Logo"
-              width={100}
-              height={100}
-              className="w-[65px] opacity-80"
+              width={200}
+              height={200}
+              className="w-[70px] opacity-80"
             />
           </a>
         </Link>

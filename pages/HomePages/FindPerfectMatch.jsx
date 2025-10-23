@@ -52,7 +52,7 @@ const FindPerfectMatch = () => {
           <h2 className="font-playfair text-3xl sm:text-4xl md:text-5xl font-bold">
             Find Your Perfect Match, for <br /> a Lifetime of Happiness!
           </h2>
-          <div className="my-5 text-sm sm:text-base md:text-lg">
+          <div className="my-10 text-sm sm:text-base md:text-lg">
             Join millions of verified profiles and start your journey toward a
             meaningful <br /> relationship, safely and securely.
           </div>
