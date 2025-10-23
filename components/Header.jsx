@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
@@ -19,6 +19,7 @@ import Grow from "@mui/material/Grow";
 import Popper from "@mui/material/Popper";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
+import Signup from "./Signup";
 
 function Header() {
   const [loggedIn, setLoggedIn] = useState(false);
@@ -31,6 +32,7 @@ function Header() {
   const anchorProfileRef = React.useRef(null);
   const prevProfileOpen = React.useRef(openProfile);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [openSignup, setOpenSignup] = useState(false);
 
   const getMasterData = () => {
     if (userData?.user !== null) {
@@ -249,12 +251,23 @@ function Header() {
 
         <div>
           {!loggedIn ? (
-            <button
-              className="hidden sm:block text-sm font-medium rounded-full px-5 py-2 bg-primary text-white outline-none cursor-pointer"
-              onClick={() => router.push("/Login")}
-            >
-              Sign In
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                className="hidden sm:block text-sm font-semibold px-5 py-2 bg-transparent border border-primary rounded-full text-primary outline-none cursor-pointer hover:text-white hover:bg-primary"
+                onClick={() => router.push("/Login")}
+              >
+                Login
+              </button>
+              <button
+                onClick={() => {
+                  setOpenSignup(true);
+                  setDrawerOpen(false);
+                }}
+                className="hidden sm:block text-sm font-semibold px-5 py-2 bg-primary rounded-full text-white outline-none cursor-pointer"
+              >
+                Sign Up
+              </button>
+            </div>
           ) : (
             <div className="nav-item dropdown h-24 cursor-pointer">
               <div
@@ -458,16 +471,31 @@ function Header() {
             )}
 
             {!loggedIn && (
-              <button
-                className="text-sm font-medium rounded-full px-5 py-2 bg-primary text-white mt-3"
-                onClick={() => router.push("/Login")}
-              >
-                Sign In
-              </button>
+              <div className="grid gap-3 mt-5">
+                <button
+                  className="text-sm font-semibold px-5 py-2 bg-transparent border border-primary rounded-full text-primary outline-none cursor-pointer hover:text-white hover:bg-primary"
+                  onClick={() => router.push("/Login")}
+                >
+                  Login
+                </button>
+                <button
+                  onClick={() => {
+                    setOpenSignup(true);
+                    setDrawerOpen(false);
+                  }}
+                  className="text-sm font-semibold px-5 py-2 bg-primary rounded-full text-white outline-none cursor-pointer"
+                >
+                  Sign Up
+                </button>
+              </div>
             )}
           </div>
         </div>
       </Drawer>
+
+      {openSignup && (
+        <Signup open={openSignup} onClose={() => setOpenSignup(false)} />
+      )}
     </header>
   );
 }
