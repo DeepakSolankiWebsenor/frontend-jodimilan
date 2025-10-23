@@ -184,14 +184,14 @@ const UpdateMobileEmail = () => {
       </Snackbar>
 
       <div className="text-center lg:my-10 my-5 lg:text-4xl text-2xl px-3 text-[#333] font-medium">
-        <span className="text-[#aa0000]">Change</span> Primary Mobile & Email
+        <span className="text-primary">Change</span> Primary Mobile & Email
       </div>
 
       <div className="flex justify-center">
         <div className="flex justify-center mb-5 lg:w-[600px] md:w-[500px] w-[300px]">
           <div
             className={`text-xs w-full text-center font-bold uppercase px-5 py-3 cursor-pointer ${
-              tab === 0 ? `border-b-2 border-[#aa0000]` : "border-none"
+              tab === 0 ? `border-b-2 border-primary` : "border-none"
             }`}
             onClick={() => setTab(0)}
           >
@@ -199,7 +199,7 @@ const UpdateMobileEmail = () => {
           </div>
           <div
             className={`text-xs w-full text-center font-bold uppercase px-5 py-3 cursor-pointer ${
-              tab === 1 ? `border-b-2 border-[#aa0000]` : "border-none"
+              tab === 1 ? `border-b-2 border-primary` : "border-none"
             }`}
             onClick={() => setTab(1)}
           >

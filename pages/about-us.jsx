@@ -42,8 +42,8 @@ const About = () => {
         <div className="mt-12 text-center">
           <div className="text-4xl">{data[0]?.cms_type}</div>
           <div className="text-4xl">
-            <span className="text-[#aa0000]">Myshaadi</span>
-            <span className="text-[#aa0000]">.com </span>
+            <span className="text-primary">Myshaadi</span>
+            <span className="text-primary">.com </span>
           </div>
 
           <div className="text-md text-gray-500 mt-5 px-10">

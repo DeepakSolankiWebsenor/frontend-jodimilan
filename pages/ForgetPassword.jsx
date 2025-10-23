@@ -82,7 +82,7 @@ const ForgetPassword = () => {
                   )}
 
                   <button
-                    className="mt-4 bg-[#aa0000] text-white text-sm font-semibold py-2 px-4 rounded w-full hover:bg-[#ff716f] transition-all"
+                    className="mt-4 bg-primary text-white text-sm font-semibold py-2 px-4 rounded w-full hover:bg-[#ff716f] transition-all"
                     onClick={handleForgetPassword}
                   >
                     {loading ? (

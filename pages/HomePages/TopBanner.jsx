@@ -252,7 +252,7 @@ function TopBanner() {
 
                   <div className="pt-3">
                     <button
-                      className="bg-[#aa0000] hover:opacity-80 transition-all py-3 px-3 text-white w-full rounded-md"
+                      className="bg-primary hover:opacity-80 transition-all py-3 px-3 text-white w-full rounded-md"
                       onClick={handleVerifyOtp}
                     >
                       {loading ? (
@@ -574,7 +574,7 @@ function TopBanner() {
                       <div>
                         <button
                           type="submit"
-                          className="bg-[#aa0000] hover:opacity-80 transition-all py-3 px-3 text-white w-full rounded-md"
+                          className="bg-primary hover:opacity-80 transition-all py-3 px-3 text-white w-full rounded-md"
                         >
                           {loading ? (
                             <CircularProgress size={20} color={"inherit"} />

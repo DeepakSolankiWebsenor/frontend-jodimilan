@@ -176,7 +176,7 @@ function Membership() {
 
       <div className="text-center pt-10">
         <div className="text-4xl text-[#333] font-medium">
-          <span className="text-[#aa0000]">Membership</span> Plan
+          <span className="text-primary">Membership</span> Plan
         </div>
       </div>
 
@@ -257,14 +257,14 @@ function Membership() {
                 </div>
                 <div className="bg-gray-50 border-r text-gray-600 w-1/4 text-center p-2">
                   <div>View</div>
-                  <div className="text-xl font-medium text-[#aa0000]">
+                  <div className="text-xl font-medium text-primary">
                     {item.total_profile_view}
                   </div>
                   <div>Contacts</div>
                 </div>
                 <div className="bg-gray-100 border-r text-gray-600 w-1/4 text-center p-2">
                   <div>Validity</div>
-                  <div className="text-xl font-medium text-[#aa0000]">
+                  <div className="text-xl font-medium text-primary">
                     {item.package_duration}
                   </div>
                   <div>Days</div>
@@ -366,7 +366,7 @@ function Membership() {
               {pusherData?.order_status !== "Success" && (
                 <div className="mt-1">
                   <button
-                    className="bg-[#aa0000] outline-none text-white text-sm font-semibold 
+                    className="bg-primary outline-none text-white text-sm font-semibold 
                   rounded-md py-2 px-4 cursor-pointer"
                     onClick={() => setPusherData(null)}
                   >
@@ -445,7 +445,7 @@ function Membership() {
                   </div>
                   <div className="flex justify-center items-center pr-6">
                     <button
-                      className="bg-[#aa0000] outline-none text-white text-sm font-semibold rounded-md py-2 px-4 cursor-pointer"
+                      className="bg-primary outline-none text-white text-sm font-semibold rounded-md py-2 px-4 cursor-pointer"
                       onClick={handlePay}
                     >
                       {loading ? (

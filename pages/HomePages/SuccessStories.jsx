@@ -58,7 +58,7 @@ function SuccessStories() {
       <section>
         <div className="lg:px-24 md:px-14 px-4 pb-14">
           <div className="text-3xl font-medium text-center mb-4">
-            Success <span className="text-[#aa0000]">Stories</span>
+            Success <span className="text-primary">Stories</span>
           </div>
           <Slider {...settings}>
             {data?.map((item, index) => (

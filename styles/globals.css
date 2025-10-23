@@ -61,8 +61,8 @@ body {
 }
 
 .dropdown-content a:hover {
-  /* color: #aa0000; */
-  /* border-bottom: 4px solid #aa0000; */
+  /* color: #C1314D; */
+  /* border-bottom: 4px solid #C1314D; */
   transition: 0.2s ease-in-out;
   font-weight: 500;
 }
@@ -131,7 +131,7 @@ body {
 }
 
 .counter-box:hover {
-  /* background-color: #aa0000; */
+  /* background-color: #C1314D; */
 }
 
 .counter-box:hover .counter-icon {
@@ -146,7 +146,7 @@ body {
 
 /* Why us Hover */
 .whyUsBox:hover {
-  background-color: #aa0000;
+  background-color: #C1314D;
 }
 
 .whyUsBox:hover .whyUsBoxText {
@@ -233,7 +233,7 @@ input::-webkit-inner-spin-button {
 }
 
 .dropdown-item:hover {
-  color: #aa0000;
+  color: #C1314D;
 } 
 
 .shortlist-actions {

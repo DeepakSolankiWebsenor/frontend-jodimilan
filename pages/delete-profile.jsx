@@ -160,7 +160,7 @@ const DeleteProfile = () => {
       </Transition.Root>
 
       <div className="text-center lg:my-10 my-5 lg:text-4xl text-2xl px-3 text-[#333] font-medium">
-        <span className="text-[#aa0000]">Delete</span> Profile
+        <span className="text-primary">Delete</span> Profile
       </div>
 
       <div className="mb-10 flex justify-center w-full">

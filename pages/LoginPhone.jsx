@@ -119,7 +119,7 @@ const UserLogin = () => {
                   )}
                 </div>
                 <button
-                  className="bg-[#aa0000] text-white text-sm font-semibold py-2 px-4 rounded w-full hover:bg-[#ff716f] transition-all"
+                  className="bg-primary text-white text-sm font-semibold py-2 px-4 rounded w-full hover:bg-[#ff716f] transition-all"
                   onClick={handleVerifyOtp}
                 >
                   Continue
@@ -141,7 +141,7 @@ const UserLogin = () => {
 
                 <div className="text-gray-600 text-sm text-center font-medium leading-[18px] mt-4">
                   Don&apos;t have an account. &quot;
-                  <span className="text-[#aa0000]">
+                  <span className="text-primary">
                     <Link href="/" legacyBehavior>
                       Register
                     </Link>
@@ -162,7 +162,7 @@ const UserLogin = () => {
                       <FcGoogle />
                       <div className="text-sm font-semibold">oogle</div>
                     </div>
-                    <div className="flex items-center justify-center border border-[#aa0000] text-[#aa0000] py-1 px-4 rounded w-1/2 ml-1 cursor-pointer hover:bg-[#aa0000] hover:text-white transition-all">
+                    <div className="flex items-center justify-center border border-primary text-primary py-1 px-4 rounded w-1/2 ml-1 cursor-pointer hover:bg-primary hover:text-white transition-all">
                       <BsFacebook className="" />
                       <div className="text-sm font-semibold">acebook</div>
                     </div>

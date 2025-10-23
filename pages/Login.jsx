@@ -189,7 +189,7 @@ const UserLogin = () => {
                       )}
                       <button
                         type="submit"
-                        className="mt-4 bg-[#aa0000] text-white text-sm font-semibold py-2 px-4 rounded w-full hover:bg-[#ff716f] transition-all outline-none"
+                        className="mt-4 bg-primary text-white text-sm font-semibold py-2 px-4 rounded w-full hover:bg-[#ff716f] transition-all outline-none"
                         disabled={disableButton ? true : false}
                       >
                         {loading ? (
@@ -204,7 +204,7 @@ const UserLogin = () => {
 
                 <div className="text-center">
                   <button
-                    className="text-[#aa0000] cursor-pointer font-medium text-sm"
+                    className="text-primary cursor-pointer font-medium text-sm"
                     onClick={() => router.push("/ForgetPassword")}
                   >
                     Forgot Password
@@ -214,7 +214,7 @@ const UserLogin = () => {
                 <div className="text-gray-600 text-sm text-center font-medium leading-[18px] mt-2">
                   Don&apos;t have an account. &quot;
                   <button
-                    className="text-[#aa0000] cursor-pointer"
+                    className="text-primary cursor-pointer"
                     onClick={() => router.push("/")}
                   >
                     Register

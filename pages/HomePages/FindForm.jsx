@@ -110,7 +110,7 @@ function FindForm() {
             <div className="self-center">
               <div className="lg:w-full">
                 <div className="lg:w-max py-6 px-0">
-                  <div className="text-center mb-4 text-2xl font-semibold text-[#aa0000] bg-white py-2 border-b-4 border-b-[#aa0000]">
+                  <div className="text-center mb-4 text-2xl font-semibold text-primary bg-white py-2 border-b-4 border-b-primary">
                     Find Your Groom/Bride
                   </div>
                   <div className="md:flex justify-between md:mb-1 mb-2">

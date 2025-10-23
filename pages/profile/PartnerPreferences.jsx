@@ -106,7 +106,7 @@ const PartnerPreferences = ({ data, fetchProfile }) => {
   return (
     <div className="bg-white drop-shadow-lg md:w-4/5 w-full text-[15px] font-medium mb-4">
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="p-2 bg-[#aa0000] flex justify-between items-center">
+        <div className="p-2 bg-primary flex justify-between items-center">
           <p className="text-white font-semibold">Partner Preferences</p>
           {!isEdit ? (
             <div

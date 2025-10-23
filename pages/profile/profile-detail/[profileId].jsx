@@ -909,7 +909,7 @@ const ProfileDetail = () => {
                             className={`${
                               profileData?.friend_request_sent === false &&
                               profileData?.friend_request_approved === false
-                                ? "hover:bg-[#aa0000]"
+                                ? "hover:bg-primary"
                                 : ""
                             }  md:flex items-center  md:px-2 md:py-0 my-auto cursor-pointer`}
                           >
@@ -943,7 +943,7 @@ const ProfileDetail = () => {
                             )}
                           </div>
                           <div
-                            className="hover:bg-[#aa0000] md:flex items-center my-auto lg:px-3 md:px-1 cursor-pointer"
+                            className="hover:bg-primary md:flex items-center my-auto lg:px-3 md:px-1 cursor-pointer"
                             onClick={handleViewContact}
                           >
                             <div className="flex justify-center">
@@ -954,7 +954,7 @@ const ProfileDetail = () => {
                             </div>
                           </div>
                           <div
-                            className="hover:bg-[#aa0000] md:flex items-center my-auto lg:px-3 md:px-1 cursor-pointer"
+                            className="hover:bg-primary md:flex items-center my-auto lg:px-3 md:px-1 cursor-pointer"
                             onClick={() =>
                               profileData?.friend_request_approved === true &&
                               router.push("/messages")
@@ -970,7 +970,7 @@ const ProfileDetail = () => {
                           <div
                             className={`${
                               profileData?.shortlist_profile_id === false
-                                ? "hover:bg-[#aa0000] cursor-pointer"
+                                ? "hover:bg-primary cursor-pointer"
                                 : ""
                             }  md:flex my-auto items-center lg:px-3 md:px-1 `}
                             onClick={handleWishlist}

@@ -88,28 +88,28 @@ function SendInterest() {
             <div className="md:w-3/12">
               <div className="bg-[#34495e] text-white flex justify-between flex-col md:block md:px-0 md:py-0">
                 <div
-                  className="hover:bg-[#aa0000] flex items-center px-3 md:py-0 py-[6px] cursor-pointer"
+                  className="hover:bg-primary flex items-center px-3 md:py-0 py-[6px] cursor-pointer"
                   onClick={() => router.push("/SendInterest")}
                 >
                   <SiMinutemailer size={20} />
                   <div className="hidden md:block px-2 py-3">Send Interests</div>
                 </div>
                 <div
-                  className="hover:bg-[#aa0000] flex items-center px-3 md:py-0 py-[6px] cursor-pointer"
+                  className="hover:bg-primary flex items-center px-3 md:py-0 py-[6px] cursor-pointer"
                   onClick={() => setViewContact(true)}
                 >
                   <MdPermContactCalendar size={20} />
                   <div className="hidden md:block px-2 py-3">View Contacts</div>
                 </div>
                 <div
-                  className="hover:bg-[#aa0000] flex items-center px-3 md:py-0 py-[6px] cursor-pointer"
+                  className="hover:bg-primary flex items-center px-3 md:py-0 py-[6px] cursor-pointer"
                   onClick={() => setViewContact(true)}
                 >
                   <BsFillChatFill size={20} />
                   <div className="hidden md:block px-2 py-3">Chat</div>
                 </div>
                 <div
-                  className="hover:bg-[#aa0000] flex items-center px-3 md:py-0 py-[6px] cursor-pointer"
+                  className="hover:bg-primary flex items-center px-3 md:py-0 py-[6px] cursor-pointer"
                   onClick={() => router.push("/profile/short-list-profle")}
                 >
                   <BsStarFill size={20} />
@@ -158,16 +158,16 @@ function SendInterest() {
               </div>
             </div>
             <div className="w-[5%] flex flex-col justify-between items-center cursor-pointer hover:bg-[#34495e] text-gray-300 text-center">
-              <div className="hover:bg-[#aa0000] flex justify-center w-full py-2">
+              <div className="hover:bg-primary flex justify-center w-full py-2">
                 <SiMinutemailer size={25} />
               </div>
-              <div className="hover:bg-[#aa0000] flex justify-center w-full py-2">
+              <div className="hover:bg-primary flex justify-center w-full py-2">
                 <MdPermContactCalendar size={25} />
               </div>
-              <div className="hover:bg-[#aa0000] flex justify-center w-full py-2">
+              <div className="hover:bg-primary flex justify-center w-full py-2">
                 <BsFillChatFill size={25} />
               </div>
-              <div className="hover:bg-[#aa0000] flex justify-center w-full py-2">
+              <div className="hover:bg-primary flex justify-center w-full py-2">
                 <BsStarFill size={25} />
               </div>
             </div>

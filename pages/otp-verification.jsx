@@ -143,7 +143,7 @@ function OtpVerification() {
 
                 {loading ? (
                   <button
-                    className="mt-4 bg-[#aa0000] text-white text-sm font-semibold py-2 px-4 
+                    className="mt-4 bg-primary text-white text-sm font-semibold py-2 px-4 
                     rounded w-full hover:bg-[#ff716f] transition-all outline-none"
                     disabled
                   >
@@ -151,7 +151,7 @@ function OtpVerification() {
                   </button>
                 ) : (
                   <button
-                    className="mt-4 bg-[#aa0000] text-white text-sm font-semibold py-2 px-4 
+                    className="mt-4 bg-primary text-white text-sm font-semibold py-2 px-4 
                     rounded w-full hover:bg-[#ff716f] transition-all outline-none"
                     onClick={showOtpScreen ? handleVerifyOtp : handleSendOTP}
                   >

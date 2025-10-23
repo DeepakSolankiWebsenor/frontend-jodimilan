@@ -294,8 +294,8 @@ function Search() {
             <div className="text-4xl self-center">Find Your</div>
             <div className="text-4xl">
               <div className="w-max m-auto px-4 py-2 rounded-md">
-                <span className="text-[#aa0000]">Special</span>
-                <span className="text-[#aa0000]"> Someone </span>
+                <span className="text-primary">Special</span>
+                <span className="text-primary"> Someone </span>
               </div>
             </div>
           </div>
@@ -309,7 +309,7 @@ function Search() {
                       className={
                         "text-xs font-bold uppercase px-5 py-3 border rounded block leading-normal cursor-pointer" +
                         (openTab === 1
-                          ? "text-[#aa0000] border-[#aa0000] bg-blueGray-600 cursor-pointer"
+                          ? "text-primary border-primary bg-blueGray-600 cursor-pointer"
                           : "text-blueGray-600 cursor-pointer bg-white")
                       }
                       data-toggle="tab"
@@ -329,7 +329,7 @@ function Search() {
                       className={
                         "text-xs font-bold uppercase px-5 py-3 border rounded block leading-normal cursor-pointer" +
                         (openTab === 2
-                          ? "text-[#aa0000] border-[#aa0000] bg-blueGray-600 cursor-pointer"
+                          ? "text-primary border-primary bg-blueGray-600 cursor-pointer"
                           : "text-blueGray-600 cursor-pointer bg-white")
                       }
                       data-toggle="tab"
@@ -484,7 +484,7 @@ function Search() {
                               </div>
                             </div>
                             <button
-                              className="bg-[#aa0000] text-white rounded-md p-2 text-center cursor-pointer"
+                              className="bg-primary text-white rounded-md p-2 text-center cursor-pointer"
                               onClick={handleSearch}
                             >
                               Search
@@ -494,7 +494,7 @@ function Search() {
                         {data?.gender && (
                           <div className="w-full mt-3">
                             <button
-                              className="bg-[#aa0000] w-full text-white rounded-md p-2 text-center cursor-pointer"
+                              className="bg-primary w-full text-white rounded-md p-2 text-center cursor-pointer"
                               onClick={handleClearFilters}
                             >
                               Clear
@@ -515,7 +515,7 @@ function Search() {
                             onChange={(e) => setRytId(e.target.value)}
                           />
                           <button
-                            className="bg-[#aa0000] px-4 text-white rounded-md"
+                            className="bg-primary px-4 text-white rounded-md"
                             onClick={handleSearchById}
                           >
                             Search

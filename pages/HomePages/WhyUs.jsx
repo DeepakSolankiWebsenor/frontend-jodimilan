@@ -14,13 +14,13 @@ function WhyUs() {
           <div className="flex flex-col text-center w-full mb-10">
             <div className="sm:text-3xl text-2xl font-medium title-font text-gray-900">
               {" "}
-              Why <span className="text-[#aa0000]">MyShaadi</span> .com?
+              Why <span className="text-primary">MyShaadi</span> .com?
             </div>
           </div>
           <div className="flex flex-wrap text-center">
             <div className="p-4 lg:w-1/4  sm:w-1/2 w-full rounded-xl whyUsBox">
               <div className="p-4 overflow-hidden">
-                <FaGlobeAsia className="text-6xl mx-auto mb-4 text-[#aa0000] hover:text-white whyUsBoxText " />
+                <FaGlobeAsia className="text-6xl mx-auto mb-4 text-primary hover:text-white whyUsBoxText " />
                 <div className="title-font font-medium text-lg text-gray-900 mb-2 whyUsBoxText ">
                   Global set of Profiles
                 </div>
@@ -31,7 +31,7 @@ function WhyUs() {
             </div>
             <div className="p-4 lg:w-1/4  sm:w-1/2  w-full whyUsBox rounded-xl">
               <div className="p-4">
-                <FaLock className="text-6xl mx-auto mb-4 text-[#aa0000] whyUsBoxText" />
+                <FaLock className="text-6xl mx-auto mb-4 text-primary whyUsBoxText" />
                 <div className="title-font font-medium text-lg text-gray-900 mb-2 whyUsBoxText">
                   Privacy Features
                 </div>
@@ -42,7 +42,7 @@ function WhyUs() {
             </div>
             <div className="p-4 lg:w-1/4  sm:w-1/2  w-full whyUsBox rounded-xl">
               <div className="p-4">
-                <FaEdit className="text-6xl mx-auto mb-4 text-[#aa0000] whyUsBoxText" />
+                <FaEdit className="text-6xl mx-auto mb-4 text-primary whyUsBoxText" />
                 <div className="title-font font-medium text-lg text-gray-900 mb-2 whyUsBoxText">
                   Free Registration
                 </div>
@@ -53,7 +53,7 @@ function WhyUs() {
             </div>
             <div className="p-4 lg:w-1/4  sm:w-1/2  w-full whyUsBox rounded-xl">
               <div className="p-4">
-                <FaUsers className="text-6xl mx-auto mb-4 text-[#aa0000] whyUsBoxText" />
+                <FaUsers className="text-6xl mx-auto mb-4 text-primary whyUsBoxText" />
                 <div className="title-font font-medium text-lg text-gray-900 mb-2 whyUsBoxText">
                   Only Rajputana
                 </div>

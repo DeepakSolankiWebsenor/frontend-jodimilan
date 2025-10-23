@@ -203,8 +203,8 @@ const browseprofile = () => {
         <div className="mt-10 text-center">
           <div className="text-4xl">Profiles</div>
           <div className="text-4xl">
-            <span className="text-[#aa0000]">MyShaadi</span>
-            <span className="text-[#aa0000]"> Matrimonial </span>
+            <span className="text-primary">MyShaadi</span>
+            <span className="text-primary"> Matrimonial </span>
           </div>
           <div className="text-md text-gray-500 mt-5 flex justify-center">
             <div className="w-full md:px-24 px-4">

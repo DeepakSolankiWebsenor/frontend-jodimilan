@@ -252,7 +252,7 @@ const MyThikana = () => {
 
         <div className="my-10">
           <div className="text-4xl text-center">
-            Find your <span className="text-[#aa0000]"> Thikana</span>
+            Find your <span className="text-primary"> Thikana</span>
           </div>
 
           <div className="mt-4 flex justify-center">
@@ -265,7 +265,7 @@ const MyThikana = () => {
                         className={
                           "text-xs font-bold uppercase px-5 py-3 border rounded block leading-normal cursor-pointer" +
                           (activeTab === 0
-                            ? "text-[#aa0000] border-[#aa0000] bg-blueGray-600 cursor-pointer"
+                            ? "text-primary border-primary bg-blueGray-600 cursor-pointer"
                             : "text-blueGray-600 cursor-pointer bg-white")
                         }
                         data-toggle="tab"
@@ -284,7 +284,7 @@ const MyThikana = () => {
                         className={
                           "text-xs font-bold uppercase px-5 py-3 border rounded block leading-normal cursor-pointer" +
                           (activeTab === 1
-                            ? "text-[#aa0000] border-[#aa0000] bg-blueGray-600 cursor-pointer"
+                            ? "text-primary border-primary bg-blueGray-600 cursor-pointer"
                             : "text-blueGray-600 cursor-pointer bg-white")
                         }
                         data-toggle="tab"
@@ -444,13 +444,13 @@ const MyThikana = () => {
                         </div>
 
                         <button
-                          className="my-2 bg-[#aa0000] text-white rounded-md p-2 text-center"
+                          className="my-2 bg-primary text-white rounded-md p-2 text-center"
                           onClick={() => setOpenEnquiryModal(true)}
                         >
                           Add Thikana Enquiry
                         </button>
                         <button
-                          className="mt-2 bg-[#aa0000] text-white rounded-md p-2 text-center 
+                          className="mt-2 bg-primary text-white rounded-md p-2 text-center 
                               cursor-pointer"
                           onClick={handleSearch}
                           disabled={loading ? true : false}
@@ -466,7 +466,7 @@ const MyThikana = () => {
                           form.state_id ||
                           form.name) && (
                             <button
-                              className="mt-2 bg-[#aa0000] text-white rounded-md p-2 text-center 
+                              className="mt-2 bg-primary text-white rounded-md p-2 text-center 
                           cursor-pointer"
                               onClick={handleClearData}
                             >
@@ -496,7 +496,7 @@ const MyThikana = () => {
                           }
                         />
                         <button
-                          className="bg-[#aa0000] px-4 text-white rounded-md"
+                          className="bg-primary px-4 text-white rounded-md"
                           onClick={handleSearch}
                           disabled={loading ? true : false}
                         >
@@ -589,7 +589,7 @@ const MyThikana = () => {
                         enter the details of thikana which is not available.
                       </div>
                       <button
-                        className="my-2 font-medium px-4 bg-[#aa0000] text-white rounded-md p-2 text-center"
+                        className="my-2 font-medium px-4 bg-primary text-white rounded-md p-2 text-center"
                         onClick={() => setOpenEnquiryModal(true)}
                       >
                         Add Thikana Enquiry

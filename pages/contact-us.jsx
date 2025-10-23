@@ -73,7 +73,7 @@ function ContactUs() {
       </Snackbar>
 
       <div className="text-center py-10 px-4">
-        <div className="md:text-4xl text-3xl text-[#aa0000] border-b-4 border-b-[#aa0000] font-medium w-max rounded-md mx-auto">
+        <div className="md:text-4xl text-3xl text-primary border-b-4 border-b-primary font-medium w-max rounded-md mx-auto">
           Contact Us
         </div>
         <div className="text-gray-600 text-sm font-medium pt-4 uppercase">
@@ -152,7 +152,7 @@ function ContactUs() {
 
                 <div className="flex justify-center mt-3">
                   <button
-                    className="bg-[#aa0000] hover:bg-[#ff716f] text-white text-center w-full py-2 px-4 rounded-md"
+                    className="bg-primary hover:bg-[#ff716f] text-white text-center w-full py-2 px-4 rounded-md"
                     type="submit"
                   >
                     {loading ? (
@@ -168,8 +168,8 @@ function ContactUs() {
 
           <div className="grid lg:grid-cols-2 gap-5 mt-6">
             <div className="lg:mb-0 md:mb-2">
-              <div className="flex border border-[#aa0000] p-2 rounded-md">
-                <div className="border border-[#aa0000] bg-[#aa0000] p-4 rounded-md">
+              <div className="flex border border-primary p-2 rounded-md">
+                <div className="border border-primary bg-primary p-4 rounded-md">
                   <RiMailFill size={30} className="text-white mx-auto" />
                 </div>
                 <div className="rounded-md w-full self-center">
@@ -184,8 +184,8 @@ function ContactUs() {
             </div>
 
             <div className="lg:mb-0 md:mb-2 mb-2">
-              <div className="flex border border-[#aa0000] p-2 rounded-md">
-                <div className="border border-[#aa0000] bg-[#aa0000] p-4 rounded-md">
+              <div className="flex border border-primary p-2 rounded-md">
+                <div className="border border-primary bg-primary p-4 rounded-md">
                   <BsFillTelephoneFill
                     size={30}
                     className="text-white mx-auto"

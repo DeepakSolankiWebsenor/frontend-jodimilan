@@ -669,7 +669,7 @@ function EditProfile() {
                         <div className="mt-2 flex md:block items-center gap-3 justify-center">
                           <button
                             onClick={handleImageUpload}
-                            className="bg-[#aa0000] text-white w-full rounded-md py-2 font-semibold"
+                            className="bg-primary text-white w-full rounded-md py-2 font-semibold"
                           >
                             {loading ? (
                               <CircularProgress size={20} color={"inherit"} />
@@ -702,7 +702,7 @@ function EditProfile() {
           <div className="w-full mt-2 lg:mt-0 md:mt-0">
             {/* Basic Information */}
             <div className="bg-white drop-shadow-lg md:w-4/5 w-full text-[15px] font-medium">
-              <div className="p-2 bg-[#aa0000] text-white font-semibold">
+              <div className="p-2 bg-primary text-white font-semibold">
                 Basic Information
               </div>
               <div className="p-4 leading-7">
@@ -748,7 +748,7 @@ function EditProfile() {
             {userData?.user?.pacakge_id !== null &&
               userData?.user?.pacakge_id !== "" && (
                 <div className="bg-white drop-shadow-lg md:w-4/5 w-full  text-[15px] font-medium my-4">
-                  <div className="p-2 bg-[#aa0000] flex justify-between items-center">
+                  <div className="p-2 bg-primary flex justify-between items-center">
                     <div className="text-white font-semibold">
                       Package Details
                     </div>
@@ -797,7 +797,7 @@ function EditProfile() {
             {/* Social Religious Attributes */}
             <div className="bg-white drop-shadow-lg md:w-4/5 w-full  text-[15px] font-medium my-4">
               <form onSubmit={handleSubmit(handleEdit)}>
-                <div className="p-2 bg-[#aa0000] flex justify-between items-center">
+                <div className="p-2 bg-primary flex justify-between items-center">
                   <div className="text-white font-semibold">
                     Social Religious Attributes
                   </div>
@@ -997,7 +997,7 @@ function EditProfile() {
             {/* Location */}
             <div className="bg-white drop-shadow-lg md:w-4/5 w-full  text-[15px] font-medium my-4">
               <form onSubmit={handleSubmit(handleEdit)}>
-                <div className="p-2 bg-[#aa0000] flex justify-between items-center">
+                <div className="p-2 bg-primary flex justify-between items-center">
                   <div className="text-white font-semibold">Location</div>
                   {thikanaEdit ? (
                     <div
@@ -1130,7 +1130,7 @@ function EditProfile() {
             {/* Education and Occupation */}
             <div className="bg-white drop-shadow-lg md:w-4/5 w-full text-[15px] font-medium">
               <form onSubmit={handleSubmit(handleEdit)}>
-                <div className="p-2 bg-[#aa0000] flex justify-between items-center">
+                <div className="p-2 bg-primary flex justify-between items-center">
                   <div className="text-white font-semibold">
                     Education and Occupation
                   </div>
@@ -1394,7 +1394,7 @@ function EditProfile() {
             {/* Physical Attributes */}
             <div className="bg-white drop-shadow-lg md:w-4/5 w-full text-[15px] font-medium my-4">
               <form onSubmit={handleSubmit(handleEdit)}>
-                <div className="p-2 bg-[#aa0000] flex justify-between items-center">
+                <div className="p-2 bg-primary flex justify-between items-center">
                   <div className="text-white font-semibold">
                     Physical Attributes
                   </div>
@@ -1521,7 +1521,7 @@ function EditProfile() {
             {/* Family Details */}
             <div className="bg-white drop-shadow-lg md:w-4/5 w-full text-[15px] font-medium mb-4">
               <form onSubmit={handleSubmit(handleEdit)}>
-                <div className="p-2 bg-[#aa0000] flex justify-between items-center">
+                <div className="p-2 bg-primary flex justify-between items-center">
                   <div className="text-white font-semibold">Family Details</div>
                   {familyDetailEdit ? (
                     <div
@@ -1710,7 +1710,7 @@ function EditProfile() {
 
             {/* Privacy Settings */}
             <div className="bg-white drop-shadow-lg md:w-4/5 w-full text-[15px] font-medium mb-4">
-              <div className="p-2 bg-[#aa0000] flex justify-between items-center">
+              <div className="p-2 bg-primary flex justify-between items-center">
                 <div className="text-white font-semibold">Privacy Settings</div>
                 {privacySettingsEdit ? (
                   <div
@@ -1825,7 +1825,7 @@ function EditProfile() {
             {/* About yourself */}
             <div className="bg-white drop-shadow-lg md:w-4/5 w-full text-[15px] font-medium mb-4">
               <form onSubmit={handleSubmit(handleEdit)}>
-                <div className="p-2 bg-[#aa0000] flex justify-between items-center">
+                <div className="p-2 bg-primary flex justify-between items-center">
                   <div className="text-white font-semibold">About Family</div>
                   {aboutEdit ? (
                     <div
@@ -1935,7 +1935,7 @@ function EditProfile() {
                       {({ imageList, onImageUpload, onImageRemove }) => (
                         <div className="mt-5">
                           <button
-                            className="font-semibold bg-[#aa0000] w-[80px] text-gray-50 text-sm h-[30px]"
+                            className="font-semibold bg-primary w-[80px] text-gray-50 text-sm h-[30px]"
                             onClick={onImageUpload}
                           >
                             Choose
