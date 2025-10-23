@@ -19,6 +19,9 @@ module.exports = {
         primary: "#C1314D",
         secondary: "#FFF0F3",
       },
+      fontFamily: {
+        playfair: ['"Playfair Display"', "serif"],
+      },
     },
   },
   plugins: [require("@tailwindcss/line-clamp")],
