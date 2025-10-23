@@ -109,7 +109,7 @@ function Header() {
   return (
     <header
       id="haeder"
-      className="h-[75px] fixed top-0 z-10 w-full shadow-sm sm:px-20"
+      className="h-[75px] fixed top-0 z-20 w-full shadow-sm sm:px-20"
     >
       <Snackbar
         open={alert}

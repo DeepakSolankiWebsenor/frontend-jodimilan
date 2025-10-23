@@ -2,6 +2,9 @@ import Head from "next/head";
 import FindPerfectMatch from "./HomePages/FindPerfectMatch";
 import HowItWorks from "./HomePages/HowItWorks";
 import SuccessStory from "./HomePages/SuccessStory";
+import FAQs from "./HomePages/FAQs";
+import ExploreProfile from "./HomePages/ExploreProfile";
+import DownloadOurApp from "./HomePages/DownloadOurApp";
 
 export default function Home() {
   return (
@@ -19,6 +22,9 @@ export default function Home() {
       <FindPerfectMatch />
       <HowItWorks />
       <SuccessStory />
+      <FAQs />
+      <ExploreProfile />
+      <DownloadOurApp />
     </div>
   );
 }
