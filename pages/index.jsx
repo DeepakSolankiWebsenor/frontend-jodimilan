@@ -9,6 +9,7 @@ import {
   SUCCESS_STORIES,
 } from "../services/redux/slices/userSlice";
 import FindPerfectMatch from "./HomePages/FindPerfectMatch";
+import HowItWorks from "./HomePages/HowItWorks";
 
 export default function Home() {
   return (
@@ -23,9 +24,8 @@ export default function Home() {
         <link rel="icon" href="/logo/Logo.png" />
       </Head>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <FindPerfectMatch />
-      </div>
+      <FindPerfectMatch />
+      <HowItWorks />
     </div>
   );
 }
