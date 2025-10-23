@@ -250,7 +250,7 @@ function Header() {
         <div>
           {!loggedIn ? (
             <button
-              className="text-sm font-medium rounded-full px-5 py-2 bg-primary text-white outline-none cursor-pointer"
+              className="hidden sm:block text-sm font-medium rounded-full px-5 py-2 bg-primary text-white outline-none cursor-pointer"
               onClick={() => router.push("/Login")}
             >
               Sign In
