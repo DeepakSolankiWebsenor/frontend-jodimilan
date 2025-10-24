@@ -32,7 +32,7 @@ const FindPerfectMatch = () => {
     maxAge: "",
   });
 
-  const isFormEmpty = Object.values(form).every(
+  const isFormEmpty = Object.values(form).some(
     (value) => value === "" || value === null
   );
 

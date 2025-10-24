@@ -55,7 +55,7 @@ const HowItWorks = () => {
               return (
                 <div
                   key={idx}
-                  className="w-full sm:w-[45%] md:w-[30%] bg-white p-6 sm:p-8 md:p-10 rounded-full border-2 border-primary text-center"
+                  className="w-full sm:w-[45%] md:w-[30%] bg-white p-6 rounded-full border-2 border-primary text-center"
                 >
                   <Icon className="text-primary h-10 w-10 sm:h-12 sm:w-12 mx-auto" />
                   <div className="text-primary text-lg sm:text-xl font-bold mt-3 sm:mt-4">
