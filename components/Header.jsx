@@ -72,7 +72,7 @@ function Header() {
 
   const handleLogout = () => {
     router.push("/Login");
-    localStorage.removeItem("token");
+    localStorage.clear();
     setAlert(true);
   };
 
@@ -133,7 +133,7 @@ function Header() {
       />
 
       <div className="relative z-10 flex items-center justify-between h-full px-5">
-        <Link href={loggedIn ? "/profile/profile-page" : "/"} legacyBehavior>
+        <Link href={"/"} legacyBehavior>
           <a className="flex items-center">
             <Image
               src="/logo/Logo.png"

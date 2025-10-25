@@ -1,77 +1,19 @@
 import { useRouter } from "next/router";
-import React, { useEffect, useState } from "react";
-import useApiService from "../services/ApiService";
+import { useEffect, useState } from "react";
 import Footer from "./Footer";
 import Header from "./Header";
+import { useDispatch } from "react-redux";
+import useApiService from "../services/ApiService";
+import { COMMON_DATA } from "../services/redux/slices/userSlice";
+import useFirebase from "../hooks/useFirebase";
 
 function Layout({ children }) {
-  const [hideFooter, setHideFooter] = useState(false);
-  const [user_id, setUser_id] = useState("");
-  const [prefix_id, setPrefix_id] = useState("");
-  const {  pushNotificationSubscribe } =
-    useApiService();
   const router = useRouter();
+  const dispatch = useDispatch();
+  const { initFirebase } = useFirebase();
+  const [hideFooter, setHideFooter] = useState(false);
+  const { commonOption, getNotifications } = useApiService();
 
-
-  useEffect(() => {
-    if (user_id && prefix_id) {
-      Notification.requestPermission().then(async (permission) => {
-        if (permission === "granted") {
-          await getToken(getMessaging(firebaseApp), {
-            vapidKey:
-              "BMfBN0pzzkOsJ1lMk7pWGi4RJ4CYwS_EYzS-kfHU-efROryUL8Qi9oHufm8WNSlcKmeLlAl7zmVNZxYbRtdh8-4",
-          })
-            .then((currentToken) => {
-              if (currentToken) {
-
-                let params = {
-                  topic: `${prefix_id}_user_id_${user_id}`,
-                  token: currentToken,
-                };
-
-                pushNotificationSubscribe(params)
-                  .then((res) => {
-                    if (res.status === 200) {
-                    }
-                  })
-                  .catch((error) => {
-                  });
-
-                onMessage(getMessaging(firebaseApp), (payload) => {
-                  const notificationTitle = payload.notification.title;
-                  const notificationOptions = {
-                    body: payload.notification.body,
-                  };
-
-                  var notification = new Notification(
-                    notificationTitle,
-                    notificationOptions
-                  );
-
-                  notification.onclick = function (ev) {
-                    ev.preventDefault();
-                    window.open("/", "_blank");
-                    notification.close();
-                  };
-                });
-                // Track the token -> client mapping, by sending to backend server
-                // show on the UI that permission is secured
-              } else {
-                console.log(
-                  "No registration token available. Request permission to generate one."
-                );
-                // setTokenFound(false);
-                // shows on the UI that permission is required
-              }
-            })
-            .catch((err) => {
-              // console.log("An error occurred while retrieving token. ", err);
-              // catch error while creating client token
-            });
-        }
-      });
-    }
-  }, [user_id, prefix_id]);
   useEffect(() => {
     const location = window.location.pathname;
     if (location === "/messages") {
@@ -80,6 +22,36 @@ function Layout({ children }) {
       setHideFooter(false);
     }
   }, [router.query]);
+
+  const getNotificationsData = () => {
+    getNotifications()
+      .then((res) => {
+        if (res?.data?.status === 200) {
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  };
+
+  useEffect(() => {
+    commonOption()
+      .then((res) => {
+        if (res.data.code) {
+          dispatch(COMMON_DATA(res?.data?.data));
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+
+    const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("user_id");
+    if (token) {
+      getNotificationsData();
+      initFirebase({ userId });
+    }
+  }, []);
 
   return (
     <>

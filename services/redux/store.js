@@ -1,12 +1,5 @@
-// import { configureStore } from "@reduxjs/toolkit";
 import userSlice from "./slices/userSlice";
-
-
-// export default configureStore({
-//   reducer: {
-//     user: userSlice,
-//   },
-// });
+import notificationSlice from "./slices/notificationSlice"
 
 import { configureStore } from '@reduxjs/toolkit'
 
@@ -22,6 +15,7 @@ const persistConfig = {
 };
 const reducer = combineReducers({
   user: userSlice,
+  notification: notificationSlice
 })
 const persistedReducer = persistReducer(persistConfig , reducer)
 

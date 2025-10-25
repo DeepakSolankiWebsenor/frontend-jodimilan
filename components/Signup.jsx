@@ -64,7 +64,6 @@ const Signup = ({ open, onClose }) => {
         </DialogTitle>
         <DialogContent>
           <div className="grid grid-cols-2 gap-4">
-            {/* Profile By */}
             <div className="grid gap-1">
               <label className="text-sm font-medium">Profile By</label>
               <select
@@ -87,7 +86,6 @@ const Signup = ({ open, onClose }) => {
               )}
             </div>
 
-            {/* Gender */}
             <div className="grid gap-1">
               <label className="text-sm font-medium">Gender</label>
               <select
@@ -110,7 +108,6 @@ const Signup = ({ open, onClose }) => {
               )}
             </div>
 
-            {/* Marital Status */}
             <div className="grid gap-1">
               <label className="text-sm font-medium">Marital Status</label>
               <select
@@ -133,7 +130,6 @@ const Signup = ({ open, onClose }) => {
               )}
             </div>
 
-            {/* Religion */}
             <div className="grid gap-1">
               <label className="text-sm font-medium">Religion</label>
               <select
@@ -144,8 +140,8 @@ const Signup = ({ open, onClose }) => {
                   Please Select
                 </option>
                 {options?.religion?.map((item, index) => (
-                  <option value={item} key={index}>
-                    {item}
+                  <option value={item?.id} key={index}>
+                    {item?.name}
                   </option>
                 ))}
               </select>
@@ -156,7 +152,6 @@ const Signup = ({ open, onClose }) => {
               )}
             </div>
 
-            {/* Clan */}
             <div className="grid gap-1">
               <label className="text-sm font-medium">Clan</label>
               <select
@@ -167,8 +162,8 @@ const Signup = ({ open, onClose }) => {
                   Please Select
                 </option>
                 {options?.caste?.map((item, index) => (
-                  <option value={item} key={index}>
-                    {item}
+                  <option value={item?.id} key={index}>
+                    {item?.name}
                   </option>
                 ))}
               </select>
@@ -179,7 +174,6 @@ const Signup = ({ open, onClose }) => {
               )}
             </div>
 
-            {/* DOB */}
             <div className="grid gap-1">
               <label className="text-sm font-medium">Date of Birth</label>
               <input
@@ -195,7 +189,6 @@ const Signup = ({ open, onClose }) => {
               )}
             </div>
 
-            {/* Name */}
             <div className="grid gap-1">
               <label className="text-sm font-medium">First Name</label>
               <input
@@ -215,7 +208,6 @@ const Signup = ({ open, onClose }) => {
               )}
             </div>
 
-            {/* Last Name */}
             <div className="grid gap-1">
               <label className="text-sm font-medium">Last Name</label>
               <input
@@ -224,7 +216,6 @@ const Signup = ({ open, onClose }) => {
               />
             </div>
 
-            {/* Email */}
             <div className="grid gap-1">
               <label className="text-sm font-medium">Email</label>
               <input
@@ -244,7 +235,6 @@ const Signup = ({ open, onClose }) => {
               )}
             </div>
 
-            {/* Password */}
             <div className="grid gap-1">
               <label className="text-sm font-medium">Password</label>
               <input
@@ -265,7 +255,6 @@ const Signup = ({ open, onClose }) => {
               )}
             </div>
 
-            {/* Phone */}
             <div className="grid gap-1">
               <label className="text-sm font-medium">Phone No.</label>
               <input

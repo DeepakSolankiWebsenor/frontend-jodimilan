@@ -6,7 +6,6 @@ export const userSlice = createSlice({
     user: null,
     common_data:{},
     success_stories:[],
-    notification:{}
   },
   reducers: {
     setUser: (state, action) => {
@@ -18,13 +17,10 @@ export const userSlice = createSlice({
     SUCCESS_STORIES : (state, action) => {
       state.success_stories = action.payload
     },
-    NOTIFICATION : (state, action) => {
-      state.notification = action.payload
-    }
   },
 });
 
 export const getUSer = (state) => state.user;
 
-export const { setUser, COMMON_DATA, SUCCESS_STORIES , NOTIFICATION} = userSlice.actions;
+export const { setUser, COMMON_DATA, SUCCESS_STORIES} = userSlice.actions;
 export default userSlice.reducer;

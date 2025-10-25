@@ -1,12 +1,7 @@
 import axios from "axios";
 
 export const http = axios.create({
-  // baseURL: "https://royalthikana-backend.servepratham.com/api",
-  baseURL: "https://game.peclick.co.in/api",
-
-  // baseURL:"https://matrimonial.thelocalsamachar.com/api",
-  // baseURL: "https://api.royalthikana.com/api",
-
+  baseURL: "https://admin.jodimilan.com/api",
   headers: {
     Accept: "application/json",
     "Content-Type": "multipart/form-data",

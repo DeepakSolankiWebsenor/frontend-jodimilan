@@ -10,8 +10,10 @@ import CryptoJS from "crypto-js";
 import { decrypted_key } from "../services/appConfig";
 import { useDispatch } from "react-redux";
 import { setUser } from "../services/redux/slices/userSlice";
+import useFirebase from "../hooks/useFirebase";
 
 const UserLogin = () => {
+  const { initFirebase } = useFirebase();
   const [serverError, setServerError] = useState("");
   const [fieldError, setFieldError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,8 +32,6 @@ const UserLogin = () => {
     handleSubmit,
   } = useForm();
 
- 
-
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -42,7 +42,7 @@ const UserLogin = () => {
   const userLoginFunction = (data) => {
     setDisableButton(true);
     let params = {};
-    if (data.email.includes("RYT")||data.email.includes("ryt")) {
+    if (data.email.includes("RYT") || data.email.includes("ryt")) {
       params = {
         ryt_id: data.email,
         password: data.password,
@@ -75,6 +75,7 @@ const UserLogin = () => {
 
           setServerError("");
           setAlert(true);
+          initFirebase({ userId: parsed?.id });
           router.push("/profile/profile-page");
         }
       })
@@ -121,10 +122,7 @@ const UserLogin = () => {
                     autoComplete="off"
                   >
                     <div className="">
-                      <div
-                        className="text-gray-800 font-semibold"
-                        
-                      >
+                      <div className="text-gray-800 font-semibold">
                         <input
                           type="text"
                           name="email"
@@ -135,7 +133,6 @@ const UserLogin = () => {
                             required: true,
                             pattern: "",
                           })}
-                          
                         />
                         {errors.email && (
                           <div className="text-red-600 text-xs mt-2 font-semibold pl-1">
@@ -157,7 +154,6 @@ const UserLogin = () => {
                             pattern:
                               /^(.{0,7}|[^0-9]*|[^A-Z]*|[^a-z]*|[a-zA-Z0-9]*).{8}$/,
                           })}
-                        
                         />
                         <div
                           className="cursor-pointer text-gray-600"
