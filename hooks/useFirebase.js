@@ -18,21 +18,21 @@ const useFirebase = () => {
         console.log("FCM Token:", token);
         localStorage.setItem("fcmToken", token);
 
-        await handleSubscribeToTopic({ userId });
+        await handleSubscribeToTopic({ userId, token });
       } catch (error) {
         console.log("Error getting token:", err);
       }
     }
   };
 
-  const handleSubscribeToTopic = async ({ userId }) => {
+  const handleSubscribeToTopic = async ({ userId, token }) => {
     try {
       const res = await pushNotificationSubscribe({
-        userId,
+        token,
         topic: `T_user_id_${userId}`,
       });
 
-      console.log(res)
+      console.log(res);
     } catch (error) {
       console.log(error);
     }
