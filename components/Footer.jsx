@@ -38,14 +38,14 @@ function Footer() {
               alt="Play Store"
               height={400}
               width={600}
-              className="object-cover w-[120px]"
+              className="object-cover w-[130px] sm:w-[150px]"
             />
             <Image
               src="/images/appstore.png"
               alt="App Store"
               height={400}
               width={600}
-              className="object-cover w-[120px]"
+              className="object-cover w-[130px] sm:w-[150px]"
             />
           </div>
         </div>

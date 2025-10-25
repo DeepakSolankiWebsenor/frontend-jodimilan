@@ -323,11 +323,6 @@ const Signup = ({ open, onClose }) => {
               )}
             </div>
           </div>
-
-          <div className="text-sm mt-3 text-gray-600 font-medium text-center">
-            By clicking on 'Accept & Register', you confirm you accept the Terms
-            of Use and Safety Tips.
-          </div>
         </DialogContent>
 
         <DialogActions>
