@@ -6,8 +6,8 @@ import { useRouter } from "next/router";
 import { RxAvatar } from "react-icons/rx";
 import Alert from "@mui/material/Alert";
 import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
-import { Drawer, IconButton, Snackbar } from "@mui/material";
-import { useSelector } from "react-redux";
+import { Badge, Drawer, IconButton, Snackbar } from "@mui/material";
+import { useDispatch, useSelector } from "react-redux";
 import { getUSer } from "../services/redux/slices/userSlice";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -20,12 +20,16 @@ import Popper from "@mui/material/Popper";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 import Signup from "./Signup";
+import { markNotificationRead } from "../services/redux/slices/notificationSlice";
+import NotificationDrawer from "./NotificationDrawer";
 
 function Header() {
+  const dispatch = useDispatch();
   const [loggedIn, setLoggedIn] = useState(false);
   const router = useRouter();
   const [alert, setAlert] = useState(false);
   const userData = useSelector(getUSer);
+  const { unreadCounts } = useSelector((state) => state.notification);
   const [decryptedUserData, setDecryptedUserData] = useState(null);
   const [dropdown, setDropdown] = useState(false);
   const [openProfile, setOpenProfile] = React.useState(false);
@@ -33,6 +37,7 @@ function Header() {
   const prevProfileOpen = React.useRef(openProfile);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [openSignup, setOpenSignup] = useState(false);
+  const [notificationDrawer, setNotificationDrawer] = useState([]);
 
   const getMasterData = () => {
     if (userData?.user !== null) {
@@ -289,7 +294,9 @@ function Header() {
                   </div>
                 ) : (
                   <div className="mt-9">
-                    <RxAvatar size={25} />
+                    <Badge badgeContent={unreadCounts} color="info">
+                      <RxAvatar size={25} />
+                    </Badge>
                   </div>
                 )}
               </div>
@@ -325,6 +332,23 @@ function Header() {
                                   >
                                     <a className="dropdown-item">My Profile</a>
                                   </Link>
+                                </li>
+
+                                <li className="flex items-center justify-between">
+                                  <button
+                                    onClick={() => {
+                                      dispatch(markNotificationRead());
+                                      setNotificationDrawer(true);
+                                    }}
+                                    className="outline-none dropdown-item"
+                                  >
+                                    Notifications
+                                  </button>
+                                  {unreadCounts > 0 && (
+                                    <div className="w-[15px] h-[15px] flex items-center justify-center rounded-full p-2.5 text-xs bg-primary text-white font-bold">
+                                      {unreadCounts > 9 ? "9+" : unreadCounts}
+                                    </div>
+                                  )}
                                 </li>
 
                                 <li>
@@ -496,6 +520,13 @@ function Header() {
 
       {openSignup && (
         <Signup open={openSignup} onClose={() => setOpenSignup(false)} />
+      )}
+
+      {notificationDrawer && (
+        <NotificationDrawer
+          open={notificationDrawer}
+          onClose={() => setNotificationDrawer(false)}
+        />
       )}
     </header>
   );

@@ -3,8 +3,12 @@ import { toast } from "react-toastify";
 import { IoNotificationsOutline } from "react-icons/io5";
 import { useEffect } from "react";
 import { messaging } from "../services/firebase";
+import { useDispatch } from "react-redux";
+import { addNotification } from "../services/redux/slices/notificationSlice";
 
 const NotificationBar = () => {
+  const dispatch = useDispatch();
+
   useEffect(() => {
     let unsubscribe = null;
 
@@ -23,6 +27,8 @@ const NotificationBar = () => {
 
           const { title, body, data: actionData } = payload.data || {};
           const parsedActionData = actionData ? JSON.parse(actionData) : null;
+
+          dispatch(addNotification(parsedActionData));
 
           toast(
             <div

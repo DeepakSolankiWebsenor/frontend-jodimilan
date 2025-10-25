@@ -27,12 +27,10 @@ const useFirebase = () => {
 
   const handleSubscribeToTopic = async ({ userId, token }) => {
     try {
-      const res = await pushNotificationSubscribe({
+      await pushNotificationSubscribe({
         token,
         topic: `T_user_id_${userId}`,
       });
-
-      console.log(res);
     } catch (error) {
       console.log(error);
     }

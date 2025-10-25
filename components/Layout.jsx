@@ -6,6 +6,7 @@ import { useDispatch } from "react-redux";
 import useApiService from "../services/ApiService";
 import { COMMON_DATA } from "../services/redux/slices/userSlice";
 import useFirebase from "../hooks/useFirebase";
+import { setNotifications } from "../services/redux/slices/notificationSlice";
 
 function Layout({ children }) {
   const router = useRouter();
@@ -27,6 +28,7 @@ function Layout({ children }) {
     getNotifications()
       .then((res) => {
         if (res?.data?.status === 200) {
+          dispatch(setNotifications(res?.data?.notifications));
         }
       })
       .catch((error) => {
