@@ -5,6 +5,8 @@ import { FaInstagram } from "react-icons/fa";
 import { TbBrandTwitter } from "react-icons/tb";
 import { RiYoutubeLine } from "react-icons/ri";
 import { FiLinkedin } from "react-icons/fi";
+import { useState } from "react";
+import Signup from "./Signup";
 
 const socials = [
   FiFacebook,
@@ -15,6 +17,8 @@ const socials = [
 ];
 
 function Footer() {
+  const [openSignup, setOpenSignup] = useState(false);
+
   return (
     <footer className="bg-primary text-white pt-10 sm:pt-20 px-5 sm:px-10 md:px-20 pb-5">
       <div className="flex flex-col md:flex-row justify-between items-start gap-10">
@@ -65,8 +69,12 @@ function Footer() {
         <div className="grid gap-5 w-full sm:w-auto">
           <div className="font-bold text-lg">Need Help?</div>
           <div className="grid gap-2 font-medium text-sm sm:text-base">
-            <div>Member Login</div>
-            <div>Sign Up</div>
+            <Link href="/Login" legacyBehavior>
+              Member Login
+            </Link>
+            <div onClick={() => setOpenSignup(true)} className="cursor-pointer">
+              Sign Up
+            </div>
           </div>
         </div>
 
@@ -129,6 +137,10 @@ function Footer() {
       <div className="mt-10 border-t border-gray-100 border-opacity-25 pt-5 text-center text-sm">
         © 2024 MyShaadi. All rights reserved.
       </div>
+
+      {openSignup && (
+        <Signup open={openSignup} onClose={() => setOpenSignup(false)} />
+      )}
     </footer>
   );
 }
