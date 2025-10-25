@@ -7,6 +7,11 @@ import {
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useForm } from "react-hook-form";
+import { useRouter } from "next/router";
+import useApiService from "../services/ApiService";
+import CryptoJS from "crypto-js";
+import { decrypted_key } from "../services/appConfig";
+import { toast } from "react-toastify";
 
 const defaultValues = {
   profile_by: "",
@@ -24,8 +29,11 @@ const defaultValues = {
 };
 
 const Signup = ({ open, onClose }) => {
-  const [loading, setloadng] = useState(false);
+  const router = useRouter();
+  const { customerSignup } = useApiService();
   const [options, setOptions] = useState(null);
+  const [loading, setloading] = useState(false);
+  const [signupErrors, setSignupErrors] = useState("");
   const masterData1 = useSelector((state) => state.user);
 
   const {
@@ -42,9 +50,49 @@ const Signup = ({ open, onClose }) => {
   }, [masterData1]);
 
   const onSubmit = (data) => {
-    console.log("Form Submitted ✅", data);
-    onClose();
-    reset();
+    setloading(true);
+    setSignupErrors("");
+
+    const params = {};
+
+    for (const key in data) {
+      if (data[key]) {
+        params[key] = data[key];
+      }
+    }
+
+    params["dialing_code"] = "91";
+
+    customerSignup(params)
+      .then((response) => {
+        if (response?.data?.code === 201) {
+          var encrypted_json = JSON.parse(atob(response?.data?.data?.user));
+
+          var dec = CryptoJS.AES.decrypt(
+            encrypted_json.value,
+            CryptoJS.enc.Base64.parse(decrypted_key),
+            {
+              iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
+            }
+          ).toString(CryptoJS.enc.Utf8);
+
+          const parsed = JSON.parse(dec.slice(8, -2));
+
+          toast.success("Registration successfully");
+
+          setloading(true);
+          setTimeout(() => {
+            onClose();
+            reset();
+            setloading(false);
+            router.push("/profile/profile-page");
+          }, 1000);
+        }
+      })
+      .catch((errors) => {
+        setSignupErrors(errors?.response?.data?.errors);
+        setloading(false);
+      });
   };
 
   return (
@@ -79,9 +127,9 @@ const Signup = ({ open, onClose }) => {
                   </option>
                 ))}
               </select>
-              {errors.profile_by && (
+              {errors?.profile_by && (
                 <p className="text-red-500 font-medium text-xs">
-                  {errors.profile_by.message}
+                  {errors?.profile_by?.message}
                 </p>
               )}
             </div>
@@ -101,9 +149,9 @@ const Signup = ({ open, onClose }) => {
                   </option>
                 ))}
               </select>
-              {errors.gender && (
+              {errors?.gender && (
                 <p className="text-red-500 font-medium text-xs">
-                  {errors.gender.message}
+                  {errors?.gender?.message}
                 </p>
               )}
             </div>
@@ -123,9 +171,9 @@ const Signup = ({ open, onClose }) => {
                   </option>
                 ))}
               </select>
-              {errors.mat_status && (
+              {errors?.mat_status && (
                 <p className="text-red-500 font-medium text-xs">
-                  {errors.mat_status.message}
+                  {errors?.mat_status?.message}
                 </p>
               )}
             </div>
@@ -145,9 +193,9 @@ const Signup = ({ open, onClose }) => {
                   </option>
                 ))}
               </select>
-              {errors.religion && (
+              {errors?.religion && (
                 <p className="text-red-500 font-medium text-xs">
-                  {errors.religion.message}
+                  {errors?.religion?.message}
                 </p>
               )}
             </div>
@@ -167,9 +215,9 @@ const Signup = ({ open, onClose }) => {
                   </option>
                 ))}
               </select>
-              {errors.caste && (
+              {errors?.caste && (
                 <p className="text-red-500 font-medium text-xs">
-                  {errors.caste.message}
+                  {errors?.caste?.message}
                 </p>
               )}
             </div>
@@ -184,7 +232,7 @@ const Signup = ({ open, onClose }) => {
               />
               {errors.dob && (
                 <p className="text-red-500 font-medium text-xs">
-                  {errors.dob.message}
+                  {errors?.dob?.message}
                 </p>
               )}
             </div>
@@ -228,9 +276,9 @@ const Signup = ({ open, onClose }) => {
                 })}
                 className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
               />
-              {errors.email && (
+              {(errors.email || signupErrors?.email) && (
                 <p className="text-red-500 font-medium text-xs">
-                  {errors.email.message}
+                  {errors?.email?.message || signupErrors?.email}
                 </p>
               )}
             </div>
@@ -250,7 +298,7 @@ const Signup = ({ open, onClose }) => {
               />
               {errors.password && (
                 <p className="text-red-500 font-medium text-xs">
-                  {errors.password.message}
+                  {errors?.password?.message}
                 </p>
               )}
             </div>
@@ -268,9 +316,9 @@ const Signup = ({ open, onClose }) => {
                 })}
                 className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
               />
-              {errors.phone && (
+              {(errors?.phone || signupErrors?.phone) && (
                 <p className="text-red-500 font-medium text-xs">
-                  {errors.phone.message}
+                  {errors?.phone?.message || signupErrors?.phone}
                 </p>
               )}
             </div>

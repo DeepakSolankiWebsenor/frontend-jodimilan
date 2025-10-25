@@ -37,7 +37,7 @@ function Header() {
   const prevProfileOpen = React.useRef(openProfile);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [openSignup, setOpenSignup] = useState(false);
-  const [notificationDrawer, setNotificationDrawer] = useState([]);
+  const [notificationDrawer, setNotificationDrawer] = useState(false);
 
   const getMasterData = () => {
     if (userData?.user !== null) {
