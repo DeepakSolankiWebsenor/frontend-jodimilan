@@ -20,7 +20,7 @@ import CircularLoader from "../components/common-component/loader";
 import PersonIcon from "@mui/icons-material/Person";
 import PermIdentityIcon from "@mui/icons-material/PermIdentity";
 import CryptoJS from "crypto-js";
-import { decrypted_key } from "../services/appConfig";
+import { decrypted_key, SOCKET_CONFIG } from "../services/appConfig";
 import { getUSer } from "../services/redux/slices/userSlice";
 
 export default function Messages() {
@@ -51,12 +51,12 @@ export default function Messages() {
   const { user } = useSelector((state) => state.user);
   var roomId = '';
   // below creating new Pusher object and passing our app configuration to it
-  let PusherClient = new Pusher("6ff945b69651927a0a68", {
+  let PusherClient = new Pusher(SOCKET_CONFIG.KEY, {
     cluster: "ap2",
-    wsHost: "api.royalthikana.com",
-    wsPort: "9001",
-    wssHost: "api.royalthikana.com",
-    wssPort: "9001",
+    wsHost: SOCKET_CONFIG.URL,
+    wsPort: SOCKET_CONFIG.PORT,
+    wssHost: SOCKET_CONFIG.URL,
+    wssPort: SOCKET_CONFIG.PORT,
     enabledTransports: ["ws", "wss"],
     forceTLS: false,
   });
@@ -78,6 +78,7 @@ export default function Messages() {
     echo.channel(`Chat.${Number(localStorage.getItem('currentChatId'))}`)
       .listen("PrivateChatEvent", (ev) => {
         let tempMsg = { ...ev?.data };
+        console.log('new message', ev)
         if (ev?.data.session_id === Number(localStorage.getItem('currentChatId')))
           setChatData((chatData) => [...chatData, tempMsg]);
       });

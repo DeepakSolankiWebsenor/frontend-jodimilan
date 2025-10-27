@@ -9,7 +9,7 @@ import { Dialog, Transition } from "@headlessui/react";
 import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
 import { useRouter } from "next/router";
 import Head from "next/head";
-import { payment_url } from "../services/appConfig";
+import { payment_url, SOCKET_CONFIG } from "../services/appConfig";
 import Pusher from "pusher-js";
 import Echo from "laravel-echo";
 import CryptoJS from "crypto-js";
@@ -91,12 +91,12 @@ function Membership() {
   }, []);
 
   const paymentListner = (id) => {
-    let PusherClient = new Pusher("6ff945b69651927a0a68", {
+    let PusherClient = new Pusher(SOCKET_CONFIG.KEY, {
       cluster: "ap2",
-      wsHost: "api.royalthikana.com",
-      wsPort: "9001",
-      wssHost: "api.royalthikana.com",
-      wssPort: "9001",
+      wsHost: SOCKET_CONFIG.URL,
+      wsPort: SOCKET_CONFIG.PORT,
+      wssHost: SOCKET_CONFIG.URL,
+      wssPort: SOCKET_CONFIG.PORT,
       enabledTransports: ["ws", "wss"],
       forceTLS: false,
     });

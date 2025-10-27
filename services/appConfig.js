@@ -1,6 +1,8 @@
-export const payment_url = "https://api.royalthikana.com/ccavenue/";
+export const payment_url = "https://admin.jodimilan.com/ccavenue/";
 
 export const decrypted_key = "bsCL1j+niPjVN2MAm89+bTKYny2Ji0v9GMFRZPFWWYY=";
+
+export const API_BASE_URL = "https://admin.jodimilan.com/api"
 
 export const firebaseConfig = {
   apiKey: "AIzaSyDHV4N7xPKfbxOhU7XCgRVjEctmeQlE8xo",
@@ -13,3 +15,9 @@ export const firebaseConfig = {
   vapidKey:
     "BN0AON9Z32cbNYuwKPom1dFGcAhmPmqbBfL4t8VDIvFL4TamX5v41TVGGpEx2ItQ4bJ-eKCPr9X9wVqf6jsIJs0",
 };
+
+export const SOCKET_CONFIG = {
+  URL: "admin.jodimilan.com",
+  PORT: "6001",
+  KEY: "aa2121467d576c57589d"
+}

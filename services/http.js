@@ -1,7 +1,8 @@
 import axios from "axios";
+import { API_BASE_URL } from "./appConfig";
 
 export const http = axios.create({
-  baseURL: "https://admin.jodimilan.com/api",
+  baseURL: API_BASE_URL,
   headers: {
     Accept: "application/json",
     "Content-Type": "multipart/form-data",
