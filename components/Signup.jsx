@@ -30,11 +30,15 @@ const defaultValues = {
 
 const Signup = ({ open, onClose }) => {
   const router = useRouter();
-  const { customerSignup } = useApiService();
+  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState("signup");
   const [options, setOptions] = useState(null);
   const [loading, setloading] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [signupErrors, setSignupErrors] = useState("");
+  const { customerSignup, verifyOtp } = useApiService();
   const masterData1 = useSelector((state) => state.user);
+  const [otpServerError, setOtpServerError] = useState("");
 
   const {
     register,
@@ -78,20 +82,47 @@ const Signup = ({ open, onClose }) => {
 
           const parsed = JSON.parse(dec.slice(8, -2));
 
-          toast.success("Registration successfully");
+          setPhoneNumber(parsed?.phone);
+          toast.success("OTP sent on mobile number.");
 
-          setloading(true);
           setTimeout(() => {
-            onClose();
             reset();
+            setStep("otp");
             setloading(false);
-            router.push("/profile/profile-page");
           }, 1000);
         }
       })
       .catch((errors) => {
         setSignupErrors(errors?.response?.data?.errors);
         setloading(false);
+      });
+  };
+
+  const handleOtpVerify = () => {
+    setloading(true);
+
+    const params = {
+      otp,
+      phone: phoneNumber,
+    };
+
+    verifyOtp(params)
+      .then((response) => {
+        if (response.data.code === 200) {
+          localStorage.setItem("token", response?.data.data.access_token);
+          setOtpServerError("");
+          toast.success("OTP verified successfully");
+          setTimeout(() => {
+            onClose();
+            router.push("/profile/profile-page");
+            setloading(false);
+          }, 2000);
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+        setloading(false);
+        setOtpServerError(error.response.data.message);
       });
   };
 
@@ -106,243 +137,292 @@ const Signup = ({ open, onClose }) => {
         },
       }}
     >
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogTitle>
-          <div className="font-bold">Register Yourself</div>
-        </DialogTitle>
-        <DialogContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Profile By</label>
-              <select
-                {...register("profile_by", { required: "Please select" })}
-                className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
-              >
-                <option value="" hidden>
-                  Please Select
-                </option>
-                {options?.profile?.map((item, index) => (
-                  <option key={index} value={item}>
-                    {item}
+      {step === "signup" ? (
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <DialogTitle>
+            <div className="font-bold">Register Yourself</div>
+          </DialogTitle>
+          <DialogContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-1">
+                <label className="text-sm font-medium">Profile By</label>
+                <select
+                  {...register("profile_by", { required: "Please select" })}
+                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                >
+                  <option value="" hidden>
+                    Please Select
                   </option>
-                ))}
-              </select>
-              {errors?.profile_by && (
-                <p className="text-red-500 font-medium text-xs">
-                  {errors?.profile_by?.message}
-                </p>
-              )}
-            </div>
+                  {options?.profile?.map((item, index) => (
+                    <option key={index} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+                {errors?.profile_by && (
+                  <p className="text-red-500 font-medium text-xs">
+                    {errors?.profile_by?.message}
+                  </p>
+                )}
+              </div>
 
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Gender</label>
-              <select
-                {...register("gender", { required: "Please select gender" })}
-                className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
-              >
-                <option value="" hidden>
-                  Please Select
-                </option>
-                {options?.gender?.map((item, index) => (
-                  <option key={index} value={item}>
-                    {item}
+              <div className="grid gap-1">
+                <label className="text-sm font-medium">Gender</label>
+                <select
+                  {...register("gender", { required: "Please select gender" })}
+                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                >
+                  <option value="" hidden>
+                    Please Select
                   </option>
-                ))}
-              </select>
-              {errors?.gender && (
-                <p className="text-red-500 font-medium text-xs">
-                  {errors?.gender?.message}
-                </p>
-              )}
-            </div>
+                  {options?.gender?.map((item, index) => (
+                    <option key={index} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+                {errors?.gender && (
+                  <p className="text-red-500 font-medium text-xs">
+                    {errors?.gender?.message}
+                  </p>
+                )}
+              </div>
 
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Marital Status</label>
-              <select
-                {...register("mat_status", { required: "Please select" })}
-                className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
-              >
-                <option value="" hidden>
-                  Please Select
-                </option>
-                {options?.mat_status?.map((item, index) => (
-                  <option value={item} key={index}>
-                    {item}
+              <div className="grid gap-1">
+                <label className="text-sm font-medium">Marital Status</label>
+                <select
+                  {...register("mat_status", { required: "Please select" })}
+                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                >
+                  <option value="" hidden>
+                    Please Select
                   </option>
-                ))}
-              </select>
-              {errors?.mat_status && (
-                <p className="text-red-500 font-medium text-xs">
-                  {errors?.mat_status?.message}
-                </p>
-              )}
-            </div>
+                  {options?.mat_status?.map((item, index) => (
+                    <option value={item} key={index}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+                {errors?.mat_status && (
+                  <p className="text-red-500 font-medium text-xs">
+                    {errors?.mat_status?.message}
+                  </p>
+                )}
+              </div>
 
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Religion</label>
-              <select
-                {...register("religion", { required: "Please select" })}
-                className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
-              >
-                <option value="" hidden>
-                  Please Select
-                </option>
-                {options?.religion?.map((item, index) => (
-                  <option value={item?.id} key={index}>
-                    {item?.name}
+              <div className="grid gap-1">
+                <label className="text-sm font-medium">Religion</label>
+                <select
+                  {...register("religion", { required: "Please select" })}
+                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                >
+                  <option value="" hidden>
+                    Please Select
                   </option>
-                ))}
-              </select>
-              {errors?.religion && (
-                <p className="text-red-500 font-medium text-xs">
-                  {errors?.religion?.message}
-                </p>
-              )}
-            </div>
+                  {options?.religion?.map((item, index) => (
+                    <option value={item?.id} key={index}>
+                      {item?.name}
+                    </option>
+                  ))}
+                </select>
+                {errors?.religion && (
+                  <p className="text-red-500 font-medium text-xs">
+                    {errors?.religion?.message}
+                  </p>
+                )}
+              </div>
 
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Clan</label>
-              <select
-                {...register("caste", { required: "Please select" })}
-                className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
-              >
-                <option value="" hidden>
-                  Please Select
-                </option>
-                {options?.caste?.map((item, index) => (
-                  <option value={item?.id} key={index}>
-                    {item?.name}
+              <div className="grid gap-1">
+                <label className="text-sm font-medium">Clan</label>
+                <select
+                  {...register("caste", { required: "Please select" })}
+                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                >
+                  <option value="" hidden>
+                    Please Select
                   </option>
-                ))}
-              </select>
-              {errors?.caste && (
-                <p className="text-red-500 font-medium text-xs">
-                  {errors?.caste?.message}
+                  {options?.caste?.map((item, index) => (
+                    <option value={item?.id} key={index}>
+                      {item?.name}
+                    </option>
+                  ))}
+                </select>
+                {errors?.caste && (
+                  <p className="text-red-500 font-medium text-xs">
+                    {errors?.caste?.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid gap-1">
+                <label className="text-sm font-medium">Date of Birth</label>
+                <input
+                  type="date"
+                  max={new Date().toISOString().split("T")[0]}
+                  {...register("dob", { required: "Please select date" })}
+                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                />
+                {errors.dob && (
+                  <p className="text-red-500 font-medium text-xs">
+                    {errors?.dob?.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid gap-1">
+                <label className="text-sm font-medium">First Name</label>
+                <input
+                  {...register("name", {
+                    required: "Name is required",
+                    minLength: {
+                      value: 2,
+                      message: "Minimum 2 characters required",
+                    },
+                  })}
+                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                />
+                {errors.name && (
+                  <p className="text-red-500 font-medium text-xs">
+                    {errors.name.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid gap-1">
+                <label className="text-sm font-medium">Last Name</label>
+                <input
+                  {...register("last_name")}
+                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                />
+              </div>
+
+              <div className="grid gap-1">
+                <label className="text-sm font-medium">Email</label>
+                <input
+                  {...register("email", {
+                    required: "Email is required",
+                    pattern: {
+                      value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                      message: "Invalid email format",
+                    },
+                  })}
+                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                />
+                {(errors.email || signupErrors?.email) && (
+                  <p className="text-red-500 font-medium text-xs">
+                    {errors?.email?.message || signupErrors?.email}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid gap-1">
+                <label className="text-sm font-medium">Password</label>
+                <input
+                  type="password"
+                  {...register("password", {
+                    required: "Password is required",
+                    minLength: {
+                      value: 6,
+                      message: "Minimum 6 characters",
+                    },
+                  })}
+                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                />
+                {errors.password && (
+                  <p className="text-red-500 font-medium text-xs">
+                    {errors?.password?.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid gap-1">
+                <label className="text-sm font-medium">Phone No.</label>
+                <input
+                  type="number"
+                  {...register("phone", {
+                    required: "Phone number is required",
+                    pattern: {
+                      value: /^[0-9]{10}$/,
+                      message: "Must be a 10-digit number",
+                    },
+                  })}
+                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                />
+                {(errors?.phone || signupErrors?.phone) && (
+                  <p className="text-red-500 font-medium text-xs">
+                    {errors?.phone?.message || signupErrors?.phone}
+                  </p>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+
+          <DialogActions>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="outline-none text-primary border border-primary bg-white font-semibold text-sm px-3 py-2 rounded-lg cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="outline-none bg-primary text-white font-semibold text-sm px-3 py-2 rounded-lg cursor-pointer"
+            >
+              {loading ? "Please wait..." : "Accept & Register"}
+            </button>
+          </DialogActions>
+        </form>
+      ) : (
+        <div>
+          <DialogTitle>
+            <div className="font-bold">Verify OTP</div>
+          </DialogTitle>
+          <DialogContent>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Enter OTP</label>
+              <input
+                type="text"
+                value={otp}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (/^\d{0,6}$/.test(val)) {
+                    setOtp(val);
+                  }
+                }}
+                maxLength={6}
+                inputMode="numeric"
+                className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium tracking-widest text-center"
+                placeholder="Enter 6-digit OTP"
+              />
+              {(otp.length > 0 && otp.length < 6 || otpServerError) && (
+                <p className="text-red-500 text-xs font-medium">
+                  {otpServerError || "OTP must be 6 digits"}
                 </p>
               )}
             </div>
-
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Date of Birth</label>
-              <input
-                type="date"
-                max={new Date().toISOString().split("T")[0]}
-                {...register("dob", { required: "Please select date" })}
-                className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
-              />
-              {errors.dob && (
-                <p className="text-red-500 font-medium text-xs">
-                  {errors?.dob?.message}
-                </p>
-              )}
-            </div>
-
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">First Name</label>
-              <input
-                {...register("name", {
-                  required: "Name is required",
-                  minLength: {
-                    value: 2,
-                    message: "Minimum 2 characters required",
-                  },
-                })}
-                className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
-              />
-              {errors.name && (
-                <p className="text-red-500 font-medium text-xs">
-                  {errors.name.message}
-                </p>
-              )}
-            </div>
-
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Last Name</label>
-              <input
-                {...register("last_name")}
-                className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
-              />
-            </div>
-
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Email</label>
-              <input
-                {...register("email", {
-                  required: "Email is required",
-                  pattern: {
-                    value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                    message: "Invalid email format",
-                  },
-                })}
-                className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
-              />
-              {(errors.email || signupErrors?.email) && (
-                <p className="text-red-500 font-medium text-xs">
-                  {errors?.email?.message || signupErrors?.email}
-                </p>
-              )}
-            </div>
-
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Password</label>
-              <input
-                type="password"
-                {...register("password", {
-                  required: "Password is required",
-                  minLength: {
-                    value: 6,
-                    message: "Minimum 6 characters",
-                  },
-                })}
-                className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
-              />
-              {errors.password && (
-                <p className="text-red-500 font-medium text-xs">
-                  {errors?.password?.message}
-                </p>
-              )}
-            </div>
-
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Phone No.</label>
-              <input
-                type="number"
-                {...register("phone", {
-                  required: "Phone number is required",
-                  pattern: {
-                    value: /^[0-9]{10}$/,
-                    message: "Must be a 10-digit number",
-                  },
-                })}
-                className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
-              />
-              {(errors?.phone || signupErrors?.phone) && (
-                <p className="text-red-500 font-medium text-xs">
-                  {errors?.phone?.message || signupErrors?.phone}
-                </p>
-              )}
-            </div>
-          </div>
-        </DialogContent>
-
-        <DialogActions>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="outline-none text-primary border border-primary bg-white font-semibold text-sm px-3 py-2 rounded-lg cursor-pointer"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="outline-none bg-primary text-white font-semibold text-sm px-3 py-2 rounded-lg cursor-pointer"
-          >
-            {loading ? "Please wait..." : "Accept & Register"}
-          </button>
-        </DialogActions>
-      </form>
+          </DialogContent>
+          <DialogActions>
+            <button
+              type="button"
+              onClick={() => setStep("signup")}
+              disabled={loading}
+              className="outline-none text-primary border border-primary bg-white font-semibold text-sm px-3 py-2 rounded-lg cursor-pointer"
+            >
+              Back
+            </button>
+            <button
+              onClick={handleOtpVerify}
+              disabled={loading}
+              className="outline-none bg-primary text-white font-semibold text-sm px-3 py-2 rounded-lg cursor-pointer"
+            >
+              {loading ? "Verifying..." : "Verify OTP"}
+            </button>
+          </DialogActions>
+        </div>
+      )}
     </Dialog>
   );
 };
