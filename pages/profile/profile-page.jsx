@@ -155,7 +155,7 @@ function ProfilePage() {
           content="100% Mobile Verified Profiles. Safe and Secure. Register Free to Find Your Life Partner. Most Trusted Matrimony Service - Brand Trust Report. Register Now to Find Your Soulmate."
         />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/logo/Logo.png" />
+        <link rel="icon" href="/images/favicon.jpg" />
       </Head>
       <Snackbar
         open={alert}

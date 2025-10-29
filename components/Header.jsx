@@ -145,7 +145,7 @@ function Header() {
               alt="Logo"
               width={200}
               height={200}
-              className="w-[70px] opacity-80"
+              className="w-[120px] opacity-80"
             />
           </a>
         </Link>

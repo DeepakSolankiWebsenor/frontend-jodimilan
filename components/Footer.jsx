@@ -24,11 +24,11 @@ function Footer() {
       <div className="flex flex-col md:flex-row justify-between items-start gap-10">
         <div className="grid gap-5 w-full md:w-1/4">
           <Image
-            src="/images/logo-white.png"
+            src="/logo/Logo.png"
             alt="Logo"
             height={400}
             width={600}
-            className="object-cover w-[100px]"
+            className="object-cover w-[70px]"
           />
           <div className="text-sm sm:text-base">
             We are committed to helping individuals and <br /> families find the
