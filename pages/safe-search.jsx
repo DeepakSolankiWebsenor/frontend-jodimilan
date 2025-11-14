@@ -29,7 +29,7 @@ const SafeSearch = () => {
           <div className="text-4xl"> {data[0]?.cms_type} </div>
         )}
         <div className="text-4xl">
-          <span className="text-primary">Myshaadi</span>
+          <span className="text-primary">JodiMilan</span>
           <span className="text-primary">.com </span>
         </div>
 

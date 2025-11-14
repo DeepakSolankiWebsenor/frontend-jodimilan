@@ -189,7 +189,7 @@ const browseprofile = () => {
   return (
     <>
       <Head>
-        <title>Browse Profile - MyShaadi</title>
+        <title>Browse Profile - JodiMilan</title>
         <meta
           name="description"
           content="100% Mobile Verified Profiles. Safe and Secure. Register Free to Find Your Life Partner. Most Trusted Matrimony Service - Brand Trust Report. Register Now to Find Your Soulmate."
@@ -203,12 +203,12 @@ const browseprofile = () => {
         <div className="mt-10 text-center">
           <div className="text-4xl">Profiles</div>
           <div className="text-4xl">
-            <span className="text-primary">MyShaadi</span>
+            <span className="text-primary">JodiMilan</span>
             <span className="text-primary"> Matrimonial </span>
           </div>
           <div className="text-md text-gray-500 mt-5 flex justify-center">
             <div className="w-full md:px-24 px-4">
-              Myshaadi.com is dedicated to cherish, nurture and preserve the aesthetic beliefs of “Rajput Community” by providing match making assistance for Bannas and Baisas of the Rajput community exclusively
+              JodiMilan.com is dedicated to cherish, nurture and preserve the aesthetic beliefs of “Rajput Community” by providing match making assistance for Bannas and Baisas of the Rajput community exclusively
             </div>
           </div>
         </div>

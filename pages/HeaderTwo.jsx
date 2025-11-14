@@ -28,7 +28,7 @@ const HeaderTwo = () => {
       {user ? (
         <div className="bg-[#f8dfdf]">
           <div className="p-[20px] text-gray-600 text-center">
-            If you have not yet registered with Myshaadi.com, you may &nbsp;
+            If you have not yet registered with JodiMilan.com, you may &nbsp;
             <span
               className="text-gray-800 font-medium cursor-pointer hover:underline"
               onClick={() => router.push("/")}

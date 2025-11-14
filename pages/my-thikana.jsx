@@ -222,7 +222,7 @@ const MyThikana = () => {
   return (
     <>
       <Head>
-        <title>My Thikana - MyShaadi</title>
+        <title>My Thikana - JodiMilan</title>
         <meta
           name="description"
           content="100% Mobile Verified Profiles. Safe and Secure. Register Free to Find Your Life 

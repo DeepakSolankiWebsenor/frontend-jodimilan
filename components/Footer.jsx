@@ -107,13 +107,13 @@ function Footer() {
       </div>
 
       <div className="mt-10 text-sm sm:text-base leading-relaxed">
-        MyShaadi.com, India’s No.1 Matchmaking and Matrimony Service*, was
+        JodiMilan.com, India’s No.1 Matchmaking and Matrimony Service*, was
         founded with a simple objective - to help people find happiness.
         Shaadi.com is a leader in what is sometimes known as the matrimony
         category, we have touched more than 50 million lives.
         <br />
         <br />
-        MyShaadi.com - a trusted matrimonial & matchmaking service, has always
+        JodiMilan.com - a trusted matrimonial & matchmaking service, has always
         differentiated itself from other matrimonials through its innovation-led
         approach by redefining the way Indian brides and grooms meet for
         marriage.
@@ -126,16 +126,16 @@ function Footer() {
         have changed the way of finding a life partner.
         <br />
         <br />
-        MyShaadi.com (sometimes mis-spelled as MyShadi.com, MyShadhi.com, or
+        JodiMilan.com (sometimes mis-spelled as MyShadi.com, MyShadhi.com, or
         MySadi.com) is a social networking site specializing in matchmaking and
         not just a matrimonial service.
         <br />
         <br />* Based on the number of downloads in the last 12 months of the
-        MyShaadi.com App – as reported by AppTweak.
+        JodiMilan.com App – as reported by AppTweak.
       </div>
 
       <div className="mt-10 border-t border-gray-100 border-opacity-25 pt-5 text-center text-sm">
-        © 2024 MyShaadi. All rights reserved.
+        © 2024 JodiMilan. All rights reserved.
       </div>
 
       {openSignup && (

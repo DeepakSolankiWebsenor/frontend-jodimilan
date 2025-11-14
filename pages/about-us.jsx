@@ -49,6 +49,12 @@ const About = () => {
           <div className="text-md text-gray-500 mt-5 px-10">
             {data[0]?.description && <div>{parse(data[0]?.description)}</div>}
           </div>
+          <div className="text-md text-gray-500 mt-5 px-10">
+            Registered Name: Arush Tahiliani
+          </div>
+          <div className="text-md text-gray-500 mt-5 px-10">
+            Mailing Address: 44 PKT A3 Everest Apparments Kalkaji Extn New Delhi
+          </div>
         </div>
       </div>
     </>

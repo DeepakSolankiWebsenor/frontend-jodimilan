@@ -279,7 +279,7 @@ function ThikanaEnquiryForm({
                                             control={
                                                 <Checkbox />
                                             }
-                                            label="By submitting this form, I agree with MyShaadi's terms and conditions."
+                                            label="By submitting this form, I agree with JodiMilan's terms and conditions."
                                         />
                                         <FormHelperText error={errors?.terms_conditions?.message || ""}>
                                             {errors?.terms_conditions?.message}

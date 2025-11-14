@@ -29,7 +29,7 @@ const PrivacyPolicy = () => {
           <div className="text-4xl"> {data[0]?.cms_type} </div>
         )}
         <div className="text-4xl">
-          <span className="text-[]">Myshaadi</span>
+          <span className="text-[]">JodiMilan</span>
           <span className="text-[]">.com </span>
         </div>
 

@@ -101,7 +101,7 @@ const InterestReceivePending = () => {
   return (
     <>
       <Head>
-        <title> Interests Received Pending - MyShaadi</title>
+        <title> Interests Received Pending - JodiMilan</title>
         <meta
           name="description"
           content="100% Mobile Verified Profiles. Safe and Secure. Register Free to Find Your Life Partner. Most Trusted Matrimony Service - Brand Trust Report. Register Now to Find Your Soulmate."

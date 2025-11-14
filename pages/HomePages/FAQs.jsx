@@ -55,12 +55,12 @@ export default FAQs;
 
 const data = [
   {
-    title: "Why is MyShaadi.com better compared to other matrimonial websites?",
+    title: "Why is JodiMilan.com better compared to other matrimonial websites?",
     content:
       "Reference site about Lorem Ipsum, giving information on its origins, as well as a random Lipsum generator.Reference site about Lorem Ipsum, giving information on its origins, as well as a random Lipsum generator.",
   },
   {
-    title: "Is MyShaadi.com a trustworthy matchmaking platform?",
+    title: "Is JodiMilan.com a trustworthy matchmaking platform?",
     content:
       "Reference site about Lorem Ipsum, giving information on its origins, as well as a random Lipsum generator.Reference site about Lorem Ipsum, giving information on its origins, as well as a random Lipsum generator.",
   },
@@ -75,7 +75,7 @@ const data = [
       "Reference site about Lorem Ipsum, giving information on its origins, as well as a random Lipsum generator.Reference site about Lorem Ipsum, giving information on its origins, as well as a random Lipsum generator.",
   },
   {
-    title: "How can I contact other members on MyShaadi.com?",
+    title: "How can I contact other members on JodiMilan.com?",
     content:
       "Reference site about Lorem Ipsum, giving information on its origins, as well as a random Lipsum generator.Reference site about Lorem Ipsum, giving information on its origins, as well as a random Lipsum generator.",
   },

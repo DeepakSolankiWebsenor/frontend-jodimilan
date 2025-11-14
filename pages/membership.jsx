@@ -155,7 +155,7 @@ function Membership() {
   return (
     <div>
       <Head>
-        <title>Membership Plans - MyShaadi</title>
+        <title>Membership Plans - JodiMilan</title>
         <meta
           name="description"
           content="100% Mobile Verified Profiles. Safe and Secure. Register Free to Find Your Life Partner. Most Trusted Matrimony Service - Brand Trust Report. Register Now to Find Your Soulmate."
@@ -299,7 +299,7 @@ function Membership() {
                 <div className="">
                   Account Name :
                   <span className="font-medium">
-                    MyShaadi Infotech Pvt. Ltd.
+                    JodiMilan Infotech Pvt. Ltd.
                   </span>
                 </div>
               </div>
