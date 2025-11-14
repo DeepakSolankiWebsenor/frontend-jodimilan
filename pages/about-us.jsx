@@ -28,7 +28,7 @@ const About = () => {
   return (
     <>
       <Head>
-        <title>About Us - MyShaadi</title>
+        <title>About Us - JodiMilan</title>
         <meta
           name="description"
           content="100% Mobile Verified Profiles. Safe and Secure. Register Free to Find Your Life Partner. Most Trusted Matrimony Service - Brand Trust Report. Register Now to Find Your Soulmate."
@@ -42,18 +42,23 @@ const About = () => {
         <div className="mt-12 text-center">
           <div className="text-4xl">{data[0]?.cms_type}</div>
           <div className="text-4xl">
-            <span className="text-primary">Myshaadi</span>
+            <span className="text-primary">JodiMilan</span>
             <span className="text-primary">.com </span>
           </div>
 
           <div className="text-md text-gray-500 mt-5 px-10">
             {data[0]?.description && <div>{parse(data[0]?.description)}</div>}
           </div>
-          <div className="text-md text-gray-500 mt-5 px-10">
-            Registered Name: Arush Tahiliani
+          <br/>
+          <br/>
+          <div className="text-lg mt-5 px-10">
+            <strong>Registered Name: </strong> Arush Tahiliani
           </div>
-          <div className="text-md text-gray-500 mt-5 px-10">
-            Mailing Address: 44 PKT A3 Everest Apparments Kalkaji Extn New Delhi
+          <div className="text-lg mt-5 px-10">
+            <strong>Mailing Address: </strong> 44 PKT A3 Everest Apparments Kalkaji Extn New Delhi
+          </div>
+          <div className="text-lg mt-5 px-10">
+            <strong>Mobile Number: </strong> 9772910302
           </div>
         </div>
       </div>
