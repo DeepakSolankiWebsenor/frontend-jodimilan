@@ -52,13 +52,13 @@ const About = () => {
           <br/>
           <br/>
           <div className="text-lg mt-5 px-10">
-            <strong>Registered Name: </strong> Arush Tahiliani
+            <strong>Registered Name: </strong> Arush
           </div>
-          <div className="text-lg mt-5 px-10">
+          {/* <div className="text-lg mt-5 px-10">
             <strong>Mailing Address: </strong> 44 PKT A3 Everest Apparments Kalkaji Extn New Delhi
-          </div>
+          </div> */}
           <div className="text-lg mt-5 px-10">
-            <strong>Mobile Number: </strong> 9772910302
+            <strong>Mobile Number: </strong> 9772910309
           </div>
         </div>
       </div>
