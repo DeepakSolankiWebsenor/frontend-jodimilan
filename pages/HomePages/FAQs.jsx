@@ -57,26 +57,26 @@ const data = [
   {
     title: "Why is JodiMilan.com better compared to other matrimonial websites?",
     content:
-      "Reference site about Lorem Ipsum, giving information on its origins, as well as a random Lipsum generator.Reference site about Lorem Ipsum, giving information on its origins, as well as a random Lipsum generator.",
+      "JodiMilan focuses on quality over quantity: curated and verified profiles, advanced matchmaking filters, and personalized recommendations. Strong privacy controls and responsive customer support help ensure a safer, more efficient search for compatible matches.",
   },
   {
     title: "Is JodiMilan.com a trustworthy matchmaking platform?",
     content:
-      "Reference site about Lorem Ipsum, giving information on its origins, as well as a random Lipsum generator.Reference site about Lorem Ipsum, giving information on its origins, as well as a random Lipsum generator.",
+      "Yes — we use profile verification, manual moderation, secure payment processing, and clear privacy policies to protect members. User reports and a dedicated support team help maintain a trustworthy community.",
   },
   {
     title: "What is the difference between free membership vs paid membership?",
     content:
-      "Reference site about Lorem Ipsum, giving information on its origins, as well as a random Lipsum generator.Reference site about Lorem Ipsum, giving information on its origins, as well as a random Lipsum generator.",
+      "Free membership lets you create a profile, browse and save matches with limited contact options. Paid plans unlock direct messaging, full contact details, advanced search filters, and higher visibility to other members.",
   },
   {
     title: "What additional benefits do I get as a Premium Member?",
     content:
-      "Reference site about Lorem Ipsum, giving information on its origins, as well as a random Lipsum generator.Reference site about Lorem Ipsum, giving information on its origins, as well as a random Lipsum generator.",
+      "Premium members get priority visibility, unlimited messaging, access to phone/email (where permitted), advanced matchmaking filters, profile boosts, and faster support — all designed to accelerate meaningful connections.",
   },
   {
     title: "How can I contact other members on JodiMilan.com?",
     content:
-      "Reference site about Lorem Ipsum, giving information on its origins, as well as a random Lipsum generator.Reference site about Lorem Ipsum, giving information on its origins, as well as a random Lipsum generator.",
+      "You can send interest or direct messages through the platform. Some members may allow phone or email exchange after mutual consent or via paid plans. Always follow safety guidelines: verify profiles, avoid sharing sensitive info, and use the platform’s reporting tools if needed.",
   },
 ];
