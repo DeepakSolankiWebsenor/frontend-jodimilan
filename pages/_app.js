@@ -10,6 +10,7 @@ import Store from "../services/redux/store";
 import { PersistGate } from "redux-persist/integration/react";
 import { persistStore } from "redux-persist";
 import NotificationBar from "../components/NotificationBar";
+import { GoogleAnalytics } from '@next/third-parties/google'
 
 TopBarProgress.config({
   barColors: {
@@ -44,6 +45,7 @@ export default function App({ Component, pageProps }) {
           </>
         )}
       </PersistGate>
+      <GoogleAnalytics gaId='G-13LQ6KKJ23'/>
     </Provider>
   );
 }

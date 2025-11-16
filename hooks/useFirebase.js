@@ -20,7 +20,7 @@ const useFirebase = () => {
 
         await handleSubscribeToTopic({ userId, token });
       } catch (error) {
-        console.log("Error getting token:", err);
+        console.log("Error getting token:", error);
       }
     }
   };

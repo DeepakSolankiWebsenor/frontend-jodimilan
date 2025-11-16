@@ -11,7 +11,7 @@ export const firebaseConfig = {
   storageBucket: "jodmilan-a8844.firebasestorage.app",
   messagingSenderId: "360607285041",
   appId: "1:360607285041:web:b0f96db9ae7158622fba10",
-  measurementId: "G-CQQGDB4LKP",
+  measurementId: "G-13LQ6KKJ23",
   vapidKey:
     "BN0AON9Z32cbNYuwKPom1dFGcAhmPmqbBfL4t8VDIvFL4TamX5v41TVGGpEx2ItQ4bJ-eKCPr9X9wVqf6jsIJs0",
 };
