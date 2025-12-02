@@ -55,32 +55,65 @@ function Search() {
   const [userData, setUserData] = useState("");
   const masterData1 = useSelector((state) => state.user);
 
-  const getMasterData = () => {
-    if (masterData1?.user !== null) {
-      var encrypted_json = JSON.parse(window.atob(masterData1?.user?.user));
-      var dec = CryptoJS.AES.decrypt(
-        encrypted_json.value,
+const getMasterData = () => {
+  const raw = masterData1?.user?.user;
+  if (!raw) return;
+
+  try {
+    let parsed;
+
+    // 🟢 CASE 1 — Already JSON, No decrypt needed
+    if (raw.trim().startsWith("{") && raw.trim().endsWith("}")) {
+      parsed = JSON.parse(raw);
+    } else {
+      // 🟡 CASE 2 — Base64 encrypted JSON
+      let decoded;
+      try {
+        decoded = window.atob(raw);
+      } catch {
+        console.error("❌ Not base64. Skip decrypt.");
+        return;
+      }
+
+      const encryptedJson = JSON.parse(decoded);
+
+      if (!encryptedJson?.value || !encryptedJson?.iv) {
+        console.error("❌ Encrypted fields missing");
+        return;
+      }
+
+      const dec = CryptoJS.AES.decrypt(
+        encryptedJson.value,
         CryptoJS.enc.Base64.parse(decrypted_key),
-        {
-          iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-        }
+        { iv: CryptoJS.enc.Base64.parse(encryptedJson.iv) }
       );
 
-      var decryptedText = dec.toString(CryptoJS.enc.Utf8);
-      var jsonStartIndex = decryptedText.indexOf("{");
-      var jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
-      var jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
-      jsonData.trim();
-      const parsed = JSON.parse(jsonData);
+      const decryptedText = dec.toString(CryptoJS.enc.Utf8);
+      const start = decryptedText.indexOf("{");
+      const end = decryptedText.lastIndexOf("}") + 1;
 
-      setUserData(parsed);
-      if (parsed?.user?.gender === "Male") {
-        setData({ ...data, gender: "Female" });
-      } else {
-        setData({ ...data, gender: "Male" });
+      if (start < 0 || end <= 0) {
+        console.error("❌ Could not find JSON in decrypted data");
+        return;
       }
+
+      parsed = JSON.parse(decryptedText.substring(start, end));
     }
-  };
+
+    setUserData(parsed);
+
+    // Default opposite gender for matchmaking filter
+    setData((prev) => ({
+      ...prev,
+      gender: parsed?.user?.gender === "Male" ? "Female" : "Male",
+    }));
+
+    console.log("✔ Master user loaded:", parsed);
+  } catch (err) {
+    console.error("❌ getMasterData failed:", err);
+  }
+};
+
 
   useEffect(() => {
     getMasterData();
@@ -107,42 +140,33 @@ function Search() {
   ) => {
     userSearch(page, gender, mat_status, minAge, maxAge, religion, caste)
       .then((res) => {
-        if (res.data.code === 200) {
-          var encrypted_json = JSON.parse(atob(res?.data?.data));
-          var dec = CryptoJS.AES.decrypt(
-            encrypted_json.value,
-            CryptoJS.enc.Base64.parse(decrypted_key),
-            {
-              iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-            }
-          );
+        console.log(res, "res search");
 
-          var decryptedText = dec.toString(CryptoJS.enc.Utf8);
-          var jsonStartIndex = decryptedText.indexOf("{");
-          var jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
-          var jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
-          jsonData.trim();
-          const parsed = JSON.parse(jsonData);
+        if (res.data.code === 200 && res.data.data) {
+          const parsed = res.data.data; // Already JSON
+          console.log(parsed, "parsed search");
 
-          setDataById();
-          setUserSearchData(parsed?.data);
-          setSearchData(parsed?.data);
-          setTotalPage(parsed?.last_page);
-          if (window !== "undefined") {
+          // Update state
+          setDataById(); // If needed
+          setUserSearchData(parsed.items);
+          setSearchData(parsed.items);
+          setTotalPage(parsed.pagination.total_pages);
+
+          // Scroll to results
+          if (typeof window !== "undefined") {
             window.scrollTo({
               top: 600,
               behavior: "smooth",
             });
           }
-          if (parsed?.data?.length == 0) {
-            setMessage("No Result !!");
-          } else {
-            setMessage("");
-          }
+
+          // Handle empty results
+          setMessage(parsed.items.length === 0 ? "No Result Found !!" : "");
         }
       })
       .catch((error) => {
-        console.log(error);
+        console.error(error);
+        setMessage("Something went wrong!");
       });
   };
 
@@ -276,6 +300,8 @@ function Search() {
     }
   };
 
+  console.log(options, "data of options.....");
+
   return (
     <>
       <Head>
@@ -362,7 +388,6 @@ function Search() {
                                   name="gender"
                                   className="md:w-52 w-36 text-sm border border-gray-300 rounded px-2 py-2 font-medium"
                                   value={data?.gender}
-                                  disabled={user ? true : false}
                                   onChange={handleChange}
                                 >
                                   <option value="" hidden>
@@ -543,7 +568,7 @@ function Search() {
           )}
 
           {dataById && (
-            <Usercard item={dataById} index={1} className="w-[300px] mx-auto" />
+            <Usercard item={dataById} index={1} className="w-[300px]  mx-auto " />
           )}
 
           <div className="grid justify-center md:grid-cols-3 lg:grid-cols-4 gap-2 lg:px-32 md:px-8">

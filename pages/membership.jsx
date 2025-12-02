@@ -1,155 +1,117 @@
-import React, { Fragment, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import useApiService from "../services/ApiService";
 import CurrencyRupeeIcon from "@mui/icons-material/CurrencyRupee";
 import { Alert, CircularProgress, Snackbar } from "@mui/material";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import SmsFailedIcon from "@mui/icons-material/SmsFailed";
-import FeedbackIcon from "@mui/icons-material/Feedback";
-import { Dialog, Transition } from "@headlessui/react";
 import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
 import { useRouter } from "next/router";
 import Head from "next/head";
-import { payment_url, SOCKET_CONFIG } from "../services/appConfig";
-import Pusher from "pusher-js";
-import Echo from "laravel-echo";
-import CryptoJS from "crypto-js";
-import { decrypted_key } from "../services/appConfig";
 
 function Membership() {
   const [data, setData] = useState([]);
-  const {
-    getPackages,
-    planSubscribe,
-    createOrder,
-    orderCheckout,
-    getCurrentPlan,
-  } = useApiService();
+  const { getPackages, createOrder, getCurrentPlan } = useApiService();
   const dataFetchedRef = useRef(false);
-  const [planData, setPlanData] = useState("");
-  const [confirmModal, setConfirmModal] = useState(false);
+
+  const [planData, setPlanData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(false);
-  const cancelButtonRef = useRef();
   const [error, setError] = useState("");
-  const [checkoutShow, setCheckoutShow] = useState(true);
-  const [checkoutData, setCheckoutData] = useState("");
-  const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [encryptedOrderId, setEncryptedOrderId] = useState("");
-  const [pusherData, setPusherData] = useState(null);
   const [currentPlanData, setCurrentPlanData] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  const router = useRouter();
+
+  // Fetch Packages
   const getPackagesData = () => {
     getPackages()
       .then((res) => {
-        if (res.data.code === 200) {
-          setData(res?.data?.data);
-        }
+        if (res.data.code === 200) setData(res.data.data || []);
       })
-      .catch((error) => {
-        console.log(error);
-      });
+      .catch((err) => console.log("getPackages error =>", err));
   };
 
+  // Fetch current plan
   const getCurrentPlanDetail = () => {
     getCurrentPlan()
       .then((res) => {
-        var encrypted_json = JSON.parse(atob(res?.data?.data));
-        var dec = CryptoJS.AES.decrypt(
-          encrypted_json.value,
-          CryptoJS.enc.Base64.parse(decrypted_key),
-          {
-            iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-          }
-        );
+        if (res.data.code === 200 && res.data.data) {
+          const plan = res.data.data;
 
-        var decryptedText = dec.toString(CryptoJS.enc.Utf8);
-        var jsonStartIndex = decryptedText.indexOf("{");
-        var jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
-        var jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
-        jsonData.trim();
-        const parsed = JSON.parse(jsonData);
-
-        setCurrentPlanData(parsed);
+          setCurrentPlanData({
+            package_id: Number(plan.package_id),
+            expiry: plan.expiry,
+            package: plan.package,
+            remaining_days:
+              Math.ceil(
+                (new Date(plan.expiry).getTime() - new Date().getTime()) /
+                  (1000 * 60 * 60 * 24)
+              ) || 0,
+          });
+        }
       })
-      .catch((error) => console.log(error));
+      .catch((err) => console.log("getCurrentPlan error =>", err));
   };
 
-  console.log(currentPlanData, "currentPlanData");
-
+  // Init
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token !== null) {
-      getCurrentPlanDetail();
+    const token =
+      typeof window !== "undefined" && localStorage.getItem("token");
+
+    if (token) {
       setIsLoggedIn(true);
-    } else {
-      setIsLoggedIn(false);
+      getCurrentPlanDetail();
     }
+
     if (dataFetchedRef.current) return;
     dataFetchedRef.current = true;
     getPackagesData();
   }, []);
 
-  const paymentListner = (id) => {
-    let PusherClient = new Pusher(SOCKET_CONFIG.KEY, {
-      cluster: "ap2",
-      wsHost: SOCKET_CONFIG.URL,
-      wsPort: SOCKET_CONFIG.PORT,
-      wssHost: SOCKET_CONFIG.URL,
-      wssPort: SOCKET_CONFIG.PORT,
-      enabledTransports: ["ws", "wss"],
-      forceTLS: false,
-    });
-
-    const channel = PusherClient.subscribe("CCAvenue");
-
-    const echo = new Echo({
-      broadcaster: "pusher",
-      client: PusherClient,
-    });
-
-    const data1s = echo
-      .channel(`CcavenueStatus.${id}`)
-      .listen("CCAvenue", (ev) => {
-        setPusherData(ev?.data);
-      });
-
-    echo.channel(`CcavenueStatus.${id}`).listen("CCAvenue", async (e) => {});
-  };
-
+  // Handle Pay
   const handlePay = () => {
-    if (isLoggedIn) {
-      if (planData === "") {
-        setError("Please Select Plan");
-      } else {
-        setError("");
-        setLoading(true);
-        let params = {
-          total: planData.package_price,
-          package_id: planData.id,
-        };
-        createOrder(params)
-          .then((res) => {
-            if (res.data.code === 200) {
-              setEncryptedOrderId(res?.data?.data?.encrypted_order_id);
-              setCheckoutData(res?.data?.data);
-              // setConfirmModal(true);
-              window.open(
-                payment_url + res?.data?.data?.encrypted_order_id,
-                "_blank"
-              );
-              paymentListner(res?.data?.data?.id);
-              setLoading(false);
-            }
-          })
-          .catch((error) => {
+    if (!isLoggedIn) return router.push("/Login");
+    if (!planData) return setError("Please select a plan");
+
+    setError("");
+    setLoading(true);
+
+    createOrder({ total: planData.package_price, package_id: planData.id })
+      .then(async (res) => {
+        if (res.data.code === 200) {
+          const script = document.createElement("script");
+          script.src = "https://checkout.razorpay.com/v1/checkout.js";
+          document.body.appendChild(script);
+
+          script.onload = () => {
+            const {
+              razorpay_order_id,
+              order_number,
+              total,
+              name,
+              email,
+              phone,
+            } = res.data.data;
+
+            const options = {
+              key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+              amount: total * 100,
+              currency: "INR",
+              name: "Jodi Milan",
+              description: "Membership Package",
+              order_id: razorpay_order_id,
+              handler: () => {
+                router.push(`/payment-success?order=${order_number}`);
+              },
+              prefill: { name, email, contact: phone },
+              theme: { color: "#C32148" },
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.open();
             setLoading(false);
-            console.log(error);
-          });
-      }
-    } else {
-      router.push("/Login");
-    }
+          };
+        }
+      })
+      .catch(() => setLoading(false));
   };
 
   return (
@@ -158,308 +120,154 @@ function Membership() {
         <title>Membership Plans - JodiMilan</title>
         <meta
           name="description"
-          content="100% Mobile Verified Profiles. Safe and Secure. Register Free to Find Your Life Partner. Most Trusted Matrimony Service - Brand Trust Report. Register Now to Find Your Soulmate."
+          content="Find your perfect match. Safe & Verified members only."
         />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/images/favicon.jpg" />
       </Head>
+
       <Snackbar
         open={alert}
         autoHideDuration={3000}
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
         onClose={() => setAlert(false)}
       >
-        <Alert icon={<ThumbUpAltIcon />} severity="success">
-          Plan suscribe Successfully !
+        <Alert icon={<ThumbUpAltIcon />} severity="info">
+          Redirecting to payment...
         </Alert>
       </Snackbar>
 
-      <div className="text-center pt-10">
-        <div className="text-4xl text-[#333] font-medium">
-          <span className="text-primary">Membership</span> Plan
-        </div>
-      </div>
+      <h2 className="text-center pt-10 text-3xl md:text-4xl text-[#333] font-semibold">
+        <span className="text-primary">Membership</span> Plan
+      </h2>
 
-      {confirmModal && (
-        <Transition.Root show={confirmModal} as={Fragment}>
-          <Dialog
-            as="div"
-            className="relative"
-            initialFocus={cancelButtonRef}
-            onClose={setConfirmModal}
-          >
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0"
-              enterTo="opacity-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100"
-              leaveTo="opacity-0"
-            >
-              <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-            </Transition.Child>
-
-            <div className="fixed inset-0 overflow-y-auto">
-              <div
-                className="flex min-h-full items-end justify-center p-4 text-center 
-                sm:items-center sm:p-0"
-              >
-                <Transition.Child
-                  as={Fragment}
-                  enter="ease-out duration-300"
-                  enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                  enterTo="opacity-100 translate-y-0 sm:scale-100"
-                  leave="ease-in duration-200"
-                  leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                  leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                >
-                  <Dialog.Panel
-                    className="relative transform overflow-hidden rounded-lg bg-white text-left
-                    shadow-xl transition-all sm:my-8 max-h-[800px] h-full max-w-[60%] w-full"
-                  >
-                    <iframe
-                      className="w-full h-[600px]"
-                      src={payment_url + encryptedOrderId}
-                    ></iframe>
-                  </Dialog.Panel>
-                </Transition.Child>
-              </div>
+      <div className="w-full px-3 md:px-24 py-10 md:flex gap-6">
+        {/* LEFT — PLANS */}
+        <div className="w-full md:w-2/3">
+          {data.length === 0 && (
+            <div className="text-gray-500 text-center py-10">
+              No plans available.
             </div>
-          </Dialog>
-        </Transition.Root>
-      )}
+          )}
 
-      <div className="md:flex md:px-24 px-2 py-10">
-        <div className="md:w-[65%] md:pr-14">
           {data.map((item, index) => {
-            let is_corrent_plan = false;
-            if (
-              item?.id == currentPlanData?.user?.pacakge_id &&
-              !currentPlanData?.user?.plan_expire
-            ) {
-              is_corrent_plan = true;
-            } else {
-              is_corrent_plan = false;
-            }
+            const is_current_plan =
+              currentPlanData &&
+              item.id === currentPlanData.package_id &&
+              new Date(currentPlanData.expiry) > new Date();
 
             return (
               <label
-                className={`flex border border-gray-600 rounded-md mb-5 ${
-                  is_corrent_plan ? "" : "cursor-pointer"
-                }`}
                 key={index}
+                className={`grid grid-cols-2 sm:grid-cols-4 border border-gray-600 rounded-md mb-4 transition ${
+                  is_current_plan
+                    ? "opacity-50"
+                    : "hover:shadow-md cursor-pointer"
+                }`}
               >
-                <div className="bg-gray-600 rounded-l-md border-r w-1/4 flex justify-center items-center">
-                  <div className="md:text:md text-sm text-white font-medium py-2 px-6">
-                    {item.package_title}
-                  </div>
+                {/* Title */}
+                <div className="bg-gray-600 col-span-2 sm:col-span-1 text-white text-center flex items-center justify-center rounded-l-md p-3">
+                  <span className="font-medium">{item.package_title}</span>
                 </div>
-                <div className="bg-gray-50 border-r text-gray-600 w-1/4 text-center p-2">
-                  <div>View</div>
-                  <div className="text-xl font-medium text-primary">
+
+                {/* Views */}
+                <div className="bg-gray-50 text-center p-3">
+                  <p className="text-xs">View</p>
+                  <p className="text-lg font-semibold text-primary">
                     {item.total_profile_view}
-                  </div>
-                  <div>Contacts</div>
+                  </p>
+                  <p className="text-xs">Contacts</p>
                 </div>
-                <div className="bg-gray-100 border-r text-gray-600 w-1/4 text-center p-2">
-                  <div>Validity</div>
-                  <div className="text-xl font-medium text-primary">
+
+                {/* Validity */}
+                <div className="bg-gray-100 text-center p-3">
+                  <p className="text-xs">Validity</p>
+                  <p className="text-lg font-semibold text-primary">
                     {item.package_duration}
-                  </div>
-                  <div>Days</div>
+                  </p>
+                  <p className="text-xs">Days</p>
                 </div>
-                <div className="bg-gray-50 text-gray-600 w-1/4 text-center flex items-center justify-between py-2 px-4 rounded-r-md">
+
+                {/* Price + Select */}
+                <div className="bg-gray-50 text-center flex items-center justify-between p-3 rounded-r-md gap-2">
                   <div>
-                    <div className="text-base md:text-2xl text-gray-800">
+                    <div className="font-semibold flex items-center justify-center gap-1">
+                      <CurrencyRupeeIcon fontSize="small" />
                       {item.package_price}
-                      <CurrencyRupeeIcon className="text-gray-600" />
                     </div>
+                    {is_current_plan && (
+                      <p className="text-xs text-green-600 mt-1 font-medium">
+                        Current Plan
+                      </p>
+                    )}
                   </div>
+
                   <input
                     type="radio"
                     name="package"
-                    className="cursor-pointer"
-                    disabled={is_corrent_plan ? true : false}
+                    disabled={is_current_plan}
                     onChange={() => setPlanData(item)}
                   />
                 </div>
               </label>
             );
           })}
+        </div>
 
-          <div className="mt-10 border border-gray-600 rounded-md md:mb-0 mb-10 hidden">
-            <div className="border-b border-gray-600 p-2 bg-[#2495f611] text-center rounded-t-md">
-              <div className="text-gray-800 font-medium text-xl">
-                Bank Account Details
+        {/* RIGHT — SUMMARY */}
+        <div className="w-full md:w-1/3">
+          <div className="border rounded-md bg-white shadow-sm">
+            <div className="bg-gray-600 rounded-t text-center text-white p-2 font-medium">
+              Plan Summary
+            </div>
+
+            <div className="p-4">
+              {currentPlanData && (
+                <div className="bg-green-50 p-3 border border-green-400 rounded-md mb-4">
+                  <p className="font-semibold text-green-700">Current Plan:</p>
+                  <p className="text-sm">
+                    {currentPlanData.package.package_title}
+                  </p>
+                  <p className="text-xs mt-1 text-gray-700">
+                    Remaining Days:{" "}
+                    <span className="font-semibold">
+                      {currentPlanData.remaining_days} Days
+                    </span>
+                  </p>
+                </div>
+              )}
+
+              {error && (
+                <p className="text-red-500 font-semibold text-sm">{error}</p>
+              )}
+
+              <div className="border-t pt-3 text-sm">
+                <span className="font-semibold">
+                  {planData?.package_price || 0} Rs.
+                </span>{" "}
+                for {planData?.package_duration || 0} Days
               </div>
             </div>
-            <div className="text-gray-800">
-              <div className="p-2 bg-gray-50">
-                <div className="">
-                  Account Name :
-                  <span className="font-medium">
-                    JodiMilan Infotech Pvt. Ltd.
-                  </span>
-                </div>
+
+            <div className="bg-gray-600 rounded-b p-2 flex justify-between items-center text-white">
+              <div className="text-center">
+                <p className="text-sm">Total Payable</p>
+                <p className="text-xl">₹ {planData?.package_price || 0}</p>
               </div>
-              <div className="p-2 bg-gray-100">
-                <div className="">
-                  Bank: <span className="font-medium">ICICI Bank</span>
-                </div>
-              </div>
-              <div className="p-2 bg-gray-50">
-                <div className="">
-                  Acct. Number:
-                  <span className="font-medium">629605015035</span>
-                </div>
-              </div>
-              <div className="p-2 bg-gray-100">
-                <div className="">
-                  IFSC Code: <span className="font-medium">ICIC0006296</span>
-                </div>
-              </div>
-              <div className="p-2 bg-gray-50 rounded-b-md">
-                <div className="">
-                  Address:
-                  <span className="font-medium">
-                    Vikaspuri, New Delhi - 110018
-                  </span>
-                </div>
-              </div>
+
+              <button
+                className="bg-primary px-4 py-2 rounded-md font-medium disabled:opacity-50"
+                onClick={handlePay}
+                disabled={loading}
+              >
+                {loading ? (
+                  <CircularProgress size={18} color="inherit" />
+                ) : (
+                  "Pay Now"
+                )}
+              </button>
             </div>
           </div>
         </div>
-
-        {pusherData ? (
-          <div className="md:w-[35%] border h-fit p-3 text-center">
-            <div className="flex justify-center">
-              {pusherData?.order_status === "Success" ? (
-                <CheckCircleIcon
-                  sx={{ height: 100, width: 100, color: "#2ece2e" }}
-                />
-              ) : pusherData?.order_status === "Failure" ? (
-                <SmsFailedIcon sx={{ height: 100, width: 100, color: "red" }} />
-              ) : (
-                <FeedbackIcon
-                  sx={{ height: 100, width: 100, color: "orange" }}
-                />
-              )}
-            </div>
-            <div className="mt-3 font-semibold text-[22px]">
-              {pusherData?.order_status === "Success"
-                ? "Payment is processed successfully."
-                : pusherData?.order_status === "Failure"
-                ? "Your payment has failed."
-                : "Your payment has been aborted."}
-            </div>
-            <div className="text-gray-700 mt-1 font-medium">
-              {pusherData?.order_status === "Success" &&
-                "Thanks for purchasing the package."}
-
-              {pusherData?.order_status !== "Aborted" && (
-                <div className="mt-1">
-                  Transaction ID: {pusherData?.tracking_id}
-                </div>
-              )}
-
-              {pusherData?.order_status !== "Success" && (
-                <div className="mt-1">
-                  <button
-                    className="bg-primary outline-none text-white text-sm font-semibold 
-                  rounded-md py-2 px-4 cursor-pointer"
-                    onClick={() => setPusherData(null)}
-                  >
-                    Try Again
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="md:w-[35%]">
-            <div className="border rounded-md">
-              <div className="rounded-t bg-gray-600">
-                <div className="p-2 text-white text-center">
-                  Add Highlighter Plan
-                </div>
-              </div>
-              <div>
-                <div className="p-4">
-                  <div className="text-sm pb-4">
-                    <div>Greater Visibility</div>
-                    <div>
-                      Get more responses (from people searching profiles like
-                      yours)
-                    </div>
-                    <div>Get Highlighted to relevant Matches</div>
-                    <div>
-                      Feature on top of Search Results(based on search criteria)
-                    </div>
-                  </div>
-
-                  {currentPlanData?.user?.plan_expire && (
-                    <div className="my-2 text-sm text-red-600 font-semibold">
-                      Your plan has been expired.
-                    </div>
-                  )}
-
-                  {currentPlanData && (
-                    <div className="my-3">
-                      <div className="font-semibold">Current Plan</div>
-                      <div className="mt-2 flex gap-3">
-                        <div className="font-medium">Package Name : </div>
-                        <div> {currentPlanData?.package_title} </div>
-                      </div>
-                      <div className="mt-2 flex gap-3">
-                        <div className="font-medium">Remaining Days : </div>
-                        <div>
-                          {currentPlanData?.user?.remaining_days} Days Left
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="border-t font-medium flex justify-end pt-2 text-sm">
-                    <div className="ml-2">
-                      {planData?.package_price || 0} Rs. for
-                      <span className="ml-1">
-                        {planData?.package_duration || 0} days.
-                      </span>
-                    </div>
-                  </div>
-                  {error && (
-                    <div className="text-red-500 font-semibold text-sm">
-                      {error}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="bg-gray-600 rounded-b">
-                <div className="flex justify-between text-white p-2">
-                  <div className="text-center">
-                    <div className="text-sm">Total Payable (Incl. 18% GST)</div>
-                    <div className="text-xl">
-                      Rs. {planData?.package_price || 0}
-                    </div>
-                  </div>
-                  <div className="flex justify-center items-center pr-6">
-                    <button
-                      className="bg-primary outline-none text-white text-sm font-semibold rounded-md py-2 px-4 cursor-pointer"
-                      onClick={handlePay}
-                    >
-                      {loading ? (
-                        <CircularProgress size={20} color={"inherit"} />
-                      ) : (
-                        "Pay Now"
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -385,6 +385,8 @@ export default function Messages() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/images/favicon.jpg" />
       </Head>
+
+      {/* Alert */}
       <Snackbar
         open={alert}
         autoHideDuration={3000}
@@ -392,93 +394,112 @@ export default function Messages() {
         onClose={() => setAlert(false)}
       >
         <Alert icon={<ThumbUpAltIcon />} severity="success">
-          {singleUser?.session?.block?.filter((item) => item?.blocked_by == localStorageValue).length
+          {singleUser?.session?.block?.filter(
+            (item) => item?.blocked_by == localStorageValue
+          ).length
             ? "Blocked User Successfully"
             : "Unblocked User Successfully"}
         </Alert>
       </Snackbar>
-      <div className="border w-full rounded-md flex md:h-[calc(100vh-96px)] h-full">
-        <div className="example2 md:w-1/4 w-[80px] md:block hidden">
-          <div className="bg-sky-200 border-b border-slate-300  sticky shadow px-3  flex justify-between text-black h-14 ">
-            <div className="font-bold text-lg my-auto"> Chat </div>
-            <div className=" my-auto">
+
+      {/* Main chat container */}
+      <div className="border w-full rounded-md flex flex-col md:flex-row md:h-[calc(100vh-96px)] h-[calc(100vh-96px)] overflow-hidden">
+        {/* LEFT: chat list (visible only on md+) */}
+        <div className="example2 md:w-1/4 w-full md:block hidden border-r">
+          {/* List header */}
+          <div className="bg-sky-200 border-b border-slate-300 sticky top-0 z-20 shadow px-3 flex justify-between text-black h-14">
+            <div className="font-bold text-lg my-auto">Chat</div>
+            <div className="my-auto">
               <input
                 type="text"
                 name="search"
                 placeholder="Find..."
                 onChange={(e) => {
                   if (e.target.value === "") {
-                    setFriends(allData)
+                    setFriends(allData);
                   } else {
-                    setFriends(allData.filter(data => data.name.toLowerCase().includes(e.target.value.toLowerCase())
-                    ))
+                    setFriends(
+                      allData.filter((data) =>
+                        data.name
+                          .toLowerCase()
+                          .includes(e.target.value.toLowerCase())
+                      )
+                    );
                   }
-
                 }}
-                className=" border-2 rounded-xl px-4 font-light bg-white  outline-none p-1 placeholder:text-black text-black "
+                className="border-2 rounded-xl px-3 font-light bg-white outline-none py-1 placeholder:text-black text-black text-sm md:w-28"
               />
             </div>
           </div>
-          <div className=" md:h-[calc(100vh-153px)] overflow-auto">
-            {friends?.length > 0 ? (
-              friends?.filter(it => it.id !== Number(localStorage.getItem('user_id')))?.map((item, index) => {
-                return (
-                  <div>
-                    {item?.status == "Active" &&
-                      <div
-                        onClick={() => handleChatSelect(item)}
-                        className={`relative cursor-pointer shadow-md text-black p-[10px] w-full justify-between flex items-center lg:gap-[10px] md:gap-[10px] font-medium ${singleUser?.id === item.id
-                          ? "bg-sky-200"
-                          : "hover:bg-sky-200"
-                          }`}
-                        key={index}
-                      >
-                        <div
-                          className="flex gap-2"
-                          style={{ overflowWrap: "anywhere" }}
-                        >
-                          {item?.profile ? (
-                            <img
-                              src={item.profile}
-                              alt="asd"
-                              className="w-9 min-w-9 h-9 rounded-full"
-                              style={{
-                                filter:
-                                  item?.users?.userprofile?.photo_privacy ===
-                                  "No" && "blur(2px)",
-                              }}
-                            />
-                          ) : (
-                            <Image
-                              src={Avatar1}
-                              height={20}
-                              width={20}
-                              alt="sd"
-                              className="w-[50px] h-[50px] rounded-full"
-                            />
-                          )}
 
-                          <div className="hidden my-auto md:block">
-                            <div className="font-semibold text-xl capitalize">
-                              <span className="mr-1">{item?.name}</span>
-                              <span>({item?.ryt_id})</span>
+          {/* List body */}
+          <div className="md:h-[calc(100vh-96px-56px)] h-[calc(100vh-96px-56px)] overflow-y-auto">
+            {friends?.length > 0 ? (
+              friends
+                ?.filter(
+                  (it) => it.id !== Number(localStorage.getItem("user_id"))
+                )
+                ?.map((item, index) => {
+                  return (
+                    <div key={index}>
+                      {item?.status === "Active" && (
+                        <div
+                          onClick={() => handleChatSelect(item)}
+                          className={`relative cursor-pointer shadow-sm text-black px-[10px] py-2 w-full justify-between flex items-center gap-2 font-medium ${
+                            singleUser?.id === item.id
+                              ? "bg-sky-200"
+                              : "hover:bg-sky-100"
+                          }`}
+                        >
+                          <div
+                            className="flex gap-3 items-center"
+                            style={{ overflowWrap: "anywhere" }}
+                          >
+                            {item?.profile ? (
+                              <img
+                                src={item.profile}
+                                alt="profile"
+                                className="w-10 h-10 rounded-full object-cover"
+                                style={{
+                                  filter:
+                                    item?.users?.userprofile?.photo_privacy ===
+                                    "No"
+                                      ? "blur(2px)"
+                                      : "none",
+                                }}
+                              />
+                            ) : (
+                              <Image
+                                src={Avatar1}
+                                height={40}
+                                width={40}
+                                alt="default"
+                                className="w-10 h-10 rounded-full object-cover"
+                              />
+                            )}
+
+                            <div className="hidden md:block">
+                              <div className="font-semibold text-base capitalize">
+                                <span className="mr-1">{item?.name}</span>
+                                <span className="text-sm">
+                                  ({item?.ryt_id})
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div>
+
                           {item?.session?.unreadCount > 0 && (
-                            <div className="right-2 text-sm -top-2 rounded-full bg-red-600 text-white w-5 text-center  ">
+                            <div className="text-xs rounded-full bg-red-600 text-white min-w-[20px] px-1 text-center">
                               {item?.session?.unreadCount}
                             </div>
                           )}
                         </div>
-                      </div>
-                    }
-                  </div>
-                );
-              })
+                      )}
+                    </div>
+                  );
+                })
             ) : !loading ? (
-              <div className="text-black p-[10px] flex items-center font-semibold text-sm">
+              <div className="text-black px-[10px] py-4 flex items-center font-semibold text-sm">
                 No User Found...
               </div>
             ) : (
@@ -488,16 +509,18 @@ export default function Messages() {
             )}
           </div>
         </div>
+
+        {/* RIGHT: Chat panel */}
         {chatData ? (
-          <div className="md:w-3/4 w-full ml-1">
-            <div className="h-14 md:relative fixed md:z-0 z-40 bg-white border-b w-full flex items-center p-2">
+          <div className="md:w-3/4 w-full flex flex-col md:ml-1 h-full">
+            {/* Chat header */}
+            <div className="h-14 sticky top-0 z-30 bg-white border-b w-full flex items-center px-2">
               <div className="flex justify-between w-full text-black">
-                <div className="md:hidden ">
+                {/* Mobile: drawer toggle */}
+                <div className="md:hidden flex items-center">
                   <React.Fragment key={"left"}>
                     <Button onClick={toggleDrawer("left", true)}>
-                      <div>
-                        <MenuOpenIcon className="text-black" />
-                      </div>
+                      <MenuOpenIcon className="text-black" />
                     </Button>
                     <SwipeableDrawer
                       anchor={"left"}
@@ -509,96 +532,115 @@ export default function Messages() {
                     </SwipeableDrawer>
                   </React.Fragment>
                 </div>
-                <div className="font-semibold w-1/2 flex">
+
+                {/* User info */}
+                <div className="font-semibold flex items-center flex-1 overflow-hidden">
                   <div>
                     {singleUser?.profile ? (
                       <img
                         src={singleUser.profile}
-                        alt="asd"
-                        className="w-7 h-7 rounded-full"
+                        alt="profile"
+                        className="w-8 h-8 rounded-full object-cover"
                       />
                     ) : (
                       <Image
                         src={Avatar1}
-                        height={20}
-                        width={20}
-                        alt="sd"
-                        className="w-7 h-7 rounded-full"
+                        height={32}
+                        width={32}
+                        alt="default"
+                        className="w-8 h-8 rounded-full object-cover"
                       />
                     )}
                   </div>
-                  <div className="capitalize my-auto mx-2">
-                    <div>
+
+                  <div className="capitalize ml-2 overflow-hidden">
+                    <div className="truncate">
                       {singleUser?.name} ({singleUser?.ryt_id})
                     </div>
-                    <div className="text-slate-300 text-xs">
+                    <div className="text-slate-400 text-xs">
                       {singleUser?.online === true && "Online"}
                     </div>
                   </div>
-
-                  <div></div>
                 </div>
+
+                {/* Block button */}
                 <div
-                  className="text-black"
+                  className="text-black ml-2 flex items-center"
                   onClick={() => handleBlockUser(singleUser)}
                 >
                   <Tooltip
                     title={
-                      singleUser?.session?.block?.filter((item) => item?.blocked_by == localStorageValue).length
+                      singleUser?.session?.block?.filter(
+                        (item) => item?.blocked_by == localStorageValue
+                      ).length
                         ? "Unblock this user"
                         : "Block this user"
                     }
                   >
-                    <BlockIcon className="text-red-500" />
+                    <BlockIcon className="text-red-500 cursor-pointer" />
                   </Tooltip>
                 </div>
               </div>
             </div>
-            <div className="bg-white relative md:mt-0 mt-14 w-full scrollBar  flex flex-col-reverse  md:h-[calc(100vh-210px)] h-[calc(100vh-210px)]  overflow-y-scroll">
+
+            {/* Messages area */}
+            <div className="bg-white flex-1 w-full scrollBar flex flex-col-reverse overflow-y-auto">
               {chatData ? (
-                <div className="absolute w-full pr-3">
-                  {chatData?.filter((value, index) => index === chatData.findIndex(o => o._id === value._id)).map((message, index) => {
-                    var prevDate = moment(
-                      chatData[index - 1]?.createdAt
-                    )?.format("DD-MM-YYYY");
-                    var currentDate = moment(message.createdAt).format(
-                      "DD-MM-YYYY"
-                    );
-                    return (
-                      <div className="md:px-12 px-4 py-1" key={index}>
-                        {prevDate !== currentDate && (
-                          <div className="py-1 text-sm rounded-2xl  mx-auto px-2 bg-sky-300 my-2 text-center text-black w-fit bg-opacity-60 ">
-                            {currentDate === moment().format("DD-MM-YYYY")
-                              ? "Today"
-                              : currentDate ===
-                                moment().add(-1, "days").format("DD-MM-YYYY")
+                <div className="w-full pr-3">
+                  {chatData
+                    ?.filter(
+                      (value, index) =>
+                        index === chatData.findIndex((o) => o._id === value._id)
+                    )
+                    .map((message, index) => {
+                      const prevDate = moment(
+                        chatData[index - 1]?.createdAt
+                      )?.format("DD-MM-YYYY");
+                      const currentDate = moment(message.createdAt).format(
+                        "DD-MM-YYYY"
+                      );
+
+                      return (
+                        <div className="md:px-12 px-3 py-1" key={index}>
+                          {prevDate !== currentDate && (
+                            <div className="py-1 text-xs rounded-2xl mx-auto px-3 bg-sky-300 my-2 text-center text-black w-fit bg-opacity-60">
+                              {currentDate === moment().format("DD-MM-YYYY")
+                                ? "Today"
+                                : currentDate ===
+                                  moment().add(-1, "days").format("DD-MM-YYYY")
                                 ? "Yesterday"
                                 : currentDate}
-                          </div>
-                        )}
-
-                        <div
-                          className={`${message.user?._id === Number(localStorage.getItem('user_id')) ? "justify-end" : "justify-start"
-                            } w-full flex my-1 `}
-                        >
-                          <span
-                            className={`text-black md:min-h-[20px] px-3 pt-2 my-auto mychatdataWidth opacity-75 ${message.user?._id === Number(localStorage.getItem('user_id'))
-                              ? "bg-[#7dd3fc]"
-                              : "bg-red-200"
-                              } rounded`}
-                          >
-                            <span className="text-left max-w-xl flex font-semibold normal-case">
-                              <PermIdentityIcon />
-                              {message.text}
-                            </span>
-                            <div className="text-[0.7rem] text-right ml-8">
-                              {moment(message.createdAt).format("LT")}
                             </div>
-                          </span>
+                          )}
+
+                          <div
+                            className={`w-full flex my-1 ${
+                              message.user?._id ===
+                              Number(localStorage.getItem("user_id"))
+                                ? "justify-end"
+                                : "justify-start"
+                            }`}
+                          >
+                            <span
+                              className={`text-black md:min-h-[20px] px-3 pt-2 my-auto max-w-[80%] md:max-w-[60%] opacity-75 rounded-lg break-words ${
+                                message.user?._id ===
+                                Number(localStorage.getItem("user_id"))
+                                  ? "bg-[#7dd3fc]"
+                                  : "bg-red-200"
+                              }`}
+                            >
+                              <span className="flex font-semibold normal-case items-start gap-1">
+                                <PermIdentityIcon className="!text-sm mt-[1px]" />
+                                <span className="text-sm">{message.text}</span>
+                              </span>
+                              <div className="text-[0.6rem] text-right mt-1">
+                                {moment(message.createdAt).format("LT")}
+                              </div>
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-full">
@@ -608,13 +650,16 @@ export default function Messages() {
                 </div>
               )}
             </div>
+
+            {/* Input area */}
             {chatData && (
-              <div className="h-14 sticky bg-sky-100">
+              <div className="h-16 bg-sky-100 border-t flex items-center px-3">
                 {!userData?.user?.plan_expire ? (
                   <>
-                    {singleUser?.session?.block?.length == 0 || singleUser?.session?.block == null ? (
-                      <div className="flex  items-center pt-1  gap-4">
-                        <div className="w-11/12">
+                    {singleUser?.session?.block?.length === 0 ||
+                    singleUser?.session?.block == null ? (
+                      <div className="flex items-center gap-2 w-full">
+                        <div className="flex-1">
                           <input
                             type="text"
                             onChange={(event) => {
@@ -623,29 +668,25 @@ export default function Messages() {
                             onKeyDown={handleKeyPress}
                             value={message}
                             placeholder="Type something..."
-                            className="h-12 px-4 font-medium shadow-xl  ml-4 border rounded-3xl shadow-slate-200 outline-none w-[98%]  text-black placeholder:text-slaye-900"
+                            className="h-11 px-4 font-medium border rounded-3xl shadow-sm outline-none w-full text-black placeholder:text-slate-500 bg-white"
                           />
                         </div>
-                        <div>
-                          <button
-                            onClick={() => {
-                              handlesendChat();
-                            }}
-                            disabled={message?.length === 0 ? true : false}
-                            className="disabled:opacity-50 border-none flex items-center hover:scale-90 justify-center w-10 h-10 mr-3 rounded-full bg-sky-300 font-medium text-black"
-                          >
-                            <SendIcon className="text-[20px]" />
-                          </button>
-                        </div>
+                        <button
+                          onClick={handlesendChat}
+                          disabled={message?.length === 0}
+                          className="disabled:opacity-50 border-none flex items-center justify-center w-10 h-10 rounded-full bg-sky-300 font-medium text-black hover:scale-95 transition"
+                        >
+                          <SendIcon className="text-[20px]" />
+                        </button>
                       </div>
                     ) : (
-                      <div className="text-center py-4 font-medium">
-                        You Cant't reply to this conversation
+                      <div className="text-center w-full text-sm font-medium">
+                        You can&apos;t reply to this conversation.
                       </div>
                     )}
                   </>
                 ) : (
-                  <div className="text-center py-4 font-medium">
+                  <div className="text-center w-full text-sm font-medium">
                     Upgrade or Buy Plan.
                   </div>
                 )}
@@ -653,34 +694,36 @@ export default function Messages() {
             )}
           </div>
         ) : (
-          <div className="md:w-3/4 w-full md:h-[calc(100vh-98px)] h-[calc(100vh-98px)]">
+          // If no chat selected
+          <div className="md:w-3/4 w-full h-full flex flex-col">
+            {/* Mobile header with drawer */}
             <div className="h-14 md:bg-transparent bg-sky-700 w-full flex items-center p-3">
               <div className="flex justify-between w-full text-black">
                 <div className="font-semibold md:hidden w-1/2 flex">
-                  <div>
-                    <React.Fragment key={"left"}>
-                      <Button onClick={toggleDrawer("left", true)}>
-                        <div>
-                          <MenuOpenIcon className="text-black" />
-                        </div>
-                      </Button>
-                      <SwipeableDrawer
-                        anchor={"left"}
-                        open={state["left"]}
-                        onClose={toggleDrawer("left", false)}
-                        onOpen={toggleDrawer("left", true)}
-                      >
-                        {list("left")}
-                      </SwipeableDrawer>
-                    </React.Fragment>
-                  </div>
+                  <React.Fragment key={"left"}>
+                    <Button onClick={toggleDrawer("left", true)}>
+                      <MenuOpenIcon className="text-black" />
+                    </Button>
+                    <SwipeableDrawer
+                      anchor={"left"}
+                      open={state["left"]}
+                      onClose={toggleDrawer("left", false)}
+                      onOpen={toggleDrawer("left", true)}
+                    >
+                      {list("left")}
+                    </SwipeableDrawer>
+                  </React.Fragment>
                 </div>
               </div>
             </div>
-            <div className="mt-6 font-semibold lg:text-[30px] text-lg text-gray-500 text-center">
-              No Chat Found !
-              <div className="text-[16px] mt-3">
-                Please Select any user for Chat!
+            <div className="flex-1 flex flex-col items-center justify-center px-4">
+              <div className="text-center">
+                <div className="font-semibold lg:text-[30px] text-lg text-gray-500">
+                  No Chat Found!
+                </div>
+                <div className="text-[16px] mt-3 text-gray-500">
+                  Please select any user to start a chat.
+                </div>
               </div>
             </div>
           </div>
@@ -688,5 +731,6 @@ export default function Messages() {
       </div>
     </>
   );
+
 };
 

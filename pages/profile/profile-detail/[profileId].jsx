@@ -1,452 +1,391 @@
 /* eslint-disable @next/next/no-img-element */
+import React, { useEffect, useRef, useState, Fragment } from "react";
 import Image from "next/image";
-import React, { useEffect } from "react";
-import BlockIcon from "@mui/icons-material/Block";
-import { SiMinutemailer } from "react-icons/si";
-import { MdPermContactCalendar } from "react-icons/md";
-import { BsFillChatFill } from "react-icons/bs";
-import { BsStarFill } from "react-icons/bs";
-import { GrClose } from "react-icons/gr";
 import { useRouter } from "next/router";
-import { Fragment, useRef, useState } from "react";
-import { Dialog, Transition } from "@headlessui/react";
-import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
-import useApiService from "../../../services/ApiService";
-import Avtar from "../../../public/images/Avatar.webp";
-import WomenD from "../../../public/images/girldefault.png";
-import MenD from "../../../public/images/mendefault.png";
-import { Alert, CircularProgress, Snackbar } from "@mui/material";
-import Tooltip from "@mui/material/Tooltip";
+import {
+  Alert,
+  CircularProgress,
+  Snackbar,
+  Tooltip,
+} from "@mui/material";
+import BlockIcon from "@mui/icons-material/Block";
 import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import FamilyRestroomOutlinedIcon from "@mui/icons-material/FamilyRestroomOutlined";
 import Diversity2OutlinedIcon from "@mui/icons-material/Diversity2Outlined";
-import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
-import ImageViewer from "react-simple-image-viewer";
-import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
-import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import HandshakeOutlinedIcon from "@mui/icons-material/HandshakeOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import { Dialog, Transition } from "@headlessui/react";
 import PermContactCalendarOutlinedIcon from "@mui/icons-material/PermContactCalendarOutlined";
+import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import Head from "next/head";
 import { useSelector } from "react-redux";
-import { append } from "domutils";
-import { decrypted_key } from "../../../services/appConfig";
 import CryptoJS from "crypto-js";
-import QueenIcon from "../../../public/images/queen_crown.png";
+
+import useApiService from "../../../services/ApiService";
+import { decrypted_key } from "../../../services/appConfig";
+
+import WomenD from "../../../public/images/girldefault.png";
+import MenD from "../../../public/images/mendefault.png";
 import KingIcon from "../../../public/images/king_crown.png";
-import moment from "moment";
+import QueenIcon from "../../../public/images/queen_crown.png";
+
+/**
+ * Helper to decrypt the encrypted payload (data.user) that comes as:
+ * Base64 string -> JSON { value, iv } -> AES-256-CBC decrypted string -> JSON
+ */
+const decryptPayload = (cipherBase64) => {
+  try {
+    if (!cipherBase64) return null;
+
+    const keyHex = CryptoJS.enc.Hex.parse(process.env.NEXT_PUBLIC_ENC_KEY);
+    const ivHex = CryptoJS.enc.Hex.parse(process.env.NEXT_PUBLIC_ENC_IV);
+
+    const decrypted = CryptoJS.AES.decrypt(
+      { ciphertext: CryptoJS.enc.Base64.parse(cipherBase64) },
+      keyHex,
+      {
+        iv: ivHex,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7,
+      }
+    );
+
+    const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
+    if (!decryptedText) {
+      console.error("❌ Empty decrypt result");
+      return null;
+    }
+
+    return JSON.parse(decryptedText);
+
+  } catch (err) {
+    console.error("❌ Decrypt error:", err);
+    return null;
+  }
+};
+
 
 const ProfileDetail = () => {
   const router = useRouter();
   const { profileId } = router.query;
-  const [viewContactShow, setViewContactShow] = useState(false);
-  const [blockModal, setBlockModal] = useState(false);
-  const [profileData, setProfileData] = useState();
-  const [isDataLoading, setIsDataLoading] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [similarProfile, setSimilarProfile] = useState([]);
+
   const {
+    profileById,
     addToWishlist,
     blockUser,
-    profileById,
-    sendFriendRequest,
-    getPhotoRequest,
     unblockUser,
     viewContact,
+    sendFriendRequest,
   } = useApiService();
+
+  const [profileData, setProfileData] = useState(null); // decrypted user
+  const [isDataLoading, setIsDataLoading] = useState(false);
   const [alertMsg, setAlertMsg] = useState("");
   const [alert, setAlert] = useState(false);
-  const [albumView, setAlbumView] = useState(false);
-  const [userData, setUserData] = useState();
-  const cancelButtonRef = useRef(null);
-  const currentDate = moment(new Date());
-  const packageExpireDate = moment(userData?.user?.pacakge_expiry);
-  const difference = packageExpireDate.diff(currentDate, "days");
-  const masterData1 = useSelector((state) => state.user);
-  const [blockedObj, setBlockedObj] = useState(null);
+  const [blockModal, setBlockModal] = useState(false);
+  const [viewContactShow, setViewContactShow] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [userNotFound, setUserNotFound] = useState(false);
-  const [privacyState, setPrivacyState] = useState();
+  const [blockedObj, setBlockedObj] = useState(null);
+const [alertSeverity, setAlertSeverity] = useState("success");
 
-  // profile by id
-  const getProfileById = () => {
+
+  const cancelButtonRef = useRef(null);
+
+  // Logged-in user master data (encrypted in redux)
+  const masterData1 = useSelector((state) => state.user);
+  const [userData, setUserData] = useState(null); // decrypted logged-in user
+
+  // 🔓 Decrypt logged-in master user from redux (if needed)
+  const getMasterData = () => {
+    try {
+      const encryptedData = masterData1?.user?.user;
+      if (!encryptedData) return;
+
+      const encryptedJson = JSON.parse(atob(encryptedData));
+
+      const decrypted = CryptoJS.AES.decrypt(
+        encryptedJson.value,
+        CryptoJS.enc.Base64.parse(decrypted_key),
+        {
+          iv: CryptoJS.enc.Base64.parse(encryptedJson.iv),
+        }
+      );
+
+      const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
+
+      const jsonStart = decryptedText.indexOf("{");
+      const jsonEnd = decryptedText.lastIndexOf("}") + 1;
+      const cleanJson = decryptedText.substring(jsonStart, jsonEnd).trim();
+
+      const parsed = JSON.parse(cleanJson);
+      setUserData(parsed);
+      console.log("🔓 Decrypted master user:", parsed);
+    } catch (error) {
+      console.error("❌ Failed to decrypt master user data:", error);
+    }
+  };
+
+
+const normalizeProfile = (user) => {
+  if (!user) return null;
+
+  const profile = user.profile || {};
+
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+  return {
+    ...user,
+
+    userprofile: {
+      ...profile,
+      educations: profile.educations || "",
+      occupation: profile.occupation || "",
+      annual_income: profile.annual_income || "",
+      height: profile.height || "",
+      occupation_details: profile.occupation_details || "",
+      education_details: profile.education_details || "",
+      about_yourself: profile.about_yourself || "",
+      partner_prefernces: profile.partner_prefernces || "",
+      
+      // 📌 Fix image for UI
+      profile_img_src: profile.profile_image
+        ? `${baseUrl}/${profile.profile_image}`
+        : null,
+
+      // 📌 Fix location mapping
+      thikana_city: { name: profile.thikana_city || "" },
+      birth_city: { name: profile.birth_city || "" },
+      ed_city: { name: profile.ed_city || "" },
+    },
+
+    // 📌 Fix caste for UI
+    caste: { name: user.caste || "" },
+  };
+};
+
+
+
+  // 🔓 Get profile by RYT ID + decrypt response.data.data.user
+  const fetchProfileById = () => {
+    if (!profileId) return;
+
     setIsDataLoading(true);
 
     profileById(profileId)
       .then((res) => {
-        if (res?.data?.status == 404) {
+        console.log("📥 profileById response:", res);
+
+        // Node response shape: { code, success, message, data: { user: "<encrypted>" } }
+        const code = res?.data?.code;
+        const success = res?.data?.success;
+
+        if (code === 404 || res?.data?.status === 404) {
           setUserNotFound(true);
-        } else if (res.data.status === 200) {
-          // for similar profiles ->
-          var similarEncrypted_json = JSON.parse(
-            atob(res?.data?.similar_profiles)
-          );
-          var similarDec = CryptoJS.AES.decrypt(
-            similarEncrypted_json.value,
-            CryptoJS.enc.Base64.parse(decrypted_key),
-            {
-              iv: CryptoJS.enc.Base64.parse(similarEncrypted_json.iv),
-            }
-          );
+          return;
+        }
 
-          var similarDecryptedText = similarDec.toString(CryptoJS.enc.Utf8);
-          var similarJsonStartIndex = similarDecryptedText.indexOf("[");
-          var similarJsonEndIndex = similarDecryptedText.lastIndexOf("]") + 1;
-          const similarJsonData = similarDecryptedText?.substring(
-            similarJsonStartIndex,
-            similarJsonEndIndex
-          );
+        if (code === 200 && success) {
+          const encryptedUser =
+            res?.data?.data?.user || res?.data?.user || null;
 
-          similarJsonData.trim();
-          const similarParsed = JSON.parse(similarJsonData);
-          setSimilarProfile(similarParsed);
+         const decryptedUser = decryptPayload(encryptedUser);
 
-          // for user profile by id ->
-          var encrypted_json = JSON.parse(atob(res?.data?.user));
-          var dec = CryptoJS.AES.decrypt(
-            encrypted_json.value,
-            CryptoJS.enc.Base64.parse(decrypted_key),
-            {
-              iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-            }
-          );
+         console.log("🔓 Decrypted profile user:", decryptedUser);
 
-          var decryptedText = dec.toString(CryptoJS.enc.Utf8);
-          var jsonStartIndex = decryptedText.indexOf("{");
-          var jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
-          var jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
-          jsonData.trim();
-          const userParsed = JSON.parse(jsonData);
+if (!decryptedUser) {
+  console.error("❌ Could not decrypt user payload");
+  return;
+}
 
-          setBlockedObj(res?.data?.is_blocked_profile);
-          setProfileData(userParsed);
+const normalized = normalizeProfile(decryptedUser);
+
+console.log("📌 Normalized profile:", normalized);
+
+setBlockedObj(res?.data?.data?.is_blocked_profile || null);
+setProfileData(normalized);
+
+
+          
+        } else {
+          console.error("❌ Unexpected response format:", res?.data);
         }
       })
-      .catch((error) => {
-        console.log(error);
+      .catch((err) => {
+        console.error("❌ profileById error:", err);
       })
       .finally(() => setIsDataLoading(false));
   };
 
-  const getMasterData = () => {
-    if (masterData1?.user !== null) {
-      var encrypted_json = JSON.parse(window.atob(masterData1?.user?.user));
-      var dec = CryptoJS.AES.decrypt(
-        encrypted_json.value,
-        CryptoJS.enc.Base64.parse(decrypted_key),
-        {
-          iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-        }
-      );
-
-      var decryptedText = dec.toString(CryptoJS.enc.Utf8);
-      var jsonStartIndex = decryptedText.indexOf("{");
-      var jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
-      var jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
-      jsonData.trim();
-      const parsed = JSON.parse(jsonData);
-
-      setUserData(parsed);
-    }
-  };
-
   useEffect(() => {
     getMasterData();
-    // setUserData(masterData1?.user?.user);
   }, [masterData1]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-
-    if (token) {
-      if (router.isReady) {
-        getProfileById();
-      }
-    } else {
+    if (!token) {
       router.push("/Login");
+      return;
     }
-  }, [router.query]);
+
+    if (router.isReady) {
+      fetchProfileById();
+    }
+  }, [router.isReady, profileId]);
 
   const handleWishlist = () => {
-    if (profileData?.shortlist_profile_id === false) {
-      let params = {
-        user_profile_id: profileData?.id,
-      };
+    if (!profileData?.shortlist_profile_id) {
+      const params = { user_profile_id: profileData?.id };
       addToWishlist(params)
         .then((res) => {
-          if (res.data.status === 200) {
-            setAlertMsg("You have added this user to wishlist !");
+          if (res.data.status === 200 || res.data.code === 200) {
+            setAlertMsg("You have added this user to wishlist!");
             setAlert(true);
-            getProfileById();
+            fetchProfileById();
           } else if (res.data.status === 401) {
             setAlert(true);
             setAlertMsg(res?.data?.message);
           }
         })
-        .catch((error) => {
-          console.log(error);
-        });
+        .catch((error) => console.error(error));
     }
   };
 
   const handleBlockUser = () => {
+    if (!profileData?.id) return;
     setLoading(true);
-    let params = {
+    const params = {
       block_profile_id: profileData?.id,
       status: "Yes",
     };
     blockUser(params)
       .then((res) => {
-        if (res.data.status === 200) {
+        if (res.data.status === 200 || res.data.code === 200) {
           setAlertMsg("You have blocked this user");
           setAlert(true);
           setBlockModal(false);
-          setLoading(false);
           router.push("/Blocked");
         }
       })
-      .catch((error) => {
-        console.log(error);
-      })
+      .catch((error) => console.error(error))
       .finally(() => setLoading(false));
   };
 
   const handleUnblockUser = () => {
+    if (!profileData?.id || !blockedObj?.id) return;
     setLoading(true);
-    let params = {
+    const params = {
       block_profile_id: profileData?.id,
       status: "No",
     };
     unblockUser(blockedObj?.id, params)
       .then((res) => {
-        if (res?.data?.status === 200) {
-          let tempProfileData = { ...profileData };
-          tempProfileData.is_blocked = false;
-          setProfileData(tempProfileData);
+        if (res?.data?.status === 200 || res?.data?.code === 200) {
+          const temp = { ...profileData, is_blocked: false };
+          setProfileData(temp);
           setAlertMsg("You have unblocked this user");
           setAlert(true);
-          setLoading(true);
           setBlockModal(false);
         }
       })
-      .catch((error) => console.log(error))
+      .catch((error) => console.error(error))
       .finally(() => setLoading(false));
   };
 
-  const handlePhotoRequest = () => {
-    const _form = new FormData();
-    _form.append("request_profile_photo_id", profileData?.id);
-    getPhotoRequest(_form).then((res) => {
-      if (res.data.status === 200) {
-        setAlertMsg(res?.data?.message);
-        getProfileById();
-        setAlert(true);
-      } else if (res.data.status === 401) {
-        setAlertMsg(res?.data?.message);
-        setAlert(true);
-      }
-    });
-  };
-
-  const handleSendRequest = () => {
-    let params = {
-      request_profile_id: profileData?.id,
-    };
-    sendFriendRequest(params)
-      .then((res) => {
-        if (res.data.status === 200) {
-          setAlertMsg(res?.data?.message);
-          setAlert(true);
-          getProfileById();
-        } else if (res.data.status === 401) {
-          setAlertMsg(res?.data?.message);
-          setAlert(true);
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  };
-
-  const imageData = profileData?.userprofile?.album_images?.map((item) => {
-    return item.album_img_src;
-  });
-
-  const handleNavigateToProfile = (id) => {
-    router.push({
-      pathname: `/profile/profile-detail/${id}`,
-    });
-  };
-
   const handleViewContact = () => {
-    if (profileData?.userprofile?.contact_privacy == "Yes") {
+    if (!profileData) return;
+
+    if (profileData?.profile?.contact_privacy === "Yes") {
       if (!userData?.user?.plan_expire) {
         viewContact(profileId)
-          .then((res) => {})
-          .catch((error) => console.log(error));
+          .then(() => {})
+          .catch((error) => console.error(error));
       }
     } else if (profileData?.friend_request_approved) {
       viewContact(profileId)
-        .then((res) => {})
-        .catch((error) => console.log(error));
+        .then(() => {})
+        .catch((error) => console.error(error));
     }
     setViewContactShow(true);
   };
 
-  // {profileData?.userprofile?.contact_privacy ==
-  //   "Yes" ? (
-  //     !userData?.user?.plan_expire ? (
-  //       <div>
-  //         <div className="font-medium mt-2">
-  //           Name :
-  //           <span className="ml-1">
-  //             {profileData?.name} {profileData?.last_name}
-  //           </span>
-  //         </div>
-  //         <div className="font-medium mt-2">
-  //           Occupation Details :
-  //           <span className="ml-1">
-  //             {
-  //               profileData?.userprofile
-  //                 ?.occupation_details
-  //             }
-  //           </span>
-  //         </div>
-  //         <div className="font-medium mt-2">
-  //           Education Details :
-  //           <span className="ml-1">
-  //             {
-  //               profileData?.userprofile
-  //                 ?.education_details
-  //             }
-  //           </span>
-  //         </div>
-  //         <div className="font-medium mt-2">
-  //           Phone number :
-  //           <span className="ml-1">
-  //             {profileData?.phone}
-  //           </span>
-  //         </div>
-  //         <div className="font-medium mt-2">
-  //           Email Address :
-  //           <span className="ml-1">
-  //             {profileData?.email}
-  //           </span>
-  //         </div>
-  //         <div className="font-medium mt-2">
-  //           Thikana :
-  //           <span className="ml-1">
-  //             {profileData?.userprofile?.thikhana?.name ||
-  //               ""}
-  //           </span>
-  //         </div>
-  //       </div>
-  //     ) : (
-  //       <div className="font-medium">
-  //         You need to purchase plan to view this{" "}
-  //         {"user's "}
-  //         Contact information.
-  //       </div>
-  //     )
-  //   ) : profileData?.friend_request_approved ? (
-  //     <div>
-  //       <div className="font-medium mt-2">
-  //         Name :
-  //         <span className="ml-1">
-  //           {profileData?.name} {profileData?.last_name}
-  //         </span>
-  //       </div>
-  //       <div className="font-medium mt-2">
-  //         Occupation Details :
-  //         <span className="ml-1">
-  //           {profileData?.userprofile?.occupation_details}
-  //         </span>
-  //       </div>
-  //       <div className="font-medium mt-2">
-  //         Education Details :
-  //         <span className="ml-1">
-  //           {profileData?.userprofile?.education_details}
-  //         </span>
-  //       </div>
-  //       <div className="font-medium mt-2">
-  //         Thikana :
-  //         <span className="ml-1">
-  //           {profileData?.userprofile?.thikhana?.name ||
-  //             ""}
-  //         </span>
-  //       </div>
-  //       <div className="font-medium mt-2">
-  //         Phone number :
-  //         <span className="ml-1">
-  //           {profileData?.phone}
-  //         </span>
-  //       </div>
-  //       <div className="font-medium mt-2">
-  //         Email Address :
-  //         <span className="ml-1">
-  //           {profileData?.email}
-  //         </span>
-  //       </div>
-  //     </div>
-  //   ) : (
-  //     <div className="font-medium">
-  //       You or This user has not accepted the sent
-  //       interest request.
-  //     </div>
-  //   )}
-  useEffect(() => {
-    if (userData?.user?.plan_expire) {
-      if (profileData?.userprofile?.contact_privacy == "No") {
-        if (profileData?.friend_request_approved) {
-          setPrivacyState(2);
-        } else {
-          setPrivacyState(3);
-        }
-      } else {
-        setPrivacyState(2);
-      }
-    } else {
-      setPrivacyState(1);
-    }
-  }, []);
+ const handleSendRequest = () => {
+  if (!profileData?.id) return;
 
-  console.log(profileData, "checkViewContactForm");
+  const params = { request_profile_id: profileData?.id };
+
+  sendFriendRequest(params)
+    .then((res) => {
+
+      const { code, message } = res?.data || {};
+
+
+      if (code === 200) {
+        setAlertMsg(message || "Interest Sent Successfully!");
+        setAlertSeverity("success");
+        setAlert(true);
+        fetchProfileById();
+      } else {
+        setAlertMsg(message || "Something went wrong");
+        setAlertSeverity("error");
+        setAlert(true);
+      }
+    })
+    .catch((err) => {
+      console.log("❌ sendFriendRequest error:", err);
+      console.error(err);
+      setAlertMsg(`${err?.response?.data?.message || "Error sending interest request"}`);
+      setAlertSeverity("error");
+      setAlert(true);
+    });
+};
+
+
+  //------------- RENDERING ---------------
+
+  if (isDataLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[50vh]">
+        <CircularProgress size={60} />
+      </div>
+    );
+  }
+
+  if (userNotFound) {
+    return (
+      <div className="flex justify-center items-center min-h-[50vh] font-semibold text-xl">
+        No User Found By This Id.
+      </div>
+    );
+  }
 
   return (
     <div>
       <Head>
         <title>Profile Details</title>
       </Head>
-      <Snackbar
-        open={alert}
-        autoHideDuration={3000}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-        onClose={() => setAlert(false)}
-      >
-        <Alert icon={<ThumbUpAltIcon />} severity={"success"}>
-          {alertMsg}
-        </Alert>
-      </Snackbar>
 
-      {albumView && (
-        <div>
-          <ImageViewer
-            src={imageData}
-            disableScroll={true}
-            onClose={() => setAlbumView(false)}
-            backgroundStyle={{ backgroundOrigin: "inherit" }}
-            leftArrowComponent={
-              <KeyboardArrowLeftIcon className="text-[50px]" />
-            }
-            rightArrowComponent={
-              <KeyboardArrowRightIcon className="text-[50px]" />
-            }
-          />
-        </div>
-      )}
+      {/* Snackbar */}
+<Snackbar
+  open={alert}
+  autoHideDuration={3000}
+  anchorOrigin={{ vertical: "top", horizontal: "right" }}
+  onClose={() => setAlert(false)}
+>
+  <Alert
+    icon={<ThumbUpAltIcon />}
+    severity={alertSeverity}
+    onClose={() => setAlert(false)}
+    variant="filled"
+  >
+    {alertMsg || ""}
+  </Alert>
+</Snackbar>
 
-      {/* block modal */}
+
+
+      {/* Block / Unblock Modal */}
       <Transition.Root show={blockModal} as={Fragment}>
         <Dialog
           as="div"
@@ -491,9 +430,7 @@ const ProfileDetail = () => {
                           as="h3"
                           className="text-lg font-medium leading-6 text-gray-900"
                         >
-                          {profileData?.is_blocked
-                            ? "Unblock User"
-                            : "Block User"}
+                          {profileData?.is_blocked ? "Unblock User" : "Block User"}
                         </Dialog.Title>
                         <div className="mt-2">
                           {profileData?.is_blocked ? (
@@ -542,13 +479,13 @@ const ProfileDetail = () => {
         </Dialog>
       </Transition.Root>
 
-      {/* view contact */}
+      {/* View contact modal */}
       <Transition.Root show={viewContactShow} as={Fragment}>
         <Dialog
           as="div"
           className="relative"
           initialFocus={cancelButtonRef}
-          onClose={setBlockModal}
+          onClose={setViewContactShow}
         >
           <Transition.Child
             as={Fragment}
@@ -590,57 +527,13 @@ const ProfileDetail = () => {
                           View contact
                         </Dialog.Title>
                         <div className="mt-4">
-                          {userData?.user?.plan_expire ? (
-                            <div>
-                              You need to purchase plan to view this {"user's "} contact details
+                          {/* Simple version: show contact if either privacy allows or friend_request_approved */}
+                          {profileData?.profile?.contact_privacy === "No" &&
+                          !profileData?.friend_request_approved ? (
+                            <div className="font-medium">
+                              You or this user has not accepted the interest
+                              request.
                             </div>
-                          ) : profileData?.userprofile?.contact_privacy ==
-                            "No" ? (
-                            profileData?.friend_request_approved ? (
-                              <div>
-                                <div className="font-medium mt-2">
-                                  Name :
-                                  <span className="ml-1">
-                                    {profileData?.name} {profileData?.last_name}
-                                  </span>
-                                </div>
-                                <div className="font-medium mt-2">
-                                  Occupation Details :
-                                  <span className="ml-1">
-                                    {
-                                      profileData?.userprofile
-                                        ?.occupation_details
-                                    }
-                                  </span>
-                                </div>
-                                <div className="font-medium mt-2">
-                                  Education Details :
-                                  <span className="ml-1">
-                                    {
-                                      profileData?.userprofile
-                                        ?.education_details
-                                    }
-                                  </span>
-                                </div>
-                                <div className="font-medium mt-2">
-                                  Phone number :
-                                  <span className="ml-1">
-                                    {profileData?.phone}
-                                  </span>
-                                </div>
-                                <div className="font-medium mt-2">
-                                  Email Address :
-                                  <span className="ml-1">
-                                    {profileData?.email}
-                                  </span>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="font-medium">
-                                You or This user has not accepted the sent
-                                interest request.
-                              </div>
-                            )
                           ) : (
                             <div>
                               <div className="font-medium mt-2">
@@ -652,13 +545,17 @@ const ProfileDetail = () => {
                               <div className="font-medium mt-2">
                                 Occupation Details :
                                 <span className="ml-1">
-                                  {profileData?.userprofile?.occupation_details}
+                                  {profileData?.profile?.occupation_details ||
+                                    profileData?.profile?.occupation ||
+                                    ""}
                                 </span>
                               </div>
                               <div className="font-medium mt-2">
                                 Education Details :
                                 <span className="ml-1">
-                                  {profileData?.userprofile?.education_details}
+                                  {profileData?.profile?.education_details ||
+                                    profileData?.profile?.educations ||
+                                    ""}
                                 </span>
                               </div>
                               <div className="font-medium mt-2">
@@ -675,7 +572,6 @@ const ProfileDetail = () => {
                               </div>
                             </div>
                           )}
-                         
                         </div>
                       </div>
                     </div>
@@ -697,514 +593,297 @@ const ProfileDetail = () => {
         </Dialog>
       </Transition.Root>
 
-      {isDataLoading ? (
-        <div className="flex justify-center items-center min-h-[50vh]">
-          <CircularProgress size={60} color={"inherit"} />
-        </div>
-      ) : (
-        <>
-          {userNotFound ? (
-            <div className="flex justify-center items-center min-h-[50vh] font-semibold text-xl">
-              No User Found By This Id.
+      {/* MAIN PROFILE UI */}
+      {profileData && (
+        <div className="lg:px-32 md:px-12 md:mt-5 mt-0 lg:mt-0 bg-gray-100">
+          <div className="relative">
+            <div className="z-20">
+              <Image
+                src="/landingbanner/TopBanner2.jpg"
+                alt=""
+                width={200}
+                height={100}
+                style={{
+                  width: "100%",
+                  height: "260px",
+                  margin: "auto",
+                  objectFit: "cover",
+                }}
+              />
             </div>
-          ) : (
-            <div className="lg:px-32 md:px-12 md:mt-5 mt-0 lg:mt-0 bg-gray-100">
-              <div className="relative">
-                <div className="z-20">
-                  <Image
-                    src="/landingbanner/TopBanner2.jpg"
-                    alt=""
-                    width={200}
-                    height={100}
-                    style={{
-                      width: "100%",
-                      height: "260px",
-                      margin: "auto",
-                      objectFit: "cover",
-                    }}
-                  />
-                </div>
 
-                <div style={{ transform: "translateY(-55px)" }}>
-                  <div className="w-full md:flex md:justify-center">
-                    <div className="ml-4 md:pt-0 pt-2  md:ml-0 lg:ml-4 w-[92%] md:flex bg-white drop-shadow-sm">
-                      {profileData?.userprofile?.profile_img_src ? (
-                        <div className="relative lg:w-[340px] md:w-[300px] lg:h-full md:h-[full]">
-                          <img
-                            src={profileData?.userprofile?.profile_img_src}
-                            height={100}
-                            width={100}
-                            className="w-1/2 mx-auto md:w-52 md:h-52 mt-2 rounded  h-56"
-                            style={{
-                              filter:
-                                profileData?.userprofile?.photo_privacy == "Yes"
-                                  ? ""
-                                  : profileData?.friend_request_approved
-                                  ? ""
-                                  : "blur(3px)",
-                            }}
-                            alt="profile image"
-                          />
-                          {profileData?.userprofile?.photo_privacy == "No" &&
-                            !profileData?.friend_request_approved && (
-                              <div className="absolute top-[50%] left-[50%] -translate-x-[50%]">
-                                <div className="text-white text-center">
-                                  <div className="font-medium">
-                                    Visible On Accept
-                                  </div>
-                                  <LockOutlinedIcon />
-                                </div>
-                              </div>
-                            )}
-
-                          {profileData?.friend_request_approved &&
-                            profileData?.userprofile?.album_images.length >
-                              0 && (
-                              <div className="absolute top-[70%] left-[50%] -translate-x-[50%]">
-                                <div className="text-white border rounded p-1 opacity-50 hover:opacity-100 text-center">
-                                  <button
-                                    className="font-semibold text-white text-sm hover:underline"
-                                    onClick={() => setAlbumView(true)}
-                                  >
-                                    VIEW ALBUM
-                                  </button>
-                                </div>
-                              </div>
-                            )}
+            <div style={{ transform: "translateY(-55px)" }}>
+              <div className="w-full md:flex md:justify-center">
+                <div className="ml-4 md:pt-0 pt-2  md:ml-0 lg:ml-4 w-[92%] md:flex bg-white drop-shadow-sm">
+                  {/* PROFILE IMAGE */}
+                  <div className="lg:w-[320px] my-3 md:w-[300px] relative">
+                    <Image
+                      src={profileData?.gender === "Male" ? MenD : WomenD}
+                      alt="profile image"
+                      height={100}
+                      width={120}
+                      className="md:w-full w-auto mx-auto md:h-full h-56"
+                    />
+                    {profileData?.profile?.photo_privacy === "No" && (
+                      <div className="absolute top-[50%] left-[50%] -translate-x-[50%]">
+                        <div className="text-white text-center">
+                          <div className="font-medium">Visible On Accept</div>
+                          <LockOutlinedIcon />
                         </div>
-                      ) : (
-                        <div className="lg:w-[320px]  my-3 md:w-[300px] relative">
-                          <Image
-                            src={profileData?.gender === "Male" ? MenD : WomenD}
-                            alt="profile image"
-                            height={100}
-                            width={120}
-                            className="md:w-full w-auto mx-auto md:h-full h-56"
-                          />
-                          <div className="absolute top-[75%] md:left-[25%] left-[32%] lg:left-[15%]">
-                            <button
-                              disabled={profileData?.photo_request_check}
-                              onClick={() => handlePhotoRequest()}
-                              className="bg-[#34495e] text-white p-2 text-sm font-semibold rounded-md"
-                            >
-                              {profileData?.photo_request_check
-                                ? "Photo Request Sent"
-                                : "Send Photo Request"}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* BASIC INFO */}
+                  <div className="w-full bg-white">
+                    <div className="px-4 pt-3 flex flex-col justify-around">
+                      <div className="flex gap-3 items-center text-xl font-medium">
+                        <div>{profileData?.ryt_id}</div>
+                        {!profileData?.plan_expire ? (
+                          <div>
+                            <Image
+                              src={
+                                profileData?.gender === "Male"
+                                  ? KingIcon
+                                  : QueenIcon
+                              }
+                              height={100}
+                              width={100}
+                              alt="ss"
+                              className="h-[25px] w-[25px]"
+                            />
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="md:flex text-sm pt-2">
+                        <div className="font-medium">
+                          <div>
+                            <span className="font-semibold"> Age : </span>
+                            <span>{profileData?.age || ""}</span>
+                          </div>
+
+                          <div className="mt-2">
+                            <span className="font-semibold"> Height : </span>
+                            <span>{profileData?.profile?.height || ""}</span>
+                          </div>
+
+                          <div className="mt-2">
+                            <span className="font-semibold"> Clan : </span>
+                            <span>{profileData?.profile?.gothra || ""}</span>
+                          </div>
+                        </div>
+
+                        <div className="lg:pl-28 md:pl-2 md:py-0 py-2 font-medium">
+                          <div>
+                            <span className="font-semibold">Educations : </span>
+                            {profileData?.profile?.educations || ""}
+                          </div>
+                          <div className="mt-2">
+                            <span className="font-semibold">Occupation : </span>
+                            {profileData?.profile?.occupation || ""}
+                          </div>
+                          <div className="mt-2">
+                            <span className="font-semibold mr-1">
+                              Annual Income :
+                            </span>
+                            {profileData?.profile?.annual_income || ""}
+                          </div>
+                          <div className="mt-2">
+                            <span className="font-semibold mr-1">
+                              Marital Status :
+                            </span>
+                            {profileData?.mat_status || ""}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex">
+                        {profileData?.is_blocked ? (
+                          <Tooltip
+                            title="Unblock this profile"
+                            onClick={() => setBlockModal(true)}
+                          >
+                            <button className="mt-4 bg-green-700 text-white text-sm font-semibold px-4 py-1 rounded">
+                              Unblock
                             </button>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className=" w-full bg-white">
-                        <div className="px-4 pt-3 flex flex-col justify-around">
-                          <div className="flex gap-3 items-center text-xl font-medium">
-                            <div>
-                              {profileData?.ryt_id}
-                            </div>
-                            {!profileData?.plan_expire ? (
-                              <div>
-                                <Image
-                                  src={
-                                    profileData?.gender === "Male"
-                                      ? KingIcon
-                                      : QueenIcon
-                                  }
-                                  height={100}
-                                  width={100}
-                                  alt="ss"
-                                  className="h-[25px] w-[25px]"
-                                />
-                              </div>
-                            ) : null}
-                          </div>
-                          <div className="md:flex text-sm pt-2">
-                            <div className="font-medium">
-                              <div>
-                                <span className="font-semibold"> Age : </span>
-                                <span>
-                                  {profileData?.age || ""}
-                                </span>
-                              </div>
-                              <div>
-                                <div className="mt-2">
-                                  <span className="font-semibold">
-                                    {" "}
-                                    Height :{" "}
-                                  </span>
-                                  <span>
-                                    {profileData?.userprofile?.height ||
-                                      ""}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="mt-2">
-                                <span className="font-semibold"> City : </span>
-                                {profileData?.userprofile?.thikana_city?.name ||
-                                  ""}
-                              </div>
-                              <div className="mt-2">
-                                <span className="font-semibold"> Clan : </span>
-                                {profileData?.caste?.name ||
-                                  ""}
-                              </div>
-                            </div>
-                            <div className="lg:pl-28 md:pl-2 md:py-0 py-2 font-medium">
-                              <div>
-                                <span className="font-semibold">
-                                  Educations :{" "}
-                                </span>
-                                {profileData?.userprofile?.educations ||
-                                  ""}
-                              </div>
-                              <div className="mt-2">
-                                <span className="font-semibold">
-                                  Occupation :{" "}
-                                </span>
-                                {profileData?.userprofile?.occupation ||
-                                  ""}
-                              </div>
-                              <div className="mt-2">
-                                <span className="font-semibold mr-1">
-                                  Annual Income :
-                                </span>
-                                {profileData?.userprofile?.annual_income ||
-                                  ""}
-                              </div>
-                              <div className="mt-2">
-                                <span className="font-semibold mr-1">
-                                  Marital Status :
-                                </span>
-                                {profileData?.mat_status ||
-                                  ""}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex">
-                            {profileData?.is_blocked ? (
-                              <Tooltip
-                                title="Unblock this profile"
-                                onClick={() => setBlockModal(true)}
-                              >
-                                <button className="mt-4 bg-green-700 text-white text-sm font-semibold px-4 py-1 rounded">
-                                  Ublock
-                                </button>
-                              </Tooltip>
-                            ) : (
-                              <button onClick={() => setBlockModal(true)}>
-                                <Tooltip title="Block this profile" arrow>
-                                  <BlockIcon className="text-red-600" />
-                                </Tooltip>
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="md:w-[27%] lg:h-[225px] md:h-[254px]">
-                        <div
-                          className="bg-[#34495e] py-2 font-medium text-white flex justify-between lg:flex md:flex md:flex-col md:justify-evenly lg:justify-between
-                                  px-6 md:px-0 md:py-0 min-h-full"
-                        >
-                          <div
-                            className={`${
-                              profileData?.friend_request_sent === false &&
-                              profileData?.friend_request_approved === false
-                                ? "hover:bg-primary"
-                                : ""
-                            }  md:flex items-center  md:px-2 md:py-0 my-auto cursor-pointer`}
-                          >
-                            <div className="flex justify-center">
-                              <SiMinutemailer size={20} />
-                            </div>
-                            {profileData?.friend_request_received ? (
-                              <button
-                                className="block md:w-auto w-12 md:text-left md:text-base text-xs lg:px-2 md:pl-2 md:py-2"
-                                onClick={() =>
-                                  router.push("/interest-receive-pending")
-                                }
-                              >
-                                Respond to Sent Interest
-                              </button>
-                            ) : (
-                              <button
-                                disabled={
-                                  profileData?.friend_request_sent ||
-                                  profileData?.friend_request_approved
-                                }
-                                className="block md:w-auto w-12 md:text-left md:text-base text-xs lg:px-2 md:pl-2 md:py-2"
-                                onClick={handleSendRequest}
-                              >
-                                {profileData?.friend_request_approved
-                                  ? "Interest Approved"
-                                  : profileData?.friend_request_sent
-                                  ? "Interest Sent"
-                                  : "Send Interest"}
-                              </button>
-                            )}
-                          </div>
-                          <div
-                            className="hover:bg-primary md:flex items-center my-auto lg:px-3 md:px-1 cursor-pointer"
-                            onClick={handleViewContact}
-                          >
-                            <div className="flex justify-center">
-                              <MdPermContactCalendar size={20} />
-                            </div>
-                            <div className="md:block md:text-base text-xs lg:px-2 md:pl-2 py-2">
-                              View Contacts
-                            </div>
-                          </div>
-                          <div
-                            className="hover:bg-primary md:flex items-center my-auto lg:px-3 md:px-1 cursor-pointer"
-                            onClick={() =>
-                              profileData?.friend_request_approved === true &&
-                              router.push("/messages")
-                            }
-                          >
-                            <div className="flex justify-center">
-                              <BsFillChatFill size={20} />{" "}
-                            </div>
-                            <div className="md:block md:text-base text-xs lg:px-2 md:pl-2 py-2">
-                              Chat
-                            </div>
-                          </div>
-                          <div
-                            className={`${
-                              profileData?.shortlist_profile_id === false
-                                ? "hover:bg-primary cursor-pointer"
-                                : ""
-                            }  md:flex my-auto items-center lg:px-3 md:px-1 `}
-                            onClick={handleWishlist}
-                          >
-                            <div className="flex justify-center">
-                              {" "}
-                              <BsStarFill size={20} />{" "}
-                            </div>
-                            <div className="md:block md:text-base text-xs lg:px-2 md:pl-2 py-2">
-                              {profileData?.shortlist_profile_id
-                                ? "Shortlisted"
-                                : "Shortlist"}
-                            </div>
-                          </div>
-                        </div>
+                          </Tooltip>
+                        ) : (
+                          <button onClick={() => setBlockModal(true)}>
+                            <Tooltip title="Block this profile" arrow>
+                              <BlockIcon className="text-red-600" />
+                            </Tooltip>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  {/* <div className="w-full flex justify-center lg:px-10 px-4 md:px-2 h-[300px]">
-              <div className="bg-white w-full p-4 lg:flex md:flex justify-between">
-                <div className="w-[80%] border">img</div>
-                <div className="w-[20%] lg:mt-0 md:mt-0 mt-4">content</div>
-              </div>
-            </div> */}
+                  {/* ACTION BUTTONS */}
+                  <div className="md:w-[27%] lg:h-[225px] md:h-[254px]">
+                    <div className="bg-[#34495e] py-2 font-medium text-white flex flex-col justify-evenly px-6 md:px-0 md:py-0 min-h-full">
+                      <div
+                        className={`${
+                          !profileData?.friend_request_sent &&
+                          !profileData?.friend_request_approved
+                            ? "hover:bg-primary"
+                            : ""
+                        }  md:flex items-center md:px-2 md:py-0 my-auto cursor-pointer`}
+                      >
+                        <button
+                          disabled={
+                            profileData?.friend_request_sent ||
+                            profileData?.friend_request_approved
+                          }
+                          className="block md:w-auto w-12 md:text-left md:text-base text-xs lg:px-2 md:pl-2 md:py-2"
+                          onClick={handleSendRequest}
+                        >
+                          {profileData?.friend_request_approved
+                            ? "Interest Approved"
+                            : profileData?.friend_request_sent
+                            ? "Interest Sent"
+                            : "Send Interest"}
+                        </button>
+                      </div>
 
-                  <div className="w-full lg:px-10 px-2 md:px-0">
-                    <div className="flex gap-4 pt-4 w-full">
-                      <div className="md:w-[80%] w-full p-2">
-                        <div className="bg-white p-3 lg:h-[120px] flex flex-col justify-center">
-                          <div className="font-semibold lg:text-[20px] text-[17px] text-[#0560af] flex items-center gap-2">
-                            <SchoolOutlinedIcon /> Education & Profession
-                            Details
-                          </div>
-                          <div className="mt-2 font-medium text-[#34495e] text-sm md:text-sm lg:text-base">
-                            Education
-                            <span className="ml-1 font-semibold mr-1">
-                              {profileData?.userprofile?.educations ||
-                                ""}
-                              ,
-                            </span>
-                            Occupation
-                            <span className="ml-1 font-semibold mr-1">
-                              {profileData?.userprofile?.occupation ||
-                                ""}
-                              ,
-                            </span>
-                            Employeed in
-                            <span className="ml-1 font-semibold mr-1">
-                              {profileData?.userprofile?.employeed_in ||
-                                ""}
-                              ,
-                            </span>
-                            {/* Currently at */}
-                            City
-                            <span className="ml-1 font-semibold mr-1">
-                              {profileData?.userprofile?.ed_city?.name ||
-                                ""}
-                            </span>
-                            State
-                            <span className="ml-1 font-semibold mr-1">
-                              {profileData?.userprofile?.ed_state?.name ||
-                                ""}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="bg-white p-3 lg:h-[120px] flex flex-col justify-center mt-5">
-                          <div className="font-semibold lg:text-[20px] text-[17px] text-[#0560af] flex items-center gap-2">
-                            <FamilyRestroomOutlinedIcon /> Family Details
-                          </div>
-                          <div className="mt-2 font-medium text-[#34495e] text-sm md:text-sm lg:text-base">
-                            Father
-                            <span className="ml-1 font-semibold mr-1">
-                              {profileData?.userprofile?.father_occupation ||
-                                ""}
-                              ,
-                            </span>
-                            Mother
-                            <span className="ml-1 font-semibold mr-1">
-                              {profileData?.userprofile?.mother_occupation ||
-                                ""}
-                              ,
-                            </span>
-                            Mother Clan
-                            <span className="ml-1 font-semibold mr-1">
-                              {profileData?.userprofile?.mother_caste?.name ||
-                                ""}
-                              ,
-                            </span>
-                            Brothers
-                            <span className="ml-1 font-semibold mr-1">
-                              {profileData?.userprofile?.no_of_brothers ||
-                                ""}
-                              ,
-                            </span>
-                            Sisters
-                            <span className="ml-1 font-semibold mr-1">
-                              {profileData?.userprofile?.no_of_sisters ||
-                                ""}
-                              ,
-                            </span>
-                            Currently at
-                            <span className="ml-1 font-semibold mr-1">
-                              {profileData?.userprofile?.birth_city?.name ||
-                                ""}
-                              <span className="ml-1">
-                                {profileData?.userprofile?.birth_state?.name}
-                              </span>
-                            </span>
-                          </div>
-                        </div>
-                        <div className="bg-white p-3 lg:h-[120px] md:flex flex-col justify-center mt-5">
-                          <div className="font-semibold lg:text-[20px] text-[17px] text-[#0560af] flex items-center gap-2">
-                            <Diversity2OutlinedIcon /> Social Religious Details
-                          </div>
-                          <div className="mt-2 md:flex flex-wrap w-11/12 font-medium text-[#34495e] text-sm md:text-sm lg:text-base">
-                            <div>
-                              Born
-                              <span className="ml-1 font-semibold mr-1">
-                                {profileData?.dob || ""},
-                              </span>
-                            </div>
-                            <div>
-                              Moonsign
-                              <span className="ml-1 font-semibold mr-1">
-                                {profileData?.userprofile?.moon_sign ||
-                                  ""}
-                                ,
-                              </span>
-                            </div>
-                            <div>
-                              Manglik
-                              <span className="ml-1 font-semibold mr-1">
-                                {profileData?.userprofile?.manglik ||
-                                  ""}
-                                ,
-                              </span>
-                            </div>
-                            Gothra
-                            <span className="ml-1 font-semibold mr-1">
-                              {profileData?.userprofile?.gothra ||
-                                ""}
-                              ,
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="bg-white p-3 lg:h-[120px] flex flex-col justify-center mt-5">
-                          <div className="font-semibold lg:text-[20px] text-[17px] text-[#0560af] flex items-center gap-2">
-                            <InfoOutlinedIcon /> About
-                          </div>
-                          <div className="mt-2 font-medium text-[#34495e] text-sm md:text-sm lg:text-base">
-                            {profileData?.userprofile?.about_yourself ||
-                              ""}
-                          </div>
-                        </div>
-                        <div className="bg-white p-3 lg:h-[120px] flex flex-col justify-center mt-5">
-                          <div className="font-semibold lg:text-[20px] text-[17px] text-[#0560af] flex items-center gap-2">
-                            <HandshakeOutlinedIcon /> Partner Preferences
-                          </div>
-                          <div className="mt-2 font-medium text-[#34495e] text-sm md:text-sm lg:text-base">
-                            {profileData?.userprofile?.partner_prefernces ||
-                              ""}
-                          </div>
+                      <div
+                        className="hover:bg-primary md:flex items-center my-auto lg:px-3 md:px-1 cursor-pointer"
+                        onClick={handleViewContact}
+                      >
+                        <div className="md:block md:text-base text-xs lg:px-2 md:pl-2 py-2">
+                          View Contacts
                         </div>
                       </div>
 
-                      <div className="w-[25%] md:block hidden">
-                        <div className="font-semibold pb-2 ">
-                          Similar Profiles
+                      <div
+                        className={`${
+                          !profileData?.shortlist_profile_id
+                            ? "hover:bg-primary cursor-pointer"
+                            : ""
+                        }  md:flex my-auto items-center lg:px-3 md:px-1 `}
+                        onClick={handleWishlist}
+                      >
+                        <div className="md:block md:text-base text-xs lg:px-2 md:pl-2 py-2">
+                          {profileData?.shortlist_profile_id
+                            ? "Shortlisted"
+                            : "Shortlist"}
                         </div>
-
-                        {similarProfile?.length > 0 &&
-                          similarProfile?.map((item, index) => {
-                            return (
-                              <div
-                                className="cursor-pointer lg:h-[100px] py-2 my-3 flex items-center md:flex-col lg:flex-row text-[12px] font-medium bg-[#f3e9e9] drop-shadow-md rounded-lg"
-                                key={index}
-                                onClick={() =>
-                                  handleNavigateToProfile(
-                                    item?.user?.encrypted_user_id
-                                  )
-                                }
-                              >
-                                <div className="lg:pl-2">
-                                  {item?.profile_img_src ? (
-                                    <img
-                                      src={item?.profile_img_src}
-                                      alt="asd"
-                                      className="h-14 w-14 rounded-full"
-                                      style={{
-                                        filter:
-                                          item?.photo_privacy === "No"
-                                            ? "blur(2px)"
-                                            : "",
-                                      }}
-                                    />
-                                  ) : (
-                                    <Image
-                                      src={
-                                        item?.user?.gender &&
-                                        item?.user?.gender === "Male"
-                                          ? MenD
-                                          : WomenD
-                                      }
-                                      width={100}
-                                      height={100}
-                                      className="h-14 w-14 rounded-full"
-                                      alt="asdf"
-                                    />
-                                  )}
-                                </div>
-                                <div className="pl-3 md:pl-0 lg:pl-3 md:pt-2">
-                                  <div className="font-semibold">
-                                    {item?.user?.ryt_id &&
-                                      item?.user?.ryt_id}
-                                  </div>
-                                  <div>
-                                    {item?.user?.age} {item?.birth_city?.name}
-                                  </div>
-                                  <div>{item?.educations}</div>
-                                  <div>{item?.annual_income}</div>
-                                </div>
-                              </div>
-                            );
-                          })}
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* DETAILS BLOCKS */}
+              <div className="w-full lg:px-10 px-2 md:px-0 mt-4">
+                <div className="flex gap-4 pt-4 w-full">
+                  <div className="md:w-[80%] w-full p-2">
+                    {/* Education & Profession */}
+                    <div className="bg-white p-3 lg:h-[120px] flex flex-col justify-center">
+                      <div className="font-semibold lg:text-[20px] text-[17px] text-[#0560af] flex items-center gap-2">
+                        <SchoolOutlinedIcon /> Education & Profession Details
+                      </div>
+                      <div className="mt-2 font-medium text-[#34495e] text-sm md:text-sm lg:text-base">
+                        Education
+                        <span className="ml-1 font-semibold mr-1">
+                          {profileData?.profile?.educations || ""},{" "}
+                        </span>
+                        Occupation
+                        <span className="ml-1 font-semibold mr-1">
+                          {profileData?.profile?.occupation || ""},{" "}
+                        </span>
+                        Employed in
+                        <span className="ml-1 font-semibold mr-1">
+                          {profileData?.profile?.employeed_in || ""}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Family */}
+                    <div className="bg-white p-3 lg:h-[120px] flex flex-col justify-center mt-5">
+                      <div className="font-semibold lg:text-[20px] text-[17px] text-[#0560af] flex items-center gap-2">
+                        <FamilyRestroomOutlinedIcon /> Family Details
+                      </div>
+                      <div className="mt-2 font-medium text-[#34495e] text-sm md:text-sm lg:text-base">
+                        Father
+                        <span className="ml-1 font-semibold mr-1">
+                          {profileData?.profile?.father_occupation || ""},{" "}
+                        </span>
+                        Mother
+                        <span className="ml-1 font-semibold mr-1">
+                          {profileData?.profile?.mother_occupation || ""},{" "}
+                        </span>
+                        Brothers
+                        <span className="ml-1 font-semibold mr-1">
+                          {profileData?.profile?.no_of_brothers || ""},{" "}
+                        </span>
+                        Sisters
+                        <span className="ml-1 font-semibold mr-1">
+                          {profileData?.profile?.no_of_sisters || ""}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Religious */}
+                    <div className="bg-white p-3 lg:h-[120px] md:flex flex-col justify-center mt-5">
+                      <div className="font-semibold lg:text-[20px] text-[17px] text-[#0560af] flex items-center gap-2">
+                        <Diversity2OutlinedIcon /> Social / Religious Details
+                      </div>
+                      <div className="mt-2 md:flex flex-wrap w-11/12 font-medium text-[#34495e] text-sm md:text-sm lg:text-base">
+                        <div>
+                          Moonsign
+                          <span className="ml-1 font-semibold mr-1">
+                            {profileData?.profile?.moon_sign || ""},{" "}
+                          </span>
+                        </div>
+                        <div>
+                          Manglik
+                          <span className="ml-1 font-semibold mr-1">
+                            {profileData?.profile?.manglik || ""},{" "}
+                          </span>
+                        </div>
+                        <div>
+                          Gothra
+                          <span className="ml-1 font-semibold mr-1">
+                            {profileData?.profile?.gothra || ""}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* About */}
+                    <div className="bg-white p-3 lg:h-[120px] flex flex-col justify-center mt-5">
+                      <div className="font-semibold lg:text-[20px] text-[17px] text-[#0560af] flex items-center gap-2">
+                        <InfoOutlinedIcon /> About
+                      </div>
+                      <div className="mt-2 font-medium text-[#34495e] text-sm md:text-sm lg:text-base">
+                        {profileData?.profile?.about_yourself || ""}
+                      </div>
+                    </div>
+
+                    {/* Partner preferences */}
+                    <div className="bg-white p-3 lg:h-[120px] flex flex-col justify-center mt-5">
+                      <div className="font-semibold lg:text-[20px] text-[17px] text-[#0560af] flex items-center gap-2">
+                        <InfoOutlinedIcon /> Partner Preferences
+                      </div>
+                      <div className="mt-2 font-medium text-[#34495e] text-sm md:text-sm lg:text-base">
+                        {profileData?.profile?.partner_prefernces || ""}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right side similar profiles etc. — you can re-add later */}
+                  <div className="w-[25%] md:block hidden">
+                    <div className="font-semibold pb-2 ">Similar Profiles</div>
+                    <div className="text-sm text-gray-500">
+                      (Bind your similar profile data here once backend is ready)
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
-        </>
+          </div>
+        </div>
       )}
     </div>
   );

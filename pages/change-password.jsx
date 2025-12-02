@@ -1,4 +1,17 @@
-import { Alert, CircularProgress, Snackbar } from "@mui/material";
+/* eslint-disable @next/next/no-img-element */
+import {
+  Alert,
+  CircularProgress,
+  Snackbar,
+  IconButton,
+  LinearProgress,
+} from "@mui/material";
+import {
+  Visibility,
+  VisibilityOff,
+  CheckCircle,
+  Cancel,
+} from "@mui/icons-material";
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
@@ -8,65 +21,91 @@ import Head from "next/head";
 
 const ChangePassword = () => {
   const router = useRouter();
+  const { changePassword } = useApiService();
+
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(false);
-  const { changePassword } = useApiService();
   const [serverError, setServerError] = useState("");
+
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const [passwordStrength, setPasswordStrength] = useState(0);
+
   const {
     register,
     formState: { errors },
     handleSubmit,
+    watch,
   } = useForm();
 
+  const watchPassword = watch("new_password", "");
+
   useEffect(() => {
+    if (!router.isReady) return;
+
     const token = localStorage.getItem("token");
     if (!token) {
-      router.push("/Login");
+      router.replace("/Login");
     }
-  }, []);
+  }, [router.isReady]);
+
+  // Password Strength Checker
+  const checkStrength = (pass) => {
+    if (!pass) return setPasswordStrength(0);
+    let score = 0;
+    if (pass.length >= 6) score++;
+    if (pass.match(/[A-Z]/)) score++;
+    if (pass.match(/[a-z]/)) score++;
+    if (pass.match(/[0-9]/)) score++;
+    if (pass.match(/[^A-Za-z0-9]/)) score++;
+    setPasswordStrength(score);
+  };
+
+  useEffect(() => {
+    checkStrength(watchPassword);
+  }, [watchPassword]);
 
   const handlePasswordChange = (data) => {
-    const { current_password, password, password_confirmation } = data;
-    let params = {
-      current_password: current_password,
-      password: password,
-      password_confirmation: password_confirmation,
-    };
+    const { current_password, new_password, confirm_password } = data;
 
-    changePassword(params)
+    if (new_password !== confirm_password) {
+      setServerError("Passwords do not match");
+      return;
+    }
+
+    setLoading(true);
+    setServerError("");
+
+    changePassword({
+      current_password,
+      new_password,
+    })
       .then((res) => {
-        if (res.data.code === 200) {
-          setServerError("");
-          setLoading(true);
-          setTimeout(() => {
-            setAlert(true);
-            setLoading(false);
-          }, 2000);
-          setTimeout(() => {
-            router.push("/")
-          }, 3000)
+        if (res?.data?.code === 200) {
+          setAlert(true);
+          setTimeout(() => router.push("/"), 2000);
         }
       })
       .catch((error) => {
-        console.log(error);
-        if (error.response?.data.code === 422) {
-          setServerError(error?.response?.data?.errors?.password);
-        } else if (error.response?.data.code === 401) {
-          setServerError(error?.response?.data?.message);
-        } else {
-          setServerError("");
-        }
-      });
+        const message =
+          error?.response?.data?.message || "Something went wrong!";
+        setServerError(message);
+      })
+      .finally(() => setLoading(false));
   };
+
+  const strengthColor = ["#e74c3c", "#e67e22", "#f1c40f", "#2ecc71", "#27ae60"][
+    passwordStrength - 1
+  ];
 
   return (
     <div>
       <Head>
         <title>Change Password</title>
-        <meta name="description" content="100% Mobile Verified Profiles. Safe and Secure. Register Free to Find Your Life Partner. Most Trusted Matrimony Service - Brand Trust Report. Register Now to Find Your Soulmate." />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/images/favicon.jpg" />
       </Head>
+
       <Snackbar
         open={alert}
         autoHideDuration={3000}
@@ -78,90 +117,120 @@ const ChangePassword = () => {
         </Alert>
       </Snackbar>
 
-      <div className="text-center lg:my-10 my-5 lg:text-4xl text-2xl px-3 text-[#333] font-medium">
+      <div className="text-center my-6 lg:my-10 lg:text-4xl text-3xl font-semibold text-[#333]">
         <span className="text-primary">Change</span> Password
       </div>
 
       <div className="mb-10 flex justify-center w-full">
-        <form onSubmit={handleSubmit(handlePasswordChange)}>
-          <div className="border-2 border-gray-300 rounded-md md:p-10 p-4 lg:w-[600px] md:w-[500px] w-[300px]">
-            <div className="flex flex-col py-[14px]">
-              <label className="mb-1 text-[#333] font-semibold">
-                Current Password
-              </label>
-              <input
-                type="text"
-                name="current_password"
-                className="font-medium focus:outline-none border border-gray-400 rounded-[4px] p-2 placeholder:font-medium placeholder:text-gray-400"
-                placeholder="Enter current password"
-                {...register("current_password", { required: true })}
-              />
-              {errors.current_password && (
-                <div className="mt-2 text-sm text-red-600 font-medium">
-                  Old Password is required
-                </div>
-              )}
-            </div>
-            <div className="flex flex-col">
-              <label className="mb-1 text-[#333] font-semibold">
-                New Password
-              </label>
-              <input
-                type="text"
-                name="password"
-                className="font-medium focus:outline-none border border-gray-400 rounded-[4px] p-2 placeholder:font-medium placeholder:text-gray-400"
-                placeholder="Enter new password"
-                {...register("password", {
-                  required: true,
-                  pattern:
-                    /^(.{0,7}|[^0-9]*|[^A-Z]*|[^a-z]*|[a-zA-Z0-9]*).{8}$/,
-                })}
-              />
-            </div>
-            {errors.password && (
-              <div className="mt-2 text-sm text-red-600 font-semibold">
-                {errors.password.type === "required"
-                  ? "Password is required"
-                  : "Minimum 8 characters required"}
-              </div>
+        <form
+          onSubmit={handleSubmit(handlePasswordChange)}
+          className="border-2 border-gray-300 rounded-md md:p-10 p-4 lg:w-[500px] md:w-[450px] w-[300px]"
+        >
+          {/* Current Password */}
+          <div className="relative mb-6">
+            <label className="mb-1 text-[#333] font-semibold">
+              Current Password
+            </label>
+            <input
+              type={showCurrent ? "text" : "password"}
+              className="w-full border border-gray-400 rounded-md p-2 pr-10"
+              placeholder="Enter current password"
+              {...register("current_password", { required: true })}
+            />
+            <IconButton
+              onClick={() => setShowCurrent(!showCurrent)}
+              className="!absolute right-2 top-6"
+            >
+              {showCurrent ? <VisibilityOff /> : <Visibility />}
+            </IconButton>
+            {errors.current_password && (
+              <p className="text-red-600 text-sm mt-1">
+                Current password is required
+              </p>
             )}
-            <div className="flex flex-col py-[14px]">
-              <div className="flex flex-col">
-                <label className="mb-1 text-[#333] font-semibold">
-                  Confirm Password
-                </label>
-                <input
-                  type="text"
-                  name="password_confirmation"
-                  className="font-medium focus:outline-none border border-gray-400 rounded-[4px] p-2 placeholder:font-medium placeholder:text-gray-400"
-                  placeholder="Enter confirm password"
-                  {...register("password_confirmation", { required: true })}
-                />
-              </div>
-              {errors.password_confirmation && (
-                <div className="mt-2 text-sm text-red-600 font-semibold">
-                  Confirm Password field is required
-                </div>
-              )}
-              {serverError && (
-                <div className="mt-2 text-sm text-red-600 font-semibold">
-                  {serverError}
-                </div>
-              )}
-            </div>
-            <div className="flex justify-center pt-3">
-              <button
-                type="submit"
-                className="w-full bg-sky-600 font-semibold hover:bg-[#ff716f] text-white text-center py-2 px-4 rounded-md"
-              >
-                {loading ? (
-                  <CircularProgress size={20} color={"inherit"} />
-                ) : (
-                  "Save Changes"
-                )}
-              </button>
-            </div>
           </div>
+
+          {/* New Password */}
+          <div className="relative mb-6">
+            <label className="mb-1 text-[#333] font-semibold">
+              New Password
+            </label>
+            <input
+              type={showNew ? "text" : "password"}
+              className="w-full border border-gray-400 rounded-md p-2 pr-10"
+              placeholder="Enter new password"
+              {...register("new_password", { required: true, minLength: 6 })}
+            />
+            <IconButton
+              onClick={() => setShowNew(!showNew)}
+              className="!absolute right-2 top-6"
+            >
+              {showNew ? <VisibilityOff /> : <Visibility />}
+            </IconButton>
+            {errors.new_password && (
+              <p className="text-red-600 text-sm mt-1">
+                New password must be at least 6 characters
+              </p>
+            )}
+
+            {/* Password Strength Bar */}
+            {watchPassword && (
+              <LinearProgress
+                variant="determinate"
+                value={(passwordStrength / 5) * 100}
+                sx={{
+                  mt: 1,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: "#eee",
+                  "& .MuiLinearProgress-bar": {
+                    backgroundColor: strengthColor,
+                  },
+                }}
+              />
+            )}
+          </div>
+
+          {/* Confirm Password */}
+          <div className="relative mb-6">
+            <label className="mb-1 text-[#333] font-semibold">
+              Confirm Password
+            </label>
+            <input
+              type={showConfirm ? "text" : "password"}
+              className="w-full border border-gray-400 rounded-md p-2 pr-10"
+              placeholder="Confirm new password"
+              {...register("confirm_password", { required: true })}
+            />
+            <IconButton
+              onClick={() => setShowConfirm(!showConfirm)}
+              className="!absolute right-2 top-6"
+            >
+              {showConfirm ? <VisibilityOff /> : <Visibility />}
+            </IconButton>
+            {errors.confirm_password && (
+              <p className="text-red-600 text-sm mt-1">Required</p>
+            )}
+          </div>
+
+          {/* Server Errors */}
+          {serverError && (
+            <p className="text-red-600 text-sm mb-3 font-semibold">
+              {serverError}
+            </p>
+          )}
+
+          <button
+            disabled={loading}
+            type="submit"
+            className="w-full bg-primary text-white py-2 rounded-md hover:bg-[#ff716f] font-semibold"
+          >
+            {loading ? (
+              <CircularProgress size={22} color="inherit" />
+            ) : (
+              "Save Changes"
+            )}
+          </button>
         </form>
       </div>
     </div>

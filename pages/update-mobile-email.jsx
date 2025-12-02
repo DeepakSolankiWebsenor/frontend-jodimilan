@@ -8,170 +8,186 @@ import Head from "next/head";
 const UpdateMobileEmail = () => {
   const router = useRouter();
   const [tab, setTab] = useState(0);
+
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [otpShow, setOtpShow] = useState(false);
+
   const [email, setEmail] = useState("");
-  const [emailCodeShow, setEmailCodeShow] = useState(false);
   const [emailCode, setEmailCode] = useState("");
-  const { profileUpdate, verifyOtp, verifyEmail, createOTP, createOTPEmail } =
-    useApiService();
+  const [emailCodeShow, setEmailCodeShow] = useState(false);
+
+  const {
+    profileUpdate,
+    verifyMobileOTP,
+    verifyEmailOTP,
+    createOTP,
+    createEmailOTP,
+  } = useApiService();
+
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(false);
   const [alertMsg, setAlertMsg] = useState("");
-  const [errors, setErrors] = useState({
-    phone: "",
-    otp: "",
-    email: "",
-    emailCode: "",
-  });
+  const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
-      router.push("/Login");
+      router.replace("/Login");
     }
-  }, []);
+  }, [router]);
 
-  const handleMobileUpdate = () => {
-    const _form = new FormData();
-    if (!phone) {
-      setErrors({ phone: "Please enter phone number." });
-    } else if (phone.length > 0 && phone.length !== 10) {
-      setErrors({ phone: "Phone number must be 10 digit." });
+  // ==========================
+  // 📌 Send OTP for Mobile
+  // ==========================
+  const handleMobileUpdate = (e) => {
+    e.preventDefault();
+    setErrors({});
+    setServerError("");
+
+    if (!phone || phone.length !== 10) {
+      setErrors({ phone: "Please enter a valid 10-digit phone number" });
+      return;
     }
 
-    if (email !== "") {
-      _form.append("email", email);
-    }
+    const form = new FormData();
+    form.append("phone", phone);
 
-    if ((tab == 0 && phone.length === 10) || email !== "") {
-      _form.append('phone', phone)
-      createOTP(_form)
-        .then((response) => {
-          setOtpShow(true);
-        })
-        .catch((error) => {
-          if (error.response.data.code === 422) {
-            setErrors({ phone: error.response.data?.message });
-          }
-          console.log("error", error);
-        });
-    }
+    setLoading(true);
+    createOTP(form)
+      .then(() => {
+        setOtpShow(true);
+      })
+      .catch((err) => {
+        const message = err?.response?.data?.message || "Unable to send OTP";
+        setServerError(message);
+      })
+      .finally(() => setLoading(false));
   };
 
-  const handleOtpVerify = () => {
-    let params = {
-      phone: phone,
-      otp: otp,
-    };
+  // ==========================
+  // 📌 Verify Mobile OTP
+  // ==========================
+  const handleOtpVerify = (e) => {
+    e.preventDefault();
+    setErrors({});
+    setServerError("");
 
-    if (otp === "") {
-      setErrors({ otp: "Otp is required" });
-    } else if (otp.length !== 6) {
-      setErrors({ otp: "OTP should be 6 digits only" });
-    } else {
-      verifyOtp(params)
-        .then((res) => {
-          if (res.data.code === 200) {
-            profileUpdate(params)
-              .then((res) => {
-                if (res.data.status === 200) {
-                  setLoading(true);
-                  setPhone("");
-                  setTimeout(() => {
-                    setLoading(false);
-                    setOtpShow(false);
-                    setAlert(true);
-                    setAlertMsg("Phone verified successfully.");
-                  }, 1000);
-                }
-              })
-              .catch((error) => {
-                console.log(error);
-              });
-          }
-        })
-        .catch((error) => {
-          if (error.response.data.code === 422) {
-            setServerError(error.response.data.message);
-          }
-        });
+    if (!otp || otp.length !== 6) {
+      setErrors({ otp: "OTP must be 6 digits only" });
+      return;
     }
+
+    // Backend ke hisaab se: mobile verify ke liye phone + otp bhej rahe hain
+    const verifyPayload = { phone, otp };
+
+    setLoading(true);
+    verifyMobileOTP(verifyPayload)
+      .then((res) => {
+        if (res.data.code === 200) {
+          const updateForm = new FormData();
+          updateForm.append("phone", phone);
+
+          return profileUpdate(updateForm);
+        }
+      })
+      .then((res) => {
+        if (res) {
+          setPhone("");
+          setOtp("");
+          setOtpShow(false);
+          setAlertMsg("Phone verified successfully.");
+          setAlert(true);
+        }
+      })
+      .catch((err) => {
+        const message = err?.response?.data?.message || "Invalid OTP";
+        setServerError(message);
+      })
+      .finally(() => setLoading(false));
   };
 
-  const handleEmailUpdate = () => {
-    let pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (email === "") {
-      setErrors({ email: "Please enter Email" });
-    } else if (!pattern.test(email)) {
-      setErrors({ email: "Please enter valid email" });
-    } else {
-      const _form = new FormData();
-      if (email !== "") {
-        _form.append("email", email);
-      }
-      createOTPEmail(_form)
-        .then((response) => {
-          setEmailCodeShow(true);
-        })
-        .catch((error) => {
-          console.log(error);
-        });
+  // ==========================
+  // 📌 Send OTP for Email
+  // ==========================
+  const handleEmailUpdate = (e) => {
+    e.preventDefault();
+    setErrors({});
+    setServerError("");
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!email || !emailPattern.test(email)) {
+      setErrors({ email: "Enter a valid email address" });
+      return;
     }
+
+    const form = new FormData();
+    form.append("email", email);
+
+    setLoading(true);
+    createEmailOTP(form)
+      .then(() => {
+        setEmailCodeShow(true);
+      })
+      .catch((err) => {
+        const message =
+          err?.response?.data?.message || "Unable to send verification email";
+        setServerError(message);
+      })
+      .finally(() => setLoading(false));
   };
 
-  const handleEmailVerify = () => {
-    if (emailCode === "") {
-      setErrors({ emailCode: "Verification code is required" });
-    } else if (emailCode.length !== 6) {
-      setErrors({ emailCode: "Verification code should be 6 digits only" });
-    } else {
-      let params = {
-        email: email,
-        otp: emailCode,
-      };
-      verifyEmail(params)
-        .then((res) => {
-          if (res.data.code === 200) {
-            profileUpdate(params)
-              .then((res) => {
-                if (res.data.status === 200) {
-                  setEmail("");
-                  setServerError("");
-                  setEmailCodeShow(false);
-                  setTimeout(() => {
-                    setAlert(true);
-                    setLoading(false);
-                    setAlertMsg("Email verified successfully.");
-                  }, 2000);
-                }
-              })
-              .catch((error) => {
-                console.log(error);
-              });
-          }
-        })
-        .catch((error) => {
-          if (error.response.data.code === 422) {
-            setServerError(error.response.data.message);
-          }
-        });
+  // ==========================
+  // 📌 Verify Email OTP
+  // ==========================
+  const handleEmailVerify = (e) => {
+    e.preventDefault();
+    setErrors({});
+    setServerError("");
+
+    if (!emailCode || emailCode.length !== 6) {
+      setErrors({ emailCode: "Verification Code must be 6 digits" });
+      return;
     }
+
+    // Backend ke error message se pata chala: "Email and OTP are required"
+    // isliye yaha email + otp dono bhej rahe hain
+    const payload = { email, otp: emailCode };
+
+    setLoading(true);
+    verifyEmailOTP(payload)
+      .then((res) => {
+        if (res.data.code === 200) {
+          const updateForm = new FormData();
+          updateForm.append("email", email);
+
+          return profileUpdate(updateForm);
+        }
+      })
+      .then((res) => {
+        if (res) {
+          setAlertMsg("Email verified successfully.");
+          setAlert(true);
+          setEmail("");
+          setEmailCode("");
+          setEmailCodeShow(false);
+        }
+      })
+      .catch((error) => {
+        const message = error?.response?.data?.message || "Invalid OTP";
+        setServerError(message);
+      })
+      .finally(() => setLoading(false));
   };
 
   return (
     <div>
       <Head>
-        <title>Update User</title>
-        <meta
-          name="description"
-          content="100% Mobile Verified Profiles. Safe and Secure. Register Free to Find Your Life Partner. Most Trusted Matrimony Service - Brand Trust Report. Register Now to Find Your Soulmate."
-        />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/images/favicon.jpg" />
+        <title>Update Mobile & Email</title>
       </Head>
+
       <Snackbar
         open={alert}
         autoHideDuration={3000}
@@ -183,225 +199,160 @@ const UpdateMobileEmail = () => {
         </Alert>
       </Snackbar>
 
-      <div className="text-center lg:my-10 my-5 lg:text-4xl text-2xl px-3 text-[#333] font-medium">
-        <span className="text-primary">Change</span> Primary Mobile & Email
+      <div className="text-center my-6 text-3xl font-semibold text-[#333]">
+        <span className="text-primary">Update</span> Mobile & Email
       </div>
 
-      <div className="flex justify-center">
-        <div className="flex justify-center mb-5 lg:w-[600px] md:w-[500px] w-[300px]">
-          <div
-            className={`text-xs w-full text-center font-bold uppercase px-5 py-3 cursor-pointer ${
-              tab === 0 ? `border-b-2 border-primary` : "border-none"
+      <div className="flex justify-center mb-5 w-full">
+        <div className="flex justify-center w-[320px] md:w-[500px]">
+          <span
+            className={`w-full text-center p-3 font-semibold cursor-pointer ${
+              tab === 0 ? "border-b-2 border-primary" : ""
             }`}
-            onClick={() => setTab(0)}
+            onClick={() => {
+              setServerError("");
+              setErrors({});
+              setTab(0);
+            }}
           >
             Mobile No.
-          </div>
-          <div
-            className={`text-xs w-full text-center font-bold uppercase px-5 py-3 cursor-pointer ${
-              tab === 1 ? `border-b-2 border-primary` : "border-none"
+          </span>
+          <span
+            className={`w-full text-center p-3 font-semibold cursor-pointer ${
+              tab === 1 ? "border-b-2 border-primary" : ""
             }`}
-            onClick={() => setTab(1)}
+            onClick={() => {
+              setServerError("");
+              setErrors({});
+              setTab(1);
+            }}
           >
-            Email Address
-          </div>
+            Email
+          </span>
         </div>
       </div>
 
-      <div className="mb-10 flex justify-center w-full">
-        {tab === 0 ? (
-          <div className="border-2 border-gray-300 rounded-md md:p-10 p-4 lg:w-[600px] md:w-[500px] w-[300px]">
-            <div className="text-center font-medium text-sm">
-              Kindly Enter the New Mobile No. after selecting country code and
-              proceed to verify:
-            </div>
-            <div className="flex gap-3 mt-5 justify-center">
-              <div className="lg:w-[100px] w-[94px]">
-                <input
-                  type={"text"}
-                  disabled
-                  className="font-medium w-full focus:outline-none border border-gray-400 rounded-[4px] p-2 placeholder:font-medium placeholder:text-gray-500"
-                  defaultValue={"(IN +91)"}
-                />
-              </div>
-              <div className="w-full">
-                <input
-                  type="number"
-                  name="phone"
-                  value={phone}
-                  className="font-medium focus:outline-none w-full border border-gray-400 rounded-[4px] p-2 placeholder:font-medium placeholder:text-gray-500"
-                  placeholder="Enter your phone"
-                  autoComplete="off"
-                  onChange={(e) => {
-                    // if (e.target.value) {
-                    setErrors({ phone: "" });
-                    setPhone(e.target.value);
+      {/* 📌 MOBILE */}
+      {tab === 0 && (
+        <div className="flex justify-center">
+          <form className="border p-6 rounded-md w-[300px] md:w-[500px] lg:w-[600px]">
+            <label className="font-medium block mb-2">New Mobile Number</label>
+            <input
+              type="tel"
+              className="border p-2 w-full"
+              placeholder="Enter new phone number"
+              value={phone}
+              maxLength={10}
+              minLength={10}
+              pattern="[0-9]{10}"
+              onChange={(e) => {
+                const value = e.target.value;
+                if (/^\d{0,10}$/.test(value)) {
+                  // prevent entering >10 digits
+                  setPhone(value);
+                }
+              }}
+            />
 
-                    setServerError("");
-                    // }
-                  }}
-                />
-                {errors.phone && (
-                  <div className="text-red-600 text-xs mt-2 font-semibold pl-1">
-                    {errors.phone}
-                  </div>
-                )}
-              </div>
-            </div>
+            {errors.phone && (
+              <p className="text-red-600 text-sm mt-1">{errors.phone}</p>
+            )}
 
             {otpShow && (
-              <div className="mt-5">
+              <>
+                <label className="font-medium block mt-4 mb-2">Enter OTP</label>
                 <input
-                  type={"number"}
-                  name="otp"
-                  className="font-medium focus:outline-none w-full border border-gray-400 rounded-[4px] p-2 placeholder:font-medium placeholder:text-gray-500"
-                  placeholder="Enter verification code"
-                  autoComplete="off"
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      setErrors({ otp: "" });
-                      setOtp(e.target.value);
-                      setServerError("");
-                    }
-                  }}
+                  type="number"
+                  className="border p-2 w-full"
+                  placeholder="Enter OTP"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
                 />
                 {errors.otp && (
-                  <div className="text-red-600 text-xs mt-2 font-semibold pl-1">
-                    {errors.otp}
-                  </div>
+                  <p className="text-red-600 text-sm mt-1">{errors.otp}</p>
                 )}
                 {serverError && (
-                  <div className="text-red-600 text-center text-xs mt-2 font-semibold pl-1">
+                  <p className="text-red-600 text-sm text-center mt-1">
                     {serverError}
-                  </div>
+                  </p>
                 )}
-              </div>
+              </>
             )}
 
-            {otpShow ? (
-              <div className="flex justify-center pt-3">
-                <button
-                  className="w-full bg-sky-600 font-semibold hover:bg-[#ff716f] text-white text-center py-2 px-4 rounded-md"
-                  onClick={handleOtpVerify}
-                >
-                  {loading ? (
-                    <CircularProgress size={20} color={"inherit"} />
-                  ) : (
-                    "Verify OTP"
-                  )}
-                </button>
-              </div>
-            ) : (
-              <div className="flex justify-center pt-3">
-                <button
-                  className="w-full bg-sky-600 font-semibold hover:bg-[#ff716f] text-white text-center py-2 px-4 rounded-md"
-                  onClick={handleMobileUpdate}
-                >
-                  {loading ? (
-                    <CircularProgress size={20} color={"inherit"} />
-                  ) : (
-                    "Send Verify Code"
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="border-2 border-gray-300 rounded-md md:p-10 p-4 lg:w-[600px] md:w-[500px] w-[300px]">
-            <div className="text-center font-medium text-sm">
-              Kindly Enter the New Email and proceed to verify:
-            </div>
-            <div className="mt-5 w-full">
-              <div className="flex mt-3">
-                <div className="my-auto text-[#333] w-[150px] font-medium text-sm lg:text-base">
-                  Current Email
-                </div>
-                <div className="w-full">
-                  <input
-                    type={"text"}
-                    name="email"
-                    className="lg:text-base text-sm font-medium focus:outline-none w-full border border-gray-400 rounded-[4px] p-2 placeholder:font-medium placeholder:text-gray-500"
-                    placeholder="Enter new email"
-                    autoComplete="off"
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        setErrors({ email: "" });
-                        setEmail(e.target.value);
-                        setServerError("");
-                      }
-                    }}
-                    value={email}
-                  />
-                  {errors.email && (
-                    <div className="mt-2 text-red-600 text-xs font-semibold pl-1">
-                      {errors.email}
-                    </div>
-                  )}
-                </div>
-              </div>
+            <button
+              className="bg-primary text-white w-full py-2 mt-5 rounded-md hover:bg-[#ff716f]"
+              onClick={otpShow ? handleOtpVerify : handleMobileUpdate}
+              disabled={loading}
+            >
+              {loading ? (
+                <CircularProgress size={22} color="inherit" />
+              ) : otpShow ? (
+                "Verify OTP"
+              ) : (
+                "Send Verify Code"
+              )}
+            </button>
+          </form>
+        </div>
+      )}
 
-              {emailCodeShow && (
-                <div className="flex items-center w-full mt-3">
-                  <label className="mb-1 text-[#333] w-[150px] font-medium text-sm lg:text-base">
-                    Email Verify Code
-                  </label>
-                  <input
-                    type={"number"}
-                    name="email_code"
-                    className="lg:text-base text-sm font-medium focus:outline-none w-full border border-gray-400 rounded-[4px] p-2 placeholder:font-medium placeholder:text-gray-500"
-                    placeholder="Enter email verifcation code"
-                    autoComplete="off"
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        setErrors({ email: "" });
-                        setServerError("");
-                        setEmailCode(e.target.value);
-                      }
-                    }}
-                  />
-                </div>
-              )}
-              {errors.emailCode && (
-                <div className="text-red-600 text-center text-xs mt-2 font-semibold pl-1">
-                  {errors.emailCode}
-                </div>
-              )}
-              {serverError && (
-                <div className="text-red-600 text-center text-xs mt-2 font-semibold pl-1">
-                  {serverError}
-                </div>
-              )}
-            </div>
-            {emailCodeShow ? (
-              <div className="flex justify-center pt-3">
-                <button
-                  className="w-full bg-sky-600 font-semibold hover:bg-[#ff716f] text-white text-center py-2 px-4 rounded-md"
-                  onClick={handleEmailVerify}
-                >
-                  {loading ? (
-                    <CircularProgress size={20} color={"inherit"} />
-                  ) : (
-                    "Verify Code"
-                  )}
-                </button>
-              </div>
-            ) : (
-              <div className="flex justify-center pt-3">
-                <button
-                  className="w-full bg-sky-600 font-semibold hover:bg-[#ff716f] text-white text-center py-2 px-4 rounded-md"
-                  onClick={handleEmailUpdate}
-                >
-                  {loading ? (
-                    <CircularProgress size={20} color={"inherit"} />
-                  ) : (
-                    "Send Email Verify Code"
-                  )}
-                </button>
-              </div>
+      {/* 📌 EMAIL */}
+      {tab === 1 && (
+        <div className="flex justify-center">
+          <form className="border p-6 rounded-md w-[300px] md:w-[500px] lg:w-[600px]">
+            <label className="font-medium block mb-2">New Email</label>
+            <input
+              type="text"
+              className="border p-2 w-full"
+              placeholder="Enter new email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            {errors.email && (
+              <p className="text-red-600 text-sm mt-1">{errors.email}</p>
             )}
-          </div>
-        )}
-      </div>
+
+            {emailCodeShow && (
+              <>
+                <label className="font-medium block mt-4 mb-2">
+                  Verification Code
+                </label>
+                <input
+                  type="number"
+                  className="border p-2 w-full"
+                  placeholder="Enter verification code"
+                  value={emailCode}
+                  onChange={(e) => setEmailCode(e.target.value)}
+                />
+                {errors.emailCode && (
+                  <p className="text-red-600 text-sm mt-1">
+                    {errors.emailCode}
+                  </p>
+                )}
+                {serverError && (
+                  <p className="text-red-600 text-sm text-center mt-1">
+                    {serverError}
+                  </p>
+                )}
+              </>
+            )}
+
+            <button
+              className="bg-primary text-white w-full py-2 mt-5 rounded-md hover:bg-[#ff716f]"
+              onClick={emailCodeShow ? handleEmailVerify : handleEmailUpdate}
+              disabled={loading}
+            >
+              {loading ? (
+                <CircularProgress size={22} color="inherit" />
+              ) : emailCodeShow ? (
+                "Verify Code"
+              ) : (
+                "Send Email Verify Code"
+              )}
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 };

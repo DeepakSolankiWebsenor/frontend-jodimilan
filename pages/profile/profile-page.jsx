@@ -18,133 +18,145 @@ import {
 } from "../../services/redux/slices/userSlice";
 import Head from "next/head";
 import CryptoJS from "crypto-js";
-import { decrypted_key } from "../../services/appConfig";
-import moment from "moment";
 import Link from "next/link";
+import moment from "moment";
+
+/* AES Decrypt */
+const decryptPayload = (cipherBase64) => {
+  try {
+    if (!cipherBase64) return null;
+
+    const keyHex = CryptoJS.enc.Hex.parse(process.env.NEXT_PUBLIC_ENC_KEY);
+    const ivHex = CryptoJS.enc.Hex.parse(process.env.NEXT_PUBLIC_ENC_IV);
+
+    const decrypted = CryptoJS.AES.decrypt(
+      { ciphertext: CryptoJS.enc.Base64.parse(cipherBase64) },
+      keyHex,
+      {
+        iv: ivHex,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7,
+      }
+    );
+
+    const text = decrypted.toString(CryptoJS.enc.Utf8).trim();
+    if (!text || (!text.startsWith("{") && !text.startsWith("["))) return null;
+
+    return JSON.parse(text);
+  } catch (err) {
+    return null;
+  }
+};
+
+const normalizeUser = (user) => {
+  if (!user) return null;
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  return {
+    ...user,
+    profile: {
+      ...user.profile,
+      profile_img_src: user.profile?.profile_image
+        ? `${baseUrl}/${user.profile.profile_image}`
+        : null,
+    },
+  };
+};
 
 function ProfilePage() {
   const dispatch = useDispatch();
-  const [profileData, setProfileData] = useState();
   const { getUserProfile, dailyRecommendation, commonOption, cms } =
     useApiService();
   const router = useRouter();
+
+  const [profileData, setProfileData] = useState(null);
   const [alert, setAlert] = useState(false);
   const [dailyData, setDailyData] = useState([]);
+
   const [interestRecevied, setInterestReceived] = useState({
     accepted: 0,
     pending: 0,
   });
-  const [interestSent, setInterestSent] = useState({ accepted: 0, pending: 0 });
-
-  useEffect(() => {
-    if (dataFetchedRef.current) return;
-    dataFetchedRef.current = true;
-    commonOption()
-      .then((res) => {
-        if (res.data.code) {
-          dispatch(COMMON_DATA(res?.data?.data));
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-
-    cms("success")
-      .then((res) => {
-        if (res.data?.code === 200) {
-          dispatch(SUCCESS_STORIES(res?.data?.data));
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-
-    return () => {};
-  }, []);
-
-  const getUserPorofileData = () => {
-    getUserProfile("/user/profile")
-      .then((res) => {
-        if (res.data.status === 200) {
-          setInterestReceived({
-            accepted: res?.data?.friend_request_received_accepted,
-            pending: res?.data?.friend_request_received_pending,
-          });
-          setInterestSent({
-            accepted: res?.data?.friend_request_sent_accepted,
-            pending: res?.data?.friend_request_sent_pending,
-          });
-
-          var encrypted_json = JSON.parse(atob(res?.data?.user));
-          var dec = CryptoJS.AES.decrypt(
-            encrypted_json.value,
-            CryptoJS.enc.Base64.parse(decrypted_key),
-            {
-              iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-            }
-          ).toString(CryptoJS.enc.Utf8);
-          const parsed = JSON.parse(dec.slice(8, -2));
-          setProfileData(parsed);
-          dispatch(setUser({ user: res?.data?.user }));
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  };
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      getUserPorofileData();
-    } else {
-      router.push("/Login");
-    }
-  }, []);
-
-  const getDailyRecommendation = () => {
-    dailyRecommendation()
-      .then((res) => {
-        if (res.data.status === 200) {
-          var encrypted_json = JSON.parse(atob(res?.data?.users));
-          var dec = CryptoJS.AES.decrypt(
-            encrypted_json.value,
-            CryptoJS.enc.Base64.parse(decrypted_key),
-            {
-              iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-            }
-          );
-
-          var decryptedText = dec.toString(CryptoJS.enc.Utf8);
-          var jsonStartIndex = decryptedText.indexOf("[");
-          var jsonEndIndex = decryptedText.lastIndexOf("]") + 1;
-          var jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
-          jsonData.trim();
-          const parsed = JSON.parse(jsonData);
-
-          setDailyData(parsed);
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  };
+  const [interestSent, setInterestSent] = useState({
+    accepted: 0,
+    pending: 0,
+  });
 
   const dataFetchedRef = useRef(false);
 
+  const fetchUserProfile = () => {
+    getUserProfile("/user/profile")
+      .then((res) => {
+        const code = res?.data?.code ?? res?.data?.status;
+        const success =
+          res?.data?.success === true ||
+          res?.data?.status === 200 ||
+          code === 200;
+
+        if (!success) return;
+
+        setInterestReceived({
+          accepted: res?.data?.friend_request_received_accepted ?? 0,
+          pending: res?.data?.friend_request_received_pending ?? 0,
+        });
+
+        setInterestSent({
+          accepted: res?.data?.friend_request_sent_accepted ?? 0,
+          pending: res?.data?.friend_request_sent_pending ?? 0,
+        });
+
+        const encryptedUser = res?.data?.data?.user || res?.data?.user || null;
+
+        const decryptedUser = decryptPayload(encryptedUser);
+        const normalized = normalizeUser(decryptedUser);
+        setProfileData(normalized);
+
+        if (encryptedUser) dispatch(setUser({ user: encryptedUser }));
+      })
+      .catch(() => {});
+  };
+
+  const fetchDailyRecommendations = () => {
+    dailyRecommendation()
+      .then((res) => {
+        const list = res?.data?.data || [];
+        const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+        const formatted = list.map((u) => ({
+          ...u,
+          img_src: u.profile?.profile_photo
+            ? `${baseUrl}/${u.profile.profile_photo}`
+            : null,
+        }));
+
+        setDailyData(formatted);
+      })
+      .catch(() => {});
+  };
+
   useEffect(() => {
     if (dataFetchedRef.current) return;
     dataFetchedRef.current = true;
-    const token = localStorage.getItem("token");
 
+    commonOption()
+      .then((res) => {
+        if (res.data?.code) dispatch(COMMON_DATA(res.data.data));
+      })
+      .catch(() => {});
+
+    cms("success")
+      .then((res) => {
+        if (res.data?.code === 200) dispatch(SUCCESS_STORIES(res.data.data));
+      })
+      .catch(() => {});
+
+    const token = localStorage.getItem("token");
     if (!token) {
       router.push("/Login");
+    } else {
+      fetchUserProfile();
+      fetchDailyRecommendations();
     }
-
-    getDailyRecommendation();
   }, []);
-
-  console.log(profileData, "profileData");
 
   return (
     <>
@@ -152,11 +164,11 @@ function ProfilePage() {
         <title>Profile - JodiMilan</title>
         <meta
           name="description"
-          content="100% Mobile Verified Profiles. Safe and Secure. Register Free to Find Your Life Partner. Most Trusted Matrimony Service - Brand Trust Report. Register Now to Find Your Soulmate."
+          content="100% Mobile Verified Profiles. Safe and Secure. Register Free to Find Your Life Partner."
         />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/images/favicon.jpg" />
       </Head>
+
       <Snackbar
         open={alert}
         autoHideDuration={3000}
@@ -168,225 +180,153 @@ function ProfilePage() {
         </Alert>
       </Snackbar>
 
-      <section className=" pb-10 min-h-[78vh]">
+      <section className="pb-10 min-h-[78vh]">
         <div className="relative">
-          <div className="">
+          <div>
             <Image
               src="/landingbanner/TopBanner2.jpg"
-              alt=""
+              alt="banner"
               width={200}
               height={100}
               style={{
                 width: "100%",
                 height: "260px",
-                margin: "auto",
                 objectFit: "cover",
                 filter: "blur(5px)",
               }}
             />
           </div>
 
-          {/* profile detail card */}
           <div className="w-full flex justify-center">
             <div className="lg:flex lg:w-[65%] justify-evenly">
               <div className="bg-gray-100 w-full">
                 <div className="lg:flex lg:justify-evenly gap-5 p-4">
                   <div className="w-[210px] h-[210px] min-w-[210px] lg:m-0 m-auto">
-                    {profileData?.profile_img_src ? (
+                    {profileData?.profile?.profile_img_src ? (
                       <img
                         src={
-                          profileData?.profile_img_src || "/images/avtar.png"
+                          profileData?.profile?.profile_img_src ||
+                          "/images/avtar.png"
                         }
                         alt="profile img"
-                        width={250}
-                        height={150}
-                        className="h-full w-full rounded-full"
+                        className="h-full w-full rounded-full object-cover"
                       />
                     ) : (
                       <Image
-                        src={
-                          profileData?.user?.gender === "Male" ? MenD : WomenD
-                        }
-                        height={100}
-                        width={100}
-                        alt="ss"
-                        className="w-[210px] h-[210px] mx-auto"
+                        src={profileData?.gender === "Male" ? MenD : WomenD}
+                        height={210}
+                        width={210}
+                        alt="default"
+                        className="rounded-full mx-auto"
                       />
                     )}
                   </div>
+
                   <div className="text-center lg:mt-0 mt-3">
                     <div className="font-semibold text-lg">
-                      <span>
-                        {(profileData?.user.name || "") +
-                          " " +
-                          (profileData?.user?.last_name || "")}
-                      </span>
-                      <span> ({profileData?.user?.ryt_id}) </span>
+                      {profileData?.name} {profileData?.last_name} (
+                      {profileData?.ryt_id})
                     </div>
 
-                    <div
-                      className="bg-[#1585DB] lg:w-[20%] w-full text-white font-semibold px-4 
-                      py-2 flex items-center justify-between md:hidden mt-2 md:mt-0"
-                    >
+                    {/* Mobile actions */}
+                    <div className="bg-[#1585DB] lg:w-[20%] w-full text-white font-semibold px-4 py-2 flex items-center justify-between md:hidden mt-2 md:mt-0">
                       <div
-                        className="flex hover:opacity-80 lg:flex-row gap-2 flex-col items-center cursor-pointer"
+                        className="cursor-pointer flex gap-1 flex-col items-center"
                         onClick={() => router.push("/search")}
                       >
-                        <div>
-                          <BiSearchAlt />
-                        </div>
+                        <BiSearchAlt />
                         <div>Search</div>
                       </div>
+
                       <div
-                        className="flex hover:opacity-80 lg:flex-row gap-2 flex-col items-center cursor-pointer lg:mt-3 mt-0"
+                        className="cursor-pointer flex gap-1 flex-col items-center"
                         onClick={() => router.push("/messages")}
                       >
-                        <div>
-                          <BsFillChatFill />
-                        </div>
+                        <BsFillChatFill />
                         <div>Inbox</div>
                       </div>
+
                       <div
-                        className="flex hover:opacity-80 lg:flex-row gap-2 flex-col items-center cursor-pointer lg:mt-3 mt-0"
+                        className="cursor-pointer flex gap-1 flex-col items-center"
                         onClick={() =>
                           router.push("/profile/short-list-profle")
                         }
                       >
-                        <div>
-                          <BsFillStarFill />
-                        </div>
+                        <BsFillStarFill />
                         <div>Shortlisted</div>
                       </div>
+
                       <div
-                        className="flex hover:opacity-80 lg:flex-row gap-2 flex-col items-center cursor-pointer lg:mt-3 mt-0"
+                        className="cursor-pointer flex gap-1 flex-col items-center"
                         onClick={() => router.push("/profile/edit-profile")}
                       >
-                        <div>
-                          <FaUserEdit />
-                        </div>
+                        <FaUserEdit />
                         <div>Edit</div>
                       </div>
                     </div>
 
-                    <div className="mt-3">
-                      <div className="font-semibold">
-                        Express Interest Received
-                      </div>
-                      <div className="flex items-center gap-2 justify-center mt-2">
-                        <button
-                          className="bg-[#1585DB] text-white font-medium px-4 py-2"
-                          onClick={() =>
-                            router.push("/interest-receive-accept")
-                          }
-                        >
-                          Accepted ({interestRecevied?.accepted})
-                        </button>
-                        <button
-                          className="bg-yellow-500 text-white font-medium px-4 py-2"
-                          onClick={() =>
-                            router.push("/interest-receive-pending")
-                          }
-                        >
-                          Pending ({interestRecevied?.pending})
-                        </button>
-                      </div>
+                    <div className="mt-3 font-semibold">
+                      Express Interest Received
                     </div>
-                    <div className="mt-3">
-                      <div className="font-semibold">Express Interest Sent</div>
-                      <div className="flex items-center gap-2 justify-center mt-2">
-                        <button
-                          className="bg-[#1585DB] text-white font-medium px-4 py-2"
-                          onClick={() => router.push("/interest-sent-accept")}
-                        >
-                          Accepted ({interestSent?.accepted})
-                        </button>
-                        <button
-                          className="bg-yellow-500 text-white font-medium px-4 py-2"
-                          onClick={() => router.push("/interest-sent-pending")}
-                        >
-                          Pending ({interestSent?.pending})
-                        </button>
-                      </div>
+                    <div className="flex justify-center gap-2 mt-2">
+                      <button
+                        className="bg-[#1585DB] text-white px-4 py-2"
+                        onClick={() => router.push("/interest-receive-accept")}
+                      >
+                        Accepted 
+                        {/* ({interestRecevied.accepted}) */}
+                      </button>
+                      <button
+                        className="bg-yellow-500 text-white px-4 py-2"
+                        onClick={() => router.push("/interest-receive-pending")}
+                      >
+                        Pending 
+                        {/* ({interestRecevied.pending}) */}
+                      </button>
                     </div>
 
-                    {profileData?.thikhana?.name && (
-                      <div className="gap-1 flex justify-between py-3 rounded-xl px-6 text-white font-semibold mt-3">
-                        <Link href="/my-thikana" legacyBehavior>
-                          <div className="bg-gray-400 py-3 px-8 rounded-l-xl cursor-pointer">
-                            My thikana
-                          </div>
-                        </Link>
-                        <div className="bg-gray-400 py-3 px-8 rounded-r-xl">
-                          {profileData?.thikhana?.name}
-                        </div>
-                      </div>
-                    )}
+                    <div className="mt-3 font-semibold">
+                      Express Interest Sent
+                    </div>
+                    <div className="flex justify-center gap-2 mt-2">
+                      <button
+                        className="bg-[#1585DB] text-white px-4 py-2"
+                        onClick={() => router.push("/interest-sent-accept")}
+                      >
+                        Accepted
+                         {/* ({interestSent.accepted}) */}
+                      </button>
+                      <button
+                        className="bg-yellow-500 text-white px-4 py-2"
+                        onClick={() => router.push("/interest-sent-pending")}
+                      >
+                        Pending
+                         {/* ({interestSent.pending}) */}
+                      </button>
+                    </div>
 
-                    {/* {(profileData?.birth_city!==null||profileData?.birth_state!==null||profileData?.birth_country!==null)&&<div className="mt-3">
-                      <div className="font-semibold">Community</div>
-                      <div className="flex items-center gap-4 justify-center mt-2">
-                        {profileData?.birth_city!==null&&<div className="bg-[#1585DB] text-white font-medium px-4 py-2">
-                          {profileData?.birth_city?.name}
-                        </div>}
-                       {profileData?.birth_state!==null&& <div className="bg-yellow-500 text-white font-medium px-4 py-2">
-                          {profileData?.birth_state?.name}
-                        </div>}
-                        {profileData?.birth_country!==null&&<div className="bg-[#1585DB] text-white font-medium px-4 py-2">
-                          {profileData?.birth_country?.name}
-                        </div>}
-                      </div>
-                    </div>} */}
-                    {profileData?.user?.pacakge_id && (
+                    {profileData?.pacakge_id && (
                       <>
-                        {profileData?.user?.plan_expire ? (
-                          <div className="my-4">
-                            <div className="font-semibold">Package</div>
-                            <div className="my-2 text-sm text-red-600 font-semibold">
-                              Your plan has been expired.
-                            </div>
+                        {profileData?.plan_expire ? (
+                          <div className="my-4 text-sm text-red-600">
+                            Your plan has been expired.
                           </div>
                         ) : (
-                          <div className="mt-3">
-                            <div className="font-semibold">
-                              Package (Exp. Date -{" "}
-                              {moment(profileData?.user?.pacakge_expiry).format(
-                                "DD-MMM-YYYY"
-                              )}
-                              )
-                            </div>
-                            <div className="flex items-center gap-4 justify-center mt-2">
-                              {profileData?.user?.package?.package_title !==
-                                null && (
-                                <div className="bg-[#1585DB] text-white font-medium px-4 py-2">
-                                  {profileData?.user?.package?.package_title}
-                                </div>
-                              )}
-                              {profileData?.user?.package
-                                ?.total_profile_view !== null && (
-                                <div className="bg-yellow-500 text-white font-medium px-4 py-2">
-                                  Contact(
-                                  {
-                                    profileData?.user?.package
-                                      ?.total_profile_view
-                                  }
-                                  )
-                                </div>
-                              )}
-                              {profileData?.user?.total_profile_view_count !==
-                                null && (
-                                <div className="bg-[#1585DB] text-white font-medium px-4 py-2">
-                                  Left(
-                                  {profileData?.user?.total_profile_view_count})
-                                </div>
-                              )}
-                            </div>
+                          <div className="mt-4 text-sm">
+                            Package (Exp. Date -{" "}
+                            {profileData?.pacakge_expiry
+                              ? moment(profileData?.pacakge_expiry).format(
+                                  "DD-MMM-YYYY"
+                                )
+                              : "-"}
+                            )
                           </div>
                         )}
                       </>
                     )}
 
                     <button
-                      className="mt-4 flex justify-center items-center m-auto border px-4 py-2 bg-gray-400 text-white font-semibold"
+                      className="mt-4 border px-4 py-2 bg-gray-400 text-white font-semibold"
                       onClick={() => router.push("/browse-profile")}
                     >
                       Browse Profile
@@ -395,51 +335,82 @@ function ProfilePage() {
                 </div>
               </div>
 
-              <div
-                className="bg-[#1585DB] lg:w-[20%] w-full text-white font-semibold px-4 
-                py-2 lg:grid md:flex items-center justify-between hidden"
-              >
+              {/* Desktop action bar */}
+              <div className="bg-[#1585DB] hidden lg:grid text-white lg:w-[20%] font-semibold px-4 py-2">
                 <div
-                  className="flex hover:opacity-80 lg:flex-row gap-2 flex-col items-center cursor-pointer"
+                  className="cursor-pointer flex gap-2 items-center"
                   onClick={() => router.push("/search")}
                 >
-                  <div>
-                    <BiSearchAlt />
-                  </div>
-                  <div>Search</div>
+                  <BiSearchAlt />
+                  Search
                 </div>
                 <div
-                  className="flex hover:opacity-80 lg:flex-row gap-2 flex-col items-center cursor-pointer lg:mt-3 mt-0"
+                  className="cursor-pointer flex gap-2 items-center mt-3"
                   onClick={() => router.push("/messages")}
                 >
-                  <div>
-                    <BsFillChatFill />
-                  </div>
-                  <div>Inbox</div>
+                  <BsFillChatFill />
+                  Inbox
                 </div>
                 <div
-                  className="flex hover:opacity-80 lg:flex-row gap-2 flex-col items-center cursor-pointer lg:mt-3 mt-0"
+                  className="cursor-pointer flex gap-2 items-center mt-3"
                   onClick={() => router.push("/profile/short-list-profle")}
                 >
-                  <div>
-                    <BsFillStarFill />
-                  </div>
-                  <div>Shortlisted</div>
+                  <BsFillStarFill />
+                  Shortlisted
                 </div>
                 <div
-                  className="flex hover:opacity-80 lg:flex-row gap-2 flex-col items-center cursor-pointer lg:mt-3 mt-0"
+                  className="cursor-pointer flex gap-2 items-center mt-3"
                   onClick={() => router.push("/profile/edit-profile")}
                 >
-                  <div>
-                    <FaUserEdit />
-                  </div>
-                  <div>Edit</div>
+                  <FaUserEdit />
+                  Edit
                 </div>
               </div>
             </div>
           </div>
         </div>
       </section>
+
+      {dailyData.length > 0 && (
+        <section className="pb-10 bg-white">
+          <div className="text-xl font-bold text-center mb-6 text-[#1585DB]">
+            Suggested For You
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-5">
+            {dailyData.map((user, index) => (
+              <div
+                key={index}
+                className="w-[180px] p-4 bg-gray-100 rounded-lg shadow hover:shadow-md cursor-pointer"
+                onClick={() =>
+                  router.push(`/profile/profile-detail/${user.ryt_id}`)
+                }
+              >
+                <img
+                  src={
+                    user.img_src ||
+                    (user.gender === "Male" ? MenD.src : WomenD.src)
+                  }
+                  alt="profile"
+                  className="w-32 h-32 rounded-full mx-auto object-cover"
+                />
+
+                <div className="text-center font-semibold mt-2">
+                  {user.name} {user.last_name || ""}
+                </div>
+
+                <div className="text-center text-sm">
+                  {user.age ? `${user.age} yrs` : ""}
+                </div>
+
+                <div className="text-center text-sm text-gray-600">
+                  {user.ryt_id}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </>
   );
 }

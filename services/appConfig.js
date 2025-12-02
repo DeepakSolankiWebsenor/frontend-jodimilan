@@ -1,8 +1,13 @@
-export const payment_url = "https://admin.jodimilan.com/ccavenue/";
+// export const payment_url = "https://admin.jodimilan.com/ccavenue/";
+// export const payment_url = "http://localhost:3006/api/";
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== "undefined" && window.location.hostname === "localhost"
+    ? "http://localhost:3006/api"
+    : "https://backend-jodimilan-2ekb.vercel.app/api");
 
-export const decrypted_key = "bsCL1j+niPjVN2MAm89+bTKYny2Ji0v9GMFRZPFWWYY=";
+export const payment_url = API_BASE_URL; // reuse same URL
 
-export const API_BASE_URL = "https://admin.jodimilan.com/api"
 
 export const firebaseConfig = {
   apiKey: "AIzaSyDHV4N7xPKfbxOhU7XCgRVjEctmeQlE8xo",

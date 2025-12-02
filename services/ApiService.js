@@ -31,7 +31,13 @@ function useApiService() {
   }
 
   function verifyOtp(params) {
-    return http.post("/user/customer/verify/phone", params).then((res) => {
+    return http.post("/user/customer/verify/email", params).then((res) => {
+      return res;
+    });
+  }
+
+  function resendOtp(params) {
+    return http.post("/user/customer/email/resend-otp", params).then((res) => {
       return res;
     });
   }
@@ -283,17 +289,19 @@ function useApiService() {
       });
   }
 
-  function acceptRequest(id) {
-    return http
-      .post("/user/friend/requests/accept?request_id=" + id, "", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((res) => {
-        return res;
-      });
-  }
+function acceptRequest(id) {
+  return http.post(
+    "/user/friend/requests/accept",
+    { request_id: Number(id) },
+    {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    }
+  );
+}
+
+
 
   function declineRequest(id) {
     return http
@@ -349,7 +357,16 @@ function useApiService() {
       });
   }
 
-  function createOTPEmail(params) {
+function verifyMobileOTP(params) {
+  return http.post("/user/verify/mobile-otp", params, {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+  });
+}
+
+
+  function createEmailOTP(params) {
     return http
       .post("/user/create/otp/email", params, {
         headers: {
@@ -360,6 +377,16 @@ function useApiService() {
         return res;
       });
   }
+
+
+  function verifyEmailOTP(params) {
+    return http.post("/user/verify/email-otp", params, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+  }
+
 
   function sendOTP(params) {
     return http.post("/user/resendOtp", params).then((res) => {
@@ -399,6 +426,7 @@ function useApiService() {
 
   function cms(url) {
     return http.get("/user/cms/" + url).then((res) => {
+     console.log("CMS Response: ", res);
       return res;
     });
   }
@@ -715,7 +743,8 @@ function useApiService() {
     blockchatuser,
     createOTP,
     sentFriendRequest,
-    createOTPEmail,
+    createEmailOTP,
+    verifyEmailOTP,
     sendOTP,
     getCurrentPlan,
     encryptedData,
@@ -723,7 +752,9 @@ function useApiService() {
     getThikana,
     getThikanaQuestions,
     viewContact,
-    updatePartnerPreferences
+    updatePartnerPreferences,
+    resendOtp,
+    verifyMobileOTP,
   };
 }
 

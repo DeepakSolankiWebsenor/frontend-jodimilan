@@ -11,13 +11,9 @@ import Head from "next/head";
 import MenD from "../public/images/mendefault.png";
 import WomenD from "../public/images/girldefault.png";
 import CircularLoader from "../components/common-component/loader";
-import { toast } from "react-toastify";
-import { useSelector } from "react-redux";
-import CryptoJS from "crypto-js";
-import { decrypted_key } from "../services/appConfig";
 
 const InterestReceivePending = () => {
-  const [data, seteData] = useState([]);
+  const [data, setData] = useState([]);
   const { getFriendRequest, acceptRequest, declineRequest, sessionCreate } =
     useApiService();
   const [alert, setAlert] = useState(false);
@@ -25,29 +21,12 @@ const InterestReceivePending = () => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const dataFetchedRef = useRef(false);
-  const masterData = useSelector((state) => state.user);
 
   const getFriendRequestData = () => {
     getFriendRequest()
       .then((res) => {
-        if (res?.data?.status === 200) {
-          var encrypted_json = JSON.parse(atob(res?.data?.users));
-          var dec = CryptoJS.AES.decrypt(
-            encrypted_json.value,
-            CryptoJS.enc.Base64.parse(decrypted_key),
-            {
-              iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-            }
-          );
-          var decryptedText = dec.toString(CryptoJS.enc.Utf8);
-          var jsonStartIndex = decryptedText.indexOf("[");
-          var jsonEndIndex = decryptedText.lastIndexOf("]") + 1;
-          var jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
-          jsonData.trim();
-          const parsed = JSON.parse(jsonData);
-
-          seteData(parsed);
-          setLoading(false);
+        if (res?.data?.success) {
+          setData(res?.data?.data || []);
         }
       })
       .catch((error) => {
@@ -75,10 +54,10 @@ const InterestReceivePending = () => {
           getFriendRequestData();
           setAlertMsg(res?.data?.message);
           setAlert(true);
-          const _form = new FormData();
-          _form.append("friend_id", session_id);
-          sessionCreate(_form).then((response) => {});
-          // handleSessionCreate(session_id);
+
+          const form = new FormData();
+          form.append("friend_id", session_id);
+          sessionCreate(form);
         }
       })
       .catch((error) => {
@@ -87,11 +66,13 @@ const InterestReceivePending = () => {
   };
 
   const handleDeclineRequest = (id) => {
-    declineRequest(id).then((res) => {
-      getFriendRequestData();
-      setAlert(true);
-      setAlertMsg("Friend Request Decline Successfully");
-    });
+    declineRequest(id)
+      .then(() => {
+        getFriendRequestData();
+        setAlert(true);
+        setAlertMsg("Friend Request Declined Successfully");
+      })
+      .catch(console.log);
   };
 
   const handleNavigateToProfile = (id) => {
@@ -101,24 +82,26 @@ const InterestReceivePending = () => {
   return (
     <>
       <Head>
-        <title> Interests Received Pending - JodiMilan</title>
+        <title>Interests Received Pending - JodiMilan</title>
         <meta
           name="description"
-          content="100% Mobile Verified Profiles. Safe and Secure. Register Free to Find Your Life Partner. Most Trusted Matrimony Service - Brand Trust Report. Register Now to Find Your Soulmate."
+          content="100% Mobile Verified Profiles. Safe and Secure. Register Free to Find Your Life Partner."
         />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-       <link rel="icon" href="/images/favicon.jpg" />
+        <link rel="icon" href="/images/favicon.jpg" />
       </Head>
+
       <Snackbar
         open={alert}
         autoHideDuration={3000}
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
         onClose={() => setAlert(false)}
       >
-        <Alert icon={<ThumbUpAltIcon />} severity={"success"}>
+        <Alert icon={<ThumbUpAltIcon />} severity="success">
           {alertMsg}
         </Alert>
       </Snackbar>
+
       <div className="w-[100%] min-h-[400px]">
         <div className="text-center my-5">
           <div className="text-2xl font-medium text-[#0b4c85]">
@@ -132,112 +115,114 @@ const InterestReceivePending = () => {
               <CircularLoader />
             </div>
           ) : data?.length > 0 ? (
-            data?.map((item) => {
-              const {
-                height,
-                birth_city,
-                birth_state,
-                educations,
-                annual_income,
-                occupation,
-                profile_img_src,
-                photo_privacy,
-              } = item?.users?.userprofile || {};
+            data.map((item) => {
+              const user = item?.user || {};
+              const profile = user?.profile || {};
 
               return (
-                <>
-                  <div
-                    className="lg:w-full lg:h-[150px] md:h-[150px] lg:flex md:flex items-center justify-between"
-                    key={item?.id}
-                  >
-                    <div className="flex md:items-center lg:items-center items-start gap-5">
+                <React.Fragment key={item?.id}>
+                  <div className="lg:w-full lg:h-[150px] md:h-[150px] lg:flex md:flex items-center justify-between">
+                    <div className="flex items-start md:items-center lg:items-center gap-5">
                       <div className="w-[30%] lg:w-auto md:w-auto">
-                        {profile_img_src ? (
+                        {profile?.profile_img_src ? (
                           <img
-                            src={profile_img_src}
-                            alt="asd"
+                            src={profile?.profile_img_src}
+                            alt="Profile Image"
                             className="h-[120px] lg:h-[150px] md:h-[150px] w-[150px]"
                             style={{
-                              filter: photo_privacy === "No" ? "blur(3px)" : "",
+                              filter:
+                                profile?.photo_privacy === "No"
+                                  ? "blur(3px)"
+                                  : "",
                             }}
                           />
                         ) : (
                           <Image
-                            src={
-                              item?.friends?.gender === "Male" ? MenD : WomenD
-                            }
+                            src={user?.gender === "Male" ? MenD : WomenD}
                             height={150}
                             width={150}
-                            alt="sf"
+                            alt="Default Img"
                             className="h-[120px] lg:h-[150px] md:h-[150px] w-[150px]"
                           />
                         )}
                       </div>
-                      <div className="w-[70%] lg:w-auto md:w-auto">
+
+                      <div>
                         <div className="text-gray-700 font-semibold text-lg">
-                          {item?.users?.ryt_id || "RYT_ID"}
+                          {user?.ryt_id}
                         </div>
+
                         <div className="text-gray-600 font-medium mt-2">
-                          {item?.users?.age && <span>{item?.users?.age},</span>}
-                          {height && <span className="ml-1">{height},</span>}
-                          {birth_city?.name && (
-                            <span className="ml-1">{birth_city?.name},</span>
+                          {user?.age && <span>{user.age}, </span>}
+                          {profile?.height && (
+                            <span className="ml-1">{profile.height}, </span>
                           )}
-                          {birth_state?.name && (
-                            <span className="ml-1">{birth_state?.name},</span>
+                          {profile?.birth_city && (
+                            <span className="ml-1">{profile.birth_city}, </span>
+                          )}
+                          {profile?.birth_state && (
+                            <span className="ml-1">{profile.birth_state}</span>
                           )}
                         </div>
+
                         <div className="text-gray-600 font-medium mt-2">
-                          {educations && <span>{educations},</span>}
-                          {annual_income && (
-                            <span className="ml-1">Rs. {annual_income},</span>
+                          {profile?.educations && (
+                            <span>{profile.educations}, </span>
                           )}
-                          {occupation && (
-                            <span className="ml-1">{occupation},</span>
-                          )}
-                          {item?.users?.mat_status && (
+                          {profile?.annual_income && (
                             <span className="ml-1">
-                              {item?.users?.mat_status}
+                              Rs. {profile.annual_income},{" "}
                             </span>
+                          )}
+                          {profile?.occupation && (
+                            <span className="ml-1">{profile.occupation}, </span>
+                          )}
+                          {user?.mat_status && (
+                            <span className="ml-1">{user.mat_status}</span>
                           )}
                         </div>
                       </div>
                     </div>
-                    <div className="md:block lg:block flex items-center gap-4 justify-end">
+
+                    <div className="flex items-center gap-4 justify-end">
                       <div className="text-gray-600 font-medium">
-                        {item?.created_date}
+                        {item?.created_at?.split("T")[0]}
                       </div>
+
                       <button
                         className="mt-2 bg-slate-700 text-white text-sm font-semibold px-4 py-1 rounded"
-                        onClick={() => handleNavigateToProfile(item?.users?.encrypted_user_id)}
+                        onClick={() => handleNavigateToProfile(user?.ryt_id)}
                       >
                         View Profile
                       </button>
+
                       <div className="mt-2">
-                        <button
-                          onClick={() =>
-                            handleAcceptRequest(item.id, item.users.id)
-                          }
-                        >
-                          <Tooltip title="Accept" arrow>
-                            <CheckOutlinedIcon className="text-[30px] text-[green]" />
-                          </Tooltip>
-                        </button>
-                        <button onClick={() => handleDeclineRequest(item.id)}>
-                          <Tooltip title="Decline" arrow>
-                            <ClearOutlinedIcon className="ml-1 text-[30px] text-[#9f2020]" />
-                          </Tooltip>
-                        </button>
+                        <Tooltip title="Accept" arrow>
+                          <CheckOutlinedIcon
+                            className="text-[30px] text-[green] cursor-pointer"
+                            onClick={() =>
+                              handleAcceptRequest(item.id, user.id)
+                            }
+                          />
+                        </Tooltip>
+
+                        <Tooltip title="Decline" arrow>
+                          <ClearOutlinedIcon
+                            className="ml-1 text-[30px] text-[#9f2020] cursor-pointer"
+                            onClick={() => handleDeclineRequest(item.id)}
+                          />
+                        </Tooltip>
                       </div>
                     </div>
                   </div>
+
                   <hr className="border-[1px solid] w-full my-3" />
-                </>
+                </React.Fragment>
               );
             })
           ) : (
             <div className="mt-10 font-semibold lg:text-[30px] text-lg text-gray-500 text-center">
-              No Data found !
+              No Data Found!
             </div>
           )}
         </div>

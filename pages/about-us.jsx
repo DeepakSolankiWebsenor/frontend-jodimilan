@@ -1,19 +1,20 @@
 import Image from "next/image";
 import React, { useEffect, useRef, useState } from "react";
-import Profile from "../public/images/profile.jpg";
 import HeaderTwo from "./HeaderTwo";
 import useApiService from "../services/ApiService";
 import parse from "html-react-parser";
 import Head from "next/head";
 
 const About = () => {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState(null);
   const { cms } = useApiService();
   const dataFetchedRef = useRef(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (dataFetchedRef.current) return;
     dataFetchedRef.current = true;
+
     cms("about")
       .then((res) => {
         if (res?.data?.code === 200) {
@@ -21,9 +22,12 @@ const About = () => {
         }
       })
       .catch((error) => {
-        console.log(error);
-      });
+        console.log("CMS Error: ", error);
+      })
+      .finally(() => setLoading(false));
   }, []);
+
+  const cmsData = data?.[0];
 
   return (
     <>
@@ -39,27 +43,42 @@ const About = () => {
 
       <div className="w-full h-auto">
         <HeaderTwo />
-        <div className="mt-12 text-center">
-          <div className="text-4xl">{data[0]?.cms_type}</div>
-          <div className="text-4xl">
-            <span className="text-primary">JodiMilan</span>
-            <span className="text-primary">.com </span>
+
+        <div className="mt-12 text-center px-6">
+          {/* Title */}
+          <div className="text-3xl md:text-4xl font-bold">
+            {cmsData?.cms_type || "Loading..."}
           </div>
 
-          <div className="text-md text-gray-500 mt-5 px-10">
-            {data[0]?.description && <div>{parse(data[0]?.description)}</div>}
+          {/* Brand Name */}
+          <div className="text-3xl md:text-4xl mt-1">
+            <span className="text-primary font-semibold">JodiMilan</span>
+            <span className="text-primary">.com</span>
           </div>
-          <br/>
-          <br/>
-          <div className="text-lg mt-5 px-10">
-            <strong>Registered Name: </strong> Arush
+
+          {/* Description */}
+          <div className="text-md text-gray-600 mt-6 leading-7">
+            {cmsData?.description ? (
+              <div>{parse(cmsData?.description)}</div>
+            ) : (
+              <div>Loading content...</div>
+            )}
           </div>
-          {/* <div className="text-lg mt-5 px-10">
-            <strong>Mailing Address: </strong> 44 PKT A3 Everest Apparments Kalkaji Extn New Delhi
-          </div> */}
-          <div className="text-lg mt-5 px-10">
-            <strong>Mobile Number: </strong> 9772910309
+
+          {/* Other Static Fields */}
+          <div className="text-lg mt-6 font-medium">
+            <strong>Registered Name: </strong>Arush
           </div>
+
+          <div className="text-lg mt-4 font-medium">
+            <strong>Mobile Number: </strong>9772910309
+          </div>
+
+          {loading && (
+            <div className="mt-6 text-gray-400 animate-pulse">
+              Fetching data...
+            </div>
+          )}
         </div>
       </div>
     </>

@@ -322,3 +322,25 @@ a {
 button {
   outline: none
 }
+
+
+/* contact form */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.25s ease-out;
+}
+
+.animate-scaleUp {
+  animation: scaleUp 0.25s ease-out;
+}
+/* contact form end */

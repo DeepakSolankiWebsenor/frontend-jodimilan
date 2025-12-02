@@ -9,8 +9,6 @@ import { useSelector } from "react-redux";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/router";
 import useApiService from "../services/ApiService";
-import CryptoJS from "crypto-js";
-import { decrypted_key } from "../services/appConfig";
 import { toast } from "react-toastify";
 
 const defaultValues = {
@@ -32,136 +30,138 @@ const Signup = ({ open, onClose }) => {
   const router = useRouter();
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState("signup");
-  const [options, setOptions] = useState(null);
-  const [loading, setloading] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [signupErrors, setSignupErrors] = useState("");
-  const { customerSignup, verifyOtp } = useApiService();
-  const masterData1 = useSelector((state) => state.user);
+  const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [signupError, setSignupError] = useState("");
   const [otpServerError, setOtpServerError] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [options, setOptions] = useState(null);
+
+  const masterData = useSelector((state) => state.user);
+
+  const { customerSignup, verifyOtp, resendOtp } = useApiService();
 
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm({
-    defaultValues,
-  });
+  } = useForm({ defaultValues });
 
   useEffect(() => {
-    setOptions(masterData1?.common_data);
-  }, [masterData1]);
+    setOptions(masterData?.common_data);
+  }, [masterData]);
 
   const onSubmit = (data) => {
-    setloading(true);
-    setSignupErrors("");
+    setLoading(true);
+    setSignupError("");
 
-    const params = {};
-
-    for (const key in data) {
-      if (data[key]) {
-        params[key] = data[key];
-      }
-    }
-
-    params["dialing_code"] = "91";
-
-    customerSignup(params)
-      .then((response) => {
-        if (response?.data?.code === 201) {
-          var encrypted_json = JSON.parse(atob(response?.data?.data?.user));
-
-          var dec = CryptoJS.AES.decrypt(
-            encrypted_json.value,
-            CryptoJS.enc.Base64.parse(decrypted_key),
-            {
-              iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-            }
-          ).toString(CryptoJS.enc.Utf8);
-
-          const parsed = JSON.parse(dec.slice(8, -2));
-
-          setPhoneNumber(parsed?.phone);
-          toast.success("OTP sent on mobile number.");
-
-          setTimeout(() => {
-            reset();
-            setStep("otp");
-            setloading(false);
-          }, 1000);
+    customerSignup({ ...data, dialing_code: "91" })
+      .then((res) => {
+        if (res?.data?.code === 201) {
+          toast.success("OTP sent successfully!");
+          setUserEmail(data.email);
+          setStep("otp");
+          reset();
         }
       })
-      .catch((errors) => {
-        setSignupErrors(errors?.response?.data?.errors);
-        setloading(false);
-      });
+      .catch((err) => {
+        const msg = err?.response?.data?.message || "Signup failed";
+        setSignupError(msg);
+        toast.error(msg);
+      })
+      .finally(() => setLoading(false));
   };
 
   const handleOtpVerify = () => {
-    setloading(true);
+    if (!otp || otp.length !== 6) {
+      setOtpServerError("OTP must be 6 digits");
+      return;
+    }
 
-    const params = {
-      otp,
-      phone: phoneNumber,
-    };
+    setLoading(true);
+    setOtpServerError("");
 
-    verifyOtp(params)
-      .then((response) => {
-        if (response.data.code === 200) {
-          localStorage.setItem("token", response?.data.data.access_token);
-          setOtpServerError("");
+    verifyOtp({ email: userEmail, otp })
+      .then((res) => {
+        if (res.data.code === 200) {
           toast.success("OTP verified successfully");
+          localStorage.setItem("token", res.data.data.access_token);
+
           setTimeout(() => {
             onClose();
             router.push("/profile/profile-page");
-            setloading(false);
-          }, 2000);
+          }, 1000);
         }
       })
-      .catch((error) => {
-        console.log(error);
-        setloading(false);
-        setOtpServerError(error.response.data.message);
-      });
+      .catch(() => {
+        setOtpServerError("Invalid OTP, please try again.");
+      })
+      .finally(() => setLoading(false));
+  };
+
+  const handleResendOtp = () => {
+    if (!userEmail) return;
+
+    setResendLoading(true);
+     resendOtp({ email: userEmail })
+       .then((res) => {
+         if (res?.data?.code === 200) {
+           toast.success("New OTP sent");
+           setOtp("");
+         }
+       })
+       .catch(() => toast.error("Failed to resend OTP"))
+       .finally(() => setResendLoading(false));
   };
 
   return (
     <Dialog
       open={open}
       onClose={onClose}
+      fullWidth
+      maxWidth="md"
       PaperProps={{
         sx: {
-          minWidth: 650,
-          borderRadius: 3,
+          width: "95%",
+          maxWidth: "600px",
+          borderRadius: 4,
+          p: 1,
+          maxHeight: "92vh",
+          overflowY: "auto",
         },
       }}
     >
       {step === "signup" ? (
         <form onSubmit={handleSubmit(onSubmit)}>
-          <DialogTitle>
-            <div className="font-bold">Register Yourself</div>
+          <DialogTitle className="text-center text-lg font-bold pt-2">
+            Register Yourself
           </DialogTitle>
+
+          {signupError && (
+            <p className="text-center text-red-500 text-xs mt-1">
+              {signupError}
+            </p>
+          )}
+
           <DialogContent>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
               <div className="grid gap-1">
                 <label className="text-sm font-medium">Profile By</label>
                 <select
-                  {...register("profile_by", { required: "Please select" })}
-                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                  {...register("profile_by", { required: "Required" })}
+                  className="p-3 bg-gray-200 rounded text-xs outline-none"
                 >
-                  <option value="" hidden>
-                    Please Select
-                  </option>
-                  {options?.profile?.map((item, index) => (
-                    <option key={index} value={item}>
+                  <option hidden>Select</option>
+                  {options?.profile?.map((item, i) => (
+                    <option key={i} value={item}>
                       {item}
                     </option>
                   ))}
                 </select>
-                {errors?.profile_by && (
-                  <p className="text-red-500 font-medium text-xs">
-                    {errors?.profile_by?.message}
+                {errors.profile_by && (
+                  <p className="text-red-500 text-xs">
+                    {errors.profile_by.message}
                   </p>
                 )}
               </div>
@@ -169,21 +169,19 @@ const Signup = ({ open, onClose }) => {
               <div className="grid gap-1">
                 <label className="text-sm font-medium">Gender</label>
                 <select
-                  {...register("gender", { required: "Please select gender" })}
-                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                  {...register("gender", { required: "Required" })}
+                  className="p-3 bg-gray-200 rounded text-xs outline-none"
                 >
-                  <option value="" hidden>
-                    Please Select
-                  </option>
-                  {options?.gender?.map((item, index) => (
-                    <option key={index} value={item}>
+                  <option hidden>Select</option>
+                  {options?.gender?.map((item, i) => (
+                    <option key={i} value={item}>
                       {item}
                     </option>
                   ))}
                 </select>
-                {errors?.gender && (
-                  <p className="text-red-500 font-medium text-xs">
-                    {errors?.gender?.message}
+                {errors.gender && (
+                  <p className="text-red-500 text-xs">
+                    {errors.gender.message}
                   </p>
                 )}
               </div>
@@ -191,21 +189,19 @@ const Signup = ({ open, onClose }) => {
               <div className="grid gap-1">
                 <label className="text-sm font-medium">Marital Status</label>
                 <select
-                  {...register("mat_status", { required: "Please select" })}
-                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                  {...register("mat_status", { required: "Required" })}
+                  className="p-3 bg-gray-200 rounded text-xs outline-none"
                 >
-                  <option value="" hidden>
-                    Please Select
-                  </option>
-                  {options?.mat_status?.map((item, index) => (
-                    <option value={item} key={index}>
+                  <option hidden>Select</option>
+                  {options?.mat_status?.map((item, i) => (
+                    <option key={i} value={item}>
                       {item}
                     </option>
                   ))}
                 </select>
-                {errors?.mat_status && (
-                  <p className="text-red-500 font-medium text-xs">
-                    {errors?.mat_status?.message}
+                {errors.mat_status && (
+                  <p className="text-red-500 text-xs">
+                    {errors.mat_status.message}
                   </p>
                 )}
               </div>
@@ -213,44 +209,38 @@ const Signup = ({ open, onClose }) => {
               <div className="grid gap-1">
                 <label className="text-sm font-medium">Religion</label>
                 <select
-                  {...register("religion", { required: "Please select" })}
-                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                  {...register("religion", { required: "Required" })}
+                  className="p-3 bg-gray-200 rounded text-xs outline-none"
                 >
-                  <option value="" hidden>
-                    Please Select
-                  </option>
-                  {options?.religion?.map((item, index) => (
-                    <option value={item?.id} key={index}>
-                      {item?.name}
+                  <option hidden>Select</option>
+                  {options?.religion?.map((item, i) => (
+                    <option key={i} value={item.id}>
+                      {item.name}
                     </option>
                   ))}
                 </select>
-                {errors?.religion && (
-                  <p className="text-red-500 font-medium text-xs">
-                    {errors?.religion?.message}
+                {errors.religion && (
+                  <p className="text-red-500 text-xs">
+                    {errors.religion.message}
                   </p>
                 )}
               </div>
 
               <div className="grid gap-1">
-                <label className="text-sm font-medium">Clan</label>
+                <label className="text-sm font-medium">Caste</label>
                 <select
-                  {...register("caste", { required: "Please select" })}
-                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                  {...register("caste", { required: "Required" })}
+                  className="p-3 bg-gray-200 rounded text-xs outline-none"
                 >
-                  <option value="" hidden>
-                    Please Select
-                  </option>
-                  {options?.caste?.map((item, index) => (
-                    <option value={item?.id} key={index}>
-                      {item?.name}
+                  <option hidden>Select</option>
+                  {options?.caste?.map((item, i) => (
+                    <option key={i} value={item.id}>
+                      {item.name}
                     </option>
                   ))}
                 </select>
-                {errors?.caste && (
-                  <p className="text-red-500 font-medium text-xs">
-                    {errors?.caste?.message}
-                  </p>
+                {errors.caste && (
+                  <p className="text-red-500 text-xs">{errors.caste.message}</p>
                 )}
               </div>
 
@@ -258,33 +248,23 @@ const Signup = ({ open, onClose }) => {
                 <label className="text-sm font-medium">Date of Birth</label>
                 <input
                   type="date"
+                  {...register("dob", { required: "Required" })}
                   max={new Date().toISOString().split("T")[0]}
-                  {...register("dob", { required: "Please select date" })}
-                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                  className="p-3 bg-gray-200 rounded text-xs outline-none"
                 />
                 {errors.dob && (
-                  <p className="text-red-500 font-medium text-xs">
-                    {errors?.dob?.message}
-                  </p>
+                  <p className="text-red-500 text-xs">{errors.dob.message}</p>
                 )}
               </div>
 
               <div className="grid gap-1">
                 <label className="text-sm font-medium">First Name</label>
                 <input
-                  {...register("name", {
-                    required: "Name is required",
-                    minLength: {
-                      value: 2,
-                      message: "Minimum 2 characters required",
-                    },
-                  })}
-                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                  {...register("name", { required: "Required" })}
+                  className="p-3 bg-gray-200 rounded text-xs outline-none"
                 />
                 {errors.name && (
-                  <p className="text-red-500 font-medium text-xs">
-                    {errors.name.message}
-                  </p>
+                  <p className="text-red-500 text-xs">{errors.name.message}</p>
                 )}
               </div>
 
@@ -292,26 +272,18 @@ const Signup = ({ open, onClose }) => {
                 <label className="text-sm font-medium">Last Name</label>
                 <input
                   {...register("last_name")}
-                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                  className="p-3 bg-gray-200 rounded text-xs outline-none"
                 />
               </div>
 
               <div className="grid gap-1">
                 <label className="text-sm font-medium">Email</label>
                 <input
-                  {...register("email", {
-                    required: "Email is required",
-                    pattern: {
-                      value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                      message: "Invalid email format",
-                    },
-                  })}
-                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                  {...register("email", { required: "Required" })}
+                  className="p-3 bg-gray-200 rounded text-xs outline-none"
                 />
-                {(errors.email || signupErrors?.email) && (
-                  <p className="text-red-500 font-medium text-xs">
-                    {errors?.email?.message || signupErrors?.email}
-                  </p>
+                {errors.email && (
+                  <p className="text-red-500 text-xs">{errors.email.message}</p>
                 )}
               </div>
 
@@ -319,109 +291,97 @@ const Signup = ({ open, onClose }) => {
                 <label className="text-sm font-medium">Password</label>
                 <input
                   type="password"
-                  {...register("password", {
-                    required: "Password is required",
-                    minLength: {
-                      value: 6,
-                      message: "Minimum 6 characters",
-                    },
-                  })}
-                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                  {...register("password", { required: "Required" })}
+                  className="p-3 bg-gray-200 rounded text-xs outline-none"
                 />
                 {errors.password && (
-                  <p className="text-red-500 font-medium text-xs">
-                    {errors?.password?.message}
+                  <p className="text-red-500 text-xs">
+                    {errors.password.message}
                   </p>
                 )}
               </div>
 
               <div className="grid gap-1">
-                <label className="text-sm font-medium">Phone No.</label>
+                <label className="text-sm font-medium">Phone</label>
                 <input
-                  type="number"
-                  {...register("phone", {
-                    required: "Phone number is required",
-                    pattern: {
-                      value: /^[0-9]{10}$/,
-                      message: "Must be a 10-digit number",
-                    },
-                  })}
-                  className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium"
+                  type="text"
+                  maxLength={10}
+                  {...register("phone", { required: "Required" })}
+                  className="p-3 bg-gray-200 rounded text-xs outline-none"
                 />
-                {(errors?.phone || signupErrors?.phone) && (
-                  <p className="text-red-500 font-medium text-xs">
-                    {errors?.phone?.message || signupErrors?.phone}
-                  </p>
+                {errors.phone && (
+                  <p className="text-red-500 text-xs">{errors.phone.message}</p>
                 )}
               </div>
             </div>
           </DialogContent>
 
-          <DialogActions>
+          <DialogActions className="flex justify-between p-3">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="outline-none text-primary border border-primary bg-white font-semibold text-sm px-3 py-2 rounded-lg cursor-pointer"
+              className="border border-primary text-primary rounded-lg px-3 py-2"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="outline-none bg-primary text-white font-semibold text-sm px-3 py-2 rounded-lg cursor-pointer"
+              className="bg-primary text-white rounded-lg px-3 py-2"
             >
-              {loading ? "Please wait..." : "Accept & Register"}
+              {loading ? "Please wait..." : "Register"}
             </button>
           </DialogActions>
         </form>
       ) : (
-        <div>
-          <DialogTitle>
-            <div className="font-bold">Verify OTP</div>
+        <>
+          <DialogTitle className="text-center text-lg font-bold">
+            Verify OTP
           </DialogTitle>
+
           <DialogContent>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">Enter OTP</label>
-              <input
-                type="text"
-                value={otp}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (/^\d{0,6}$/.test(val)) {
-                    setOtp(val);
-                  }
-                }}
-                maxLength={6}
-                inputMode="numeric"
-                className="outline-none p-3 bg-gray-200 rounded-md text-xs font-medium tracking-widest text-center"
-                placeholder="Enter 6-digit OTP"
-              />
-              {(otp.length > 0 && otp.length < 6 || otpServerError) && (
-                <p className="text-red-500 text-xs font-medium">
-                  {otpServerError || "OTP must be 6 digits"}
-                </p>
-              )}
-            </div>
+            <input
+              type="text"
+              maxLength={6}
+              value={otp}
+              onChange={(e) =>
+                /^\d*$/.test(e.target.value) && setOtp(e.target.value)
+              }
+              placeholder="Enter 6-digit OTP"
+              className="w-full text-center p-3 mt-2 rounded bg-gray-200 tracking-widest text-xs outline-none"
+            />
+            {otpServerError && (
+              <p className="text-red-500 text-xs mt-2">{otpServerError}</p>
+            )}
           </DialogContent>
-          <DialogActions>
+
+          <DialogActions className="flex justify-between px-3 pb-3">
             <button
-              type="button"
               onClick={() => setStep("signup")}
-              disabled={loading}
-              className="outline-none text-primary border border-primary bg-white font-semibold text-sm px-3 py-2 rounded-lg cursor-pointer"
+              disabled={loading || resendLoading}
+              className="border border-primary text-primary rounded-lg px-3 py-2"
             >
               Back
             </button>
+
+            <button
+              onClick={handleResendOtp}
+              disabled={resendLoading}
+              className="border border-primary text-primary rounded-lg px-3 py-2"
+            >
+              {resendLoading ? "Sending..." : "Resend OTP"}
+            </button>
+
             <button
               onClick={handleOtpVerify}
               disabled={loading}
-              className="outline-none bg-primary text-white font-semibold text-sm px-3 py-2 rounded-lg cursor-pointer"
+              className="bg-primary text-white rounded-lg px-3 py-2"
             >
               {loading ? "Verifying..." : "Verify OTP"}
             </button>
           </DialogActions>
-        </div>
+        </>
       )}
     </Dialog>
   );

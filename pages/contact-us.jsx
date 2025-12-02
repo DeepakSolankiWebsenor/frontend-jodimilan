@@ -1,20 +1,20 @@
-import { Alert, CircularProgress, Snackbar } from "@mui/material";
-import React, { useState } from "react";
+import { CircularProgress } from "@mui/material";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { BsFillTelephoneFill } from "react-icons/bs";
 import { RiMailFill } from "react-icons/ri";
 import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
 import useApiService from "../services/ApiService";
-import { useEffect } from "react";
 import Head from "next/head";
 import { useSelector } from "react-redux";
 
 function ContactUs() {
   const masterData = useSelector((state) => state.user);
   const [data, setData] = useState([]);
-  const [alert, setAlert] = useState(false);
   const [loading, setLoading] = useState(false);
   const { sendEnquiry } = useApiService();
+  const [showModal, setShowModal] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -26,180 +26,170 @@ function ContactUs() {
     setData(masterData?.common_data?.settings);
   }, [masterData]);
 
-  const handleInquiry = (data) => {
-    const { name, contact_no, message } = data;
-    let params = {
-      name: name,
-      contact_no: contact_no,
-      message: message,
-    };
+ const handleInquiry = (data) => {
+   const { name, contact_no, message } = data;
+   let params = { name, contact_no, message };
 
-    sendEnquiry(params)
-      .then((res) => {
-        if (res.data.status === 200) {
-          setLoading(true);
-          setTimeout(() => {
-            setLoading(false);
-            setAlert(true);
-            reset();
-          }, 2000);
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  };
+   setLoading(true);
+   sendEnquiry(params)
+     .then((res) => {
+       setLoading(false);
+       if (res.data.success) {
+         setShowModal(true);
+         reset();
+       }
+     })
+     .catch(() => setLoading(false));
+ };
+
 
   return (
     <>
       <Head>
         <title>Contact Us</title>
-        <meta
-          name="description"
-          content="100% Mobile Verified Profiles. Safe and Secure. Register Free to Find Your Life Partner. Most Trusted Matrimony Service - Brand Trust Report. Register Now to Find Your Soulmate."
-        />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/images/favicon.jpg" />
       </Head>
-      <Snackbar
-        open={alert}
-        autoHideDuration={3000}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-        onClose={() => setAlert(false)}
-      >
-        <Alert icon={<ThumbUpAltIcon />} severity="success">
-          Your Enquiry Submitted Successfully !
-        </Alert>
-      </Snackbar>
 
-      <div className="text-center py-10 px-4">
-        <div className="md:text-4xl text-3xl text-primary border-b-4 border-b-primary font-medium w-max rounded-md mx-auto">
+      {/* Success Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 animate-fadeIn">
+          <div className="bg-white rounded-xl shadow-2xl p-6 text-center max-w-sm mx-4 animate-scaleUp">
+            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+              <ThumbUpAltIcon
+                className="text-green-600"
+                style={{ fontSize: 35 }}
+              />
+            </div>
+
+            <h2 className="text-xl font-semibold text-gray-900 mt-4">
+              Thank You! 🎉
+            </h2>
+
+            <p className="text-gray-600 text-sm mt-2">
+              Your enquiry has been submitted successfully.
+              <br />
+              We will contact you soon!
+            </p>
+
+            <button
+              onClick={() => setShowModal(false)}
+              className="bg-primary hover:bg-[#ff6a69] text-white py-2 px-5 rounded-lg mt-5"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Page */}
+      <div className="text-center py-6 px-4">
+        <div className="text-primary border-b-4 border-primary text-3xl md:text-4xl font-semibold mx-auto inline-block pb-1">
           Contact Us
         </div>
-        <div className="text-gray-600 text-sm font-medium pt-4 uppercase">
-          You can reach us using the following form below.
-        </div>
+        <p className="text-gray-600 text-sm font-medium pt-3 uppercase">
+          You can reach us using the form below.
+        </p>
       </div>
 
-      <div className="pb-20 flex justify-center">
-        <div className="md:px-20 px-4 w-full md:w-[70%]">
-          <div>
-            <div className="text-2xl font-semibold text-gray-800 pb-4 text-center">
-              Submit Your Enquiry
-            </div>
-            <div className="border bg-gray-100 rounded-md md:p-10 p-4">
-              <form autoComplete="off" onSubmit={handleSubmit(handleInquiry)}>
-                <div className="flex flex-col">
-                  <label className="text-[#333] font-medium">Name</label>
-                  <input
-                    type="text"
-                    name="name"
-                    className="focus:outline-none border rounded-[4px] p-2 font-medium text-gray-800"
-                    placeholder="Enter your name"
-                    {...register("name", { required: true })}
-                  />
-                </div>
-                {errors.name && (
-                  <div className="text-red-600 text-[14px] my-2 font-semibold">
-                    {errors.name.type === "required" &&
-                      "Name field is required."}
-                  </div>
-                )}
-
-                <div className="flex flex-col mt-2">
-                  <label className="text-[#333] font-medium">Contact No.</label>
-                  <input
-                    type="number"
-                    name="contact_no"
-                    className="focus:outline-none border rounded-[4px] p-2 font-medium text-gray-800"
-                    placeholder="Enter your contact number"
-                    {...register("contact_no", {
-                      required: true,
-                      pattern: /^\d{10}$/,
-                      minLength: 10,
-                      maxLength: 10,
-                      onChange: (e) => console.log(e),
-                    })}
-                  />
-                </div>
-                {errors.contact_no && (
-                  <div className="text-red-600 text-[14px] mt-2 font-semibold">
-                    {errors.contact_no.type === "required"
-                      ? "Contact no field is required."
-                      : "Contact number should be 10 digit only"}
-                  </div>
-                )}
-
-                <div className="flex flex-col mt-2">
-                  <label className="text-[#333] font-medium">
-                    Message/Inquiry
-                  </label>
-                  <textarea
-                    name="message"
-                    cols="30"
-                    rows="5"
-                    className="focus:outline-none border rounded-[4px] p-2 font-medium text-gray-800"
-                    placeholder="Enter your message"
-                    {...register("message", { required: true })}
-                  ></textarea>
-                </div>
-                {errors.message && (
-                  <div className="text-red-600 text-[14px] font-semibold">
-                    {errors.message.type === "required" &&
-                      "Message field is required."}
-                  </div>
-                )}
-
-                <div className="flex justify-center mt-3">
-                  <button
-                    className="bg-primary hover:bg-[#ff716f] text-white text-center w-full py-2 px-4 rounded-md"
-                    type="submit"
-                  >
-                    {loading ? (
-                      <CircularProgress size={20} color={"inherit"} />
-                    ) : (
-                      "Send Enquiry"
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
+      <div className="pb-10 flex justify-center px-3">
+        <div className="w-full lg:w-[70%]">
+          <div className="text-center text-xl md:text-2xl text-gray-800 font-semibold mb-4">
+            Submit Your Enquiry
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-5 mt-6">
-            <div className="lg:mb-0 md:mb-2">
-              <div className="flex border border-primary p-2 rounded-md">
-                <div className="border border-primary bg-primary p-4 rounded-md">
-                  <RiMailFill size={30} className="text-white mx-auto" />
-                </div>
-                <div className="rounded-md w-full self-center">
-                  <div
-                    className="text-gray-800 font-medium px-2 py-2"
-                    style={{ overflowWrap: "anywhere" }}
-                  >
-                    {data && data[0]?.company_email}
-                  </div>
-                </div>
+          <div className="border bg-gray-100 rounded-lg p-4 md:p-8">
+            <form autoComplete="off" onSubmit={handleSubmit(handleInquiry)}>
+              {/* Name */}
+              <label className="text-[#333] font-medium mb-1 ml-1">Name</label>
+              <input
+                type="text"
+                className="border rounded-md w-full p-2 text-gray-800"
+                placeholder="Enter your name"
+                {...register("name", { required: "Name is required" })}
+              />
+              {errors.name && (
+                <p className="text-red-600 text-xs mt-1">
+                  {errors.name.message}
+                </p>
+              )}
+
+              {/* Phone */}
+              <label className="text-[#333] font-medium mt-4 mb-1 ml-1">
+                Contact No.
+              </label>
+              <input
+                type="text"
+                maxLength={10}
+                className="border rounded-md w-full p-2 text-gray-800"
+                placeholder="Enter your contact number"
+                {...register("contact_no", {
+                  required: "Contact number is required",
+                  minLength: { value: 10, message: "Must be 10 digits" },
+                  maxLength: { value: 10, message: "Must be 10 digits" },
+                  pattern: {
+                    value: /^[6-9][0-9]{9}$/,
+                    message: "Enter valid Indian mobile number",
+                  },
+                })}
+                onInput={(e) =>
+                  (e.target.value = e.target.value.replace(/\D/g, ""))
+                }
+              />
+              {errors.contact_no && (
+                <p className="text-red-600 text-xs mt-1">
+                  {errors.contact_no.message}
+                </p>
+              )}
+
+              {/* Message */}
+              <label className="text-[#333] font-medium mt-4 mb-1 ml-1">
+                Message / Inquiry
+              </label>
+              <textarea
+                rows="5"
+                className="border rounded-md w-full p-2 text-gray-800"
+                placeholder="Enter your message"
+                {...register("message", { required: "Message is required" })}
+              />
+              {errors.message && (
+                <p className="text-red-600 text-xs mt-1">
+                  {errors.message.message}
+                </p>
+              )}
+
+              <button
+                className="bg-primary text-white hover:bg-[#ff716f] w-full mt-5 py-2 rounded-md font-medium"
+                type="submit"
+                disabled={loading}
+              >
+                {loading ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  "Send Enquiry"
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* Contact info */}
+          <div className="grid md:grid-cols-2 gap-4 mt-8">
+            {/* Email */}
+            <div className="flex border border-primary rounded-lg p-4">
+              <div className="bg-primary p-4 rounded-lg">
+                <RiMailFill size={26} className="text-white" />
               </div>
+              <p className="text-gray-700 font-medium ml-3 break-all">
+                {data?.[0]?.company_email}
+              </p>
             </div>
 
-            <div className="lg:mb-0 md:mb-2 mb-2">
-              <div className="flex border border-primary p-2 rounded-md">
-                <div className="border border-primary bg-primary p-4 rounded-md">
-                  <BsFillTelephoneFill
-                    size={30}
-                    className="text-white mx-auto"
-                  />
-                </div>
-                <div className="rounded-md w-full self-center">
-                  <div
-                    className="text-gray-800 font-medium px-2 py-1"
-                    style={{ overflowWrap: "anywhere" }}
-                  >
-                    {data && data[0]?.company_phone}
-                  </div>
-                </div>
+            {/* Phone */}
+            <div className="flex border border-primary rounded-lg p-4">
+              <div className="bg-primary p-4 rounded-lg">
+                <BsFillTelephoneFill size={26} className="text-white" />
               </div>
+              <p className="text-gray-700 font-medium ml-3 break-all">
+                {data?.[0]?.company_phone}
+              </p>
             </div>
           </div>
         </div>

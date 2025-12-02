@@ -1,9 +1,8 @@
 /* eslint-disable @next/next/no-img-element */
 import { Alert, Snackbar, Tooltip } from "@mui/material";
 import { useRouter } from "next/router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import useApiService from "../services/ApiService";
-import CheckOutlinedIcon from "@mui/icons-material/CheckOutlined";
 import ClearOutlinedIcon from "@mui/icons-material/ClearOutlined";
 import Image from "next/image";
 import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
@@ -11,63 +10,39 @@ import Head from "next/head";
 import MenD from "../public/images/mendefault.png";
 import WomenD from "../public/images/girldefault.png";
 import CircularLoader from "../components/common-component/loader";
-import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
-import CryptoJS from "crypto-js";
-import { decrypted_key } from "../services/appConfig";
 
 const InterestSentPending = () => {
-  const [data, seteData] = useState([]);
+  const [data, setData] = useState([]);
   const { sentFriendRequest, declineRequest } = useApiService();
   const [alert, setAlert] = useState(false);
   const [alertMsg, setAlertMsg] = useState("");
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const masterData = useSelector((state) => state.user);
-  // const dataFetchedRef = useRef(false);
 
   const getSentFriendRequestData = () => {
     sentFriendRequest()
       .then((res) => {
-        if (res?.data?.status === 200) {
-          var encrypted_json = JSON.parse(atob(res?.data?.requests));
-          var dec = CryptoJS.AES.decrypt(
-            encrypted_json.value,
-            CryptoJS.enc.Base64.parse(decrypted_key),
-            {
-              iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-            }
-          );
-
-          var decryptedText = dec.toString(CryptoJS.enc.Utf8);
-          var jsonStartIndex = decryptedText.indexOf("{");
-          var jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
-          var jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
-          jsonData.trim();
-          const parsed = JSON.parse(jsonData);
-
-          seteData(parsed);
+        if (res?.data?.success) {
+          setData(res.data.data);
           setLoading(false);
         }
       })
-      .catch((error) => {
-        console.log(error);
-      });
+      .catch(() => setLoading(false));
   };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) {
-      getSentFriendRequestData();
-    } else {
-      router.push("/Login");
-    }
+    if (token) getSentFriendRequestData();
+    else router.push("/Login");
   }, [alertMsg]);
 
   const handleDeclineRequest = (id) => {
-    declineRequest(id).then((res) => {
+    declineRequest(id).then(() => {
+      setAlertMsg("Interest Removed Successfully");
       setAlert(true);
-      setAlertMsg("Friend Request Decline Successfully");
+      getSentFriendRequestData();
     });
   };
 
@@ -78,136 +53,121 @@ const InterestSentPending = () => {
   return (
     <>
       <Head>
-        <title> Interests Sent Pending - JodiMilan</title>
-        <meta
-          name="description"
-          content="100% Mobile Verified Profiles. Safe and Secure. Register Free to Find Your Life Partner. Most Trusted Matrimony Service - Brand Trust Report. Register Now to Find Your Soulmate."
-        />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/images/favicon.jpg" />
+        <title>Interests Sent - JodiMilan</title>
       </Head>
+
+      {/* 🔔 Alert */}
       <Snackbar
         open={alert}
         autoHideDuration={3000}
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
         onClose={() => setAlert(false)}
       >
-        <Alert icon={<ThumbUpAltIcon />} severity={"success"}>
+        <Alert icon={<ThumbUpAltIcon />} severity="success">
           {alertMsg}
         </Alert>
       </Snackbar>
-      <div className="w-[100%] min-h-[400px]">
+
+      <div className="w-full min-h-[400px]">
         <div className="text-center my-5">
-          <div className="text-2xl font-medium text-[#0b4c85]">
-            Interests Send Pending
-          </div>
+          <h1 className="text-2xl font-semibold text-primary">
+            Interests Sent
+          </h1>
         </div>
 
-        <div className="px-4 md:px-2 lg:px-20">
+        <div className="px-3 sm:px-6 lg:px-16">
           {loading ? (
             <div className="flex justify-center py-20">
               <CircularLoader />
             </div>
-          ) : data?.data?.length > 0 ? (
-            data?.data?.map((item) => {
-              const { gender } = item.friends;
-              const {
-                height,
-                birth_city,
-                birth_state,
-                educations,
-                photo_privacy,
-                profile_img_src,
-                annual_income,
-                occupation,
-              } = item.friends.friendsprofile || {};
+          ) : data?.length > 0 ? (
+            data?.map((item) => {
+              const user = item.friend;
+              const profile = user?.profile || {};
+
               return (
-                <>
-                  <div
-                    className="lg:w-full lg:h-[150px] md:h-[150px] lg:flex md:flex items-center justify-between"
-                    key={item.id}
-                  >
-                    <div className="flex md:items-center lg:items-center items-start gap-5">
-                      <div className="w-[30%] lg:w-auto md:w-auto">
-                        {profile_img_src ? (
-                          <img
-                            src={profile_img_src}
-                            alt="asd"
-                            className="h-[120px] lg:h-[150px] md:h-[150px] w-[150px]"
-                            style={{
-                              filter: photo_privacy === "No" ? "blur(3px)" : "",
-                            }}
-                          />
-                        ) : (
-                          <Image
-                            src={gender === "Male" ? MenD : WomenD}
-                            height={150}
-                            width={150}
-                            alt="sf"
-                            className="h-[120px] lg:h-[150px] md:h-[150px] w-[150px]"
-                          />
-                        )}
-                      </div>
-                      <div className="w-[70%] lg:w-auto md:w-auto">
-                        <div className="text-gray-700 font-semibold text-lg">
-                          {item?.friends?.ryt_id || "RYT_ID"}
-                        </div>
-                        <div className="text-gray-600 font-medium mt-2">
-                          {item?.friends?.age && (
-                            <span>{item?.friends?.age},</span>
-                          )}
-                          {height && <span className="ml-1">{height},</span>}
-                          {birth_city?.name && (
-                            <span className="ml-1">{birth_city?.name},</span>
-                          )}
-                          {birth_state?.name && (
-                            <span className="ml-1">{birth_state?.name},</span>
-                          )}
-                        </div>
-                        <div className="text-gray-600 font-medium mt-2">
-                          {educations && <span>{educations},</span>}
-                          {annual_income && (
-                            <span className="ml-1">Rs. {annual_income},</span>
-                          )}
-                          {occupation && (
-                            <span className="ml-1">{occupation},</span>
-                          )}
-                          {item?.friends?.mat_status && (
-                            <span className="ml-1">
-                              {item?.friends?.mat_status}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                <div
+                  key={item.id}
+                  className="w-full border-b pb-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4"
+                >
+                  {/* LEFT - Profile Section */}
+                  <div className="flex items-start md:items-center gap-8 w-full md:w-auto  ">
+                    {/* Profile Picture Frame */}
+                    <div className="w-[90px] h-[110px] sm:w-[110px] sm:h-[130px] overflow-hidden rounded-md flex-shrink-0 ">
+                      {profile?.profile_image ? (
+                        <img
+                          src={profile.profile_image}
+                          alt="profile"
+                          className="w-full h-full object-cover"
+                          style={{
+                            filter:
+                              profile.photo_privacy === "No"
+                                ? "blur(3px)"
+                                : "none",
+                          }}
+                        />
+                      ) : (
+                        <Image
+                          src={user?.gender === "Male" ? MenD : WomenD}
+                          alt="default"
+                          width={110}
+                          height={130}
+                          className=" object-cover"
+                        />
+                      )}
                     </div>
-                    <div className="md:block lg:block flex items-center gap-4 justify-end">
-                      <div className="text-gray-600 font-medium">
-                        {item?.created_date}
-                      </div>
-                      <button
-                        className="mt-2 bg-slate-700 text-white text-sm font-semibold px-4 py-1 rounded"
-                        onClick={() =>
-                          handleNavigateToProfile(item?.friends?.encrypted_user_id)
-                        }
-                      >
-                        View Profile
-                      </button>
-                      <div className="mt-2">
-                        <button onClick={() => handleDeclineRequest(item.id)}>
-                          <Tooltip title="Decline" arrow>
-                            <ClearOutlinedIcon className="ml-1 text-[30px] text-[#9f2020]" />
-                          </Tooltip>
-                        </button>
-                      </div>
+
+                    {/* Profile Info */}
+                    <div className="flex flex-col gap-1 text-sm ">
+                      <p className="text-gray-700 font-bold text-base sm:text-lg truncate">
+                        {user?.name} ({user?.ryt_id || "NA"})
+                      </p>
+
+                      <p className="text-gray-600">
+                        {user?.age} yrs • {profile?.height || "N/A"}
+                      </p>
+
+                      <p className="text-gray-600 truncate">
+                        {profile?.birth_city || "City"} •{" "}
+                        {profile?.birth_state || "State"}
+                      </p>
+
+                      <p className="text-gray-600 truncate">
+                        {profile?.educations} •{" "}
+                        {profile?.annual_income && `₹${profile.annual_income}`}{" "}
+                        • {profile?.occupation || ""}
+                      </p>
+
+                      <p className="text-gray-600">
+                        {user?.mat_status || "Not Provided"}
+                      </p>
                     </div>
                   </div>
-                  <hr className="border-[1px solid] w-full my-3" />
-                </>
+
+                  {/* RIGHT — Action Buttons */}
+                  <div className="flex md:flex-col gap-3 w-50 md:w-auto justify-center md:justify-end items-center  ml-16">
+                    <button
+                      className="bg-primary text-white px-4 py-1.5 rounded text-sm font-medium w-[120px]"
+                      onClick={() => handleNavigateToProfile(user.ryt_id)}
+                    >
+                      View Profile
+                    </button>
+
+                    <Tooltip title="Cancel Interest" arrow>
+                      <button
+                        className="w-[40px] h-[40px] flex justify-center items-center border rounded-full hover:bg-red-100 transition"
+                        onClick={() => handleDeclineRequest(item.id)}
+                      >
+                        <ClearOutlinedIcon className="text-red-600" />
+                      </button>
+                    </Tooltip>
+                  </div>
+                </div>
               );
             })
           ) : (
-            <div className="mt-10 font-semibold lg:text-[30px] text-lg text-gray-500 text-center">
-              No Data found !
+            <div className="text-center mt-10 text-lg font-semibold text-gray-500">
+              No Pending Interests!
             </div>
           )}
         </div>

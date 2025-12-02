@@ -29,10 +29,10 @@ const Usercard = ({ item, index, className }) => {
     <React.Fragment>
       <div
         key={index}
-        className={`h-[470px] ${className} cursor-pointer rounded-md border-2`}
-        onClick={() => handleNavigateToProfile(item?.encrypted_user_id)}
+        className={`h-[500px]  ${className} cursor-pointer rounded-md border-2 sm:w-full w-80 mb-6 hover:shadow-lg `}
+        onClick={() => handleNavigateToProfile(item?.ryt_id)}
       >
-        <div className="flex justify-center">
+        <div className="flex justify-center ">
           {profile_img_src ? (
             <img
               src={profile_img_src}

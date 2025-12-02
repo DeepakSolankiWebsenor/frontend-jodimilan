@@ -1,32 +1,24 @@
 /* eslint-disable @next/next/no-img-element */
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import HeaderTwo from "./HeaderTwo";
 import { styled } from "@mui/material/styles";
 import ArrowForwardIosSharpIcon from "@mui/icons-material/ArrowForwardIosSharp";
 import MuiAccordion from "@mui/material/Accordion";
 import MuiAccordionSummary from "@mui/material/AccordionSummary";
 import MuiAccordionDetails from "@mui/material/AccordionDetails";
-import { useRouter } from "next/router";
-// import Avatar from "../public/images/Avatar.webp";
-import useApiService from "../services/ApiService";
 import Head from "next/head";
+import useApiService from "../services/ApiService";
 import { useSelector } from "react-redux";
 import CircularLoader from "../components/common-component/loader";
 import PaginationControlled from "../components/common-component/pagination";
 import Usercard from "../components/common-component/card/usercard";
-import CryptoJS from "crypto-js";
-import { decrypted_key } from "../services/appConfig";
 
 const Accordion = styled((props) => (
   <MuiAccordion disableGutters elevation={0} square {...props} />
 ))(({ theme }) => ({
   border: `1px solid ${theme.palette.divider}`,
-  "&:not(:last-child)": {
-    borderBottom: 0,
-  },
-  "&:before": {
-    display: "none",
-  },
+  "&:not(:last-child)": { borderBottom: 0 },
+  "&:before": { display: "none" },
 }));
 
 const AccordionSummary = styled((props) => (
@@ -43,9 +35,7 @@ const AccordionSummary = styled((props) => (
   "& .MuiAccordionSummary-expandIconWrapper.Mui-expanded": {
     transform: "rotate(90deg)",
   },
-  "& .MuiAccordionSummary-content": {
-    marginLeft: theme.spacing(1),
-  },
+  "& .MuiAccordionSummary-content": { marginLeft: theme.spacing(1) },
 }));
 
 const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
@@ -53,321 +43,208 @@ const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
   borderTop: "1px solid rgba(0, 0, 0, .125)",
 }));
 
-const browseprofile = () => {
+const Browseprofile = () => {
   const [expanded, setExpanded] = useState("");
-  const [data, setData] = useState([]);
-  const router = useRouter();
-  const [page, setPage] = React.useState(1);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  // const dataFetchedRef = useRef(false);
-  const { getUsers, BrowseProfileData } = useApiService();
-  const [user, setUser] = useState(false);
-  const [options, setOptions] = useState([]);
+
   const [filteredUsers, setFilteredUsers] = useState([]);
+  const [pagination, setPagination] = useState({});
+  const [options, setOptions] = useState([]);
+
+  const { getUsers, BrowseProfileData } = useApiService();
+  const filterMaster = useSelector((state) => state.user?.common_data);
+
   const [filterTags, setFilterTags] = useState({
     occupation: [],
     birth_city: [],
     caste: [],
   });
-  const masterData = useSelector((state) => state.user);
 
   useEffect(() => {
-    setOptions(masterData?.common_data);
-  }, [masterData]);
+    setOptions(filterMaster);
+  }, [filterMaster]);
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      setUser(true);
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const res = await getUsers(page);
+
+      if (res.data.code === 200) {
+        const items = res?.data?.data?.items || [];
+        const paginate = res?.data?.data?.pagination || {};
+
+        setFilteredUsers(items);
+        setPagination(paginate);
+      }
+    } catch (err) {
+      console.error(err);
     }
+    setLoading(false);
+  };
 
-    getUsers(page)
-      .then((res) => {
-        setLoading(false);
-        if (res.data.code === 200) {
-          var encrypted_json = JSON.parse(atob(res?.data?.user));
-          var dec = CryptoJS.AES.decrypt(
-            encrypted_json.value,
-            CryptoJS.enc.Base64.parse(decrypted_key),
-            {
-              iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-            }
-          );
-
-          var decryptedText = dec.toString(CryptoJS.enc.Utf8);
-          var jsonStartIndex = decryptedText.indexOf("{");
-          var jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
-          var jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
-          jsonData.trim();
-          const parsed = JSON.parse(jsonData);
-
-          setData(parsed);
-          setFilteredUsers(parsed?.data);
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-        setLoading(false);
-      });
+  useEffect(() => {
+    fetchUsers();
   }, [page]);
 
-  const handleChange = (panel) => (event, newExpanded) => {
+  const handleChange = (panel) => (_, newExpanded) => {
     setExpanded(newExpanded ? panel : false);
   };
 
-  const handleFilterEvent = () => {
-    setLoading(true);
-    let params = "";
-    let params2 = "";
-    let params3 = "";
-    const { occupation, birth_city, caste } = filterTags;
-    params = occupation.map((data, index) =>
-      `occupation[${index}]=${data}`.concat("&")
-    );
-    params2 = birth_city.map((data, index) =>
-      `city[${index}]=${data}`.concat("&")
-    );
-    params3 = caste.map((data, index) => `caste[${index}]=${data}`.concat("&"));
-    var paramData = `${params.toString().replace(",", "")}${params2
-      .toString()
-      .replace(",", "")}${params3.toString().replace(",", "")}`;
-    // paramData = paramData.replace(",", "")
-    BrowseProfileData(paramData).then((res) => {
-      var encrypted_json = JSON.parse(atob(res?.data?.users));
-      var dec = CryptoJS.AES.decrypt(
-        encrypted_json.value,
-        CryptoJS.enc.Base64.parse(decrypted_key),
-        {
-          iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-        }
-      );
-
-      var decryptedText = dec.toString(CryptoJS.enc.Utf8);
-      var jsonStartIndex = decryptedText.indexOf("{");
-      var jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
-      var jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
-      jsonData.trim();
-      const parsed = JSON.parse(jsonData);
-
-      setLoading(false);
-      setData(parsed?.users);
-      setFilteredUsers(parsed?.data);
-    });
-  };
   const handleFilterChange = (type, event) => {
     const filters = { ...filterTags };
-    const currVal = event.target.value;
-    if (filters[type].includes(currVal)) {
-      const tempVal = filters[type].filter((elem) => elem !== currVal);
-      filters[type] = [...tempVal];
-    } else {
-      filters[type] = [...filters[type], currVal];
-    }
+    const value = event.target.value;
 
-    setFilterTags({ ...filters });
-    // const result = data.user?.filter((user) => {
-    //   if (
-    //     filters.occupation.length > 0 &&
-    //     !filters.occupation.includes(user?.userprofile?.occupation)
-    //   ) {
-    //     return false;
-    //   }
-    //   if (filters.caste.length > 0 && !filters.caste.includes(user?.caste)) {
-    //     return false;
-    //   }
-    //   if (
-    //     filters.birth_city.length > 0 &&
-    //     !filters.birth_city.includes(user?.userprofile?.birth_city?.name)
-    //   ) {
-    //     return false;
-    //   }
-    //   return true;
-    // });
-    // setFilteredUsers(result);
+    filters[type] = filters[type].includes(value)
+      ? filters[type].filter((v) => v !== value)
+      : [...filters[type], value];
+
+    setFilterTags(filters);
+  };
+
+  const handleFilterEvent = async () => {
+    setLoading(true);
+    let query = "";
+    const { occupation, birth_city, caste } = filterTags;
+
+    occupation.forEach((v, i) => (query += `occupation[${i}]=${v}&`));
+    birth_city.forEach((v, i) => (query += `city[${i}]=${v}&`));
+    caste.forEach((v, i) => (query += `caste[${i}]=${v}&`));
+
+    try {
+      const res = await BrowseProfileData(query);
+      const items = res?.data?.data?.items || [];
+      const paginate = res?.data?.data?.pagination || {};
+
+      setFilteredUsers(items);
+      setPagination(paginate);
+      setPage(paginate?.current_page || 1);
+    } catch (err) {
+      console.error(err);
+    }
+    setLoading(false);
   };
 
   return (
     <>
       <Head>
         <title>Browse Profile - JodiMilan</title>
-        <meta
-          name="description"
-          content="100% Mobile Verified Profiles. Safe and Secure. Register Free to Find Your Life Partner. Most Trusted Matrimony Service - Brand Trust Report. Register Now to Find Your Soulmate."
-        />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/images/favicon.jpg" />
+        <meta name="description" content="Verified Rajput Matrimony Profiles" />
       </Head>
-      <div className="w-full h-auto">
-        <HeaderTwo />
 
-        <div className="mt-10 text-center">
-          <div className="text-4xl">Profiles</div>
-          <div className="text-4xl">
-            <span className="text-primary">JodiMilan</span>
-            <span className="text-primary"> Matrimonial </span>
-          </div>
-          <div className="text-md text-gray-500 mt-5 flex justify-center">
-            <div className="w-full md:px-24 px-4">
-              JodiMilan.com is dedicated to cherish, nurture and preserve the aesthetic beliefs of “Rajput Community” by providing match making assistance for Bannas and Baisas of the Rajput community exclusively
-            </div>
-          </div>
-        </div>
+      <HeaderTwo />
 
-        <div className="my-10  flex lg:flex-row md:flex-row flex-col lg:gap-6 md:px-10 px-4">
-          {/* side bar */}
-          <div className=" md:w-1/4">
-            <div className="h-10 bg-sky-400 text-sm font-medium flex px-10 items-center">
-              BROWSE PROFILES
-            </div>
-            <Accordion
-              expanded={expanded === "panel1"}
-              onChange={handleChange("panel1")}
-            >
-              <AccordionSummary
-                aria-controls="panel1d-content"
-                id="panel1d-header"
-                className="text-black font-medium"
-              >
-                <div className="text-sm">
-                  BY OCCUPATION{" "}
-                  {filterTags.occupation.length > 0 &&
-                    `[${filterTags.occupation.length}]`}
-                </div>
-              </AccordionSummary>
-              <AccordionDetails className="font-medium">
-                <div>
-                  {options?.options_type?.occupation?.map((item, index) => (
-                    <div
-                      className="mt-2 text-gray-700 flex items-center"
-                      key={index}
-                    >
-                      <input
-                        type="checkbox"
-                        className="cursor-pointer"
-                        value={item}
-                        onChange={(event) =>
-                          handleFilterChange("occupation", event)
-                        }
-                      />
-                      <span className="ml-1 font-medium">{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </AccordionDetails>
-            </Accordion>
-            <Accordion
-              expanded={expanded === "panel2"}
-              onChange={handleChange("panel2")}
-            >
-              <AccordionSummary
-                aria-controls="panel2d-content"
-                id="panel2d-header"
-                className="text-black font-medium"
-              >
-                <div className="text-sm">
-                  BY CITY{" "}
-                  {filterTags.birth_city.length > 0 &&
-                    `[${filterTags.birth_city.length}]`}
-                </div>
-              </AccordionSummary>
-              <AccordionDetails className="font-medium">
-                {options?.city?.map((item, index) => {
-                  return (
-                    <div
-                      className="mt-2 text-gray-700 flex items-center"
-                      key={index}
-                    >
-                      <input
-                        type="checkbox"
-                        className="cursor-pointer"
-                        value={item.id}
-                        onChange={(event) =>
-                          handleFilterChange("birth_city", event)
-                        }
-                      />
-                      <span className="ml-1 font-medium">{item.name}</span>
-                    </div>
-                  );
-                })}
-              </AccordionDetails>
-            </Accordion>
-            <Accordion
-              expanded={expanded === "panel3"}
-              onChange={handleChange("panel3")}
-            >
-              <AccordionSummary
-                aria-controls="panel3d-content"
-                id="panel3d-header"
-                className="text-black font-medium"
-              >
-                <div className="text-sm">
-                  BY CLAN{" "}
-                  {filterTags.caste.length > 0 &&
-                    `[${filterTags.caste.length}]`}
-                </div>
-              </AccordionSummary>
-              <AccordionDetails className="font-medium">
-                {options?.caste?.map((item, index) => (
-                  <div
-                    className="mt-2 text-gray-700 flex items-center"
-                    key={index}
-                  >
-                    <input
-                      type="checkbox"
-                      className="cursor-pointer"
-                      value={item.id}
-                      onChange={(event) => handleFilterChange("caste", event)}
-                    />
-                    <span className="ml-1 font-medium">{item.name}</span>
-                  </div>
-                ))}
-              </AccordionDetails>
-            </Accordion>
-            <button
-              onClick={() => {
-                handleFilterEvent();
-              }}
-              className="text-center bg-sky-400 h-10 w-full border rounded-b-lg"
-            >
-              Filter
-            </button>
-          </div>
-          <div className="md:w-3/4">
-            {!loading ? (
-              filteredUsers?.length > 0 ? (
-                <div className="w-full mt-6 lg:mt-0 md:mt-0">
-                  <div className="grid lg:grid-cols-3 sm:grid-cols-2 xs:grid-cols-1 gap-4 flex-wrap lg:justify-start justify-center">
-                    {filteredUsers?.map((item, index) => {
-                      return <Usercard item={item} index={index} />;
-                    })}
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-5 mb-5 text-center w-full">
-                  <div className="font-semibold text-[30px] text-gray-500">
-                    No Users Found
-                  </div>
-                </div>
-              )
-            ) : (
-              <div className="flex justify-center py-10">
-                <CircularLoader />
-              </div>
-            )}
-          </div>
-        </div>
-        {!loading && filteredUsers?.length > 0 && (
-          <div className="flex justify-center">
-            <PaginationControlled
-              setPage={setPage}
-              last_page={data?.last_page}
-              page={page}
-            />
-          </div>
-        )}
+      <div className="mt-10 text-center">
+        <h1 className="text-4xl font-bold">Profiles</h1>
+        <p className="text-gray-500 mt-2">
+          Search & explore verified rajput community profiles
+        </p>
       </div>
+
+      <div className="my-10 flex lg:flex-row flex-col px-4 md:px-10 gap-6">
+        {/* Sidebar Filter */}
+        <div className="md:w-1/4 shadow-md rounded-lg">
+          <div className="h-10 bg-sky-400 text-sm text-white font-medium flex px-4 items-center">
+            FILTER PROFILES
+          </div>
+
+          {/* Occupation */}
+          <Accordion expanded={expanded === "panel1"} onChange={handleChange("panel1")}>
+            <AccordionSummary>
+              BY Occupation {filterTags.occupation.length > 0 && `[${filterTags.occupation.length}]`}
+            </AccordionSummary>
+            <AccordionDetails>
+              {options?.options_type?.occupation?.map((item, idx) => (
+                <label key={idx} className="block mt-2 text-gray-700">
+                  <input
+                    type="checkbox"
+                    value={item}
+                    onChange={(e) => handleFilterChange("occupation", e)}
+                  />
+                  <span className="ml-2">{item}</span>
+                </label>
+              ))}
+            </AccordionDetails>
+          </Accordion>
+
+          {/* CITY */}
+          <Accordion expanded={expanded === "panel2"} onChange={handleChange("panel2")}>
+            <AccordionSummary>
+              BY City {filterTags.birth_city.length > 0 && `[${filterTags.birth_city.length}]`}
+            </AccordionSummary>
+            <AccordionDetails>
+              {options?.city?.map((item, idx) => (
+                <label key={idx} className="block mt-2 text-gray-700">
+                  <input
+                    type="checkbox"
+                    value={item.id}
+                    onChange={(e) => handleFilterChange("birth_city", e)}
+                  />
+                  <span className="ml-2">{item.name}</span>
+                </label>
+              ))}
+            </AccordionDetails>
+          </Accordion>
+
+          {/* CASTE */}
+          <Accordion expanded={expanded === "panel3"} onChange={handleChange("panel3")}>
+            <AccordionSummary>
+              BY Clan {filterTags.caste.length > 0 && `[${filterTags.caste.length}]`}
+            </AccordionSummary>
+            <AccordionDetails>
+              {options?.caste?.map((item, idx) => (
+                <label key={idx} className="block mt-2 text-gray-700">
+                  <input
+                    type="checkbox"
+                    value={item.id}
+                    onChange={(e) => handleFilterChange("caste", e)}
+                  />
+                  <span className="ml-2">{item.name}</span>
+                </label>
+              ))}
+            </AccordionDetails>
+          </Accordion>
+
+          <button
+            onClick={handleFilterEvent}
+            className="text-center bg-sky-500 h-10 w-full border rounded-b-lg text-white font-semibold"
+          >
+            Apply Filter
+          </button>
+        </div>
+
+        {/* Profile Cards */}
+        <div className="md:w-4/4">
+          {loading ? (
+            <div className="flex justify-center py-10">
+              <CircularLoader />
+            </div>
+          ) : filteredUsers?.length > 0 ? (
+            <div className="grid lg:grid-cols-3 sm:grid-cols-2 gap-4">
+              {filteredUsers.map((user, idx) => (
+                <Usercard key={idx} item={user} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-10 text-gray-600 text-xl">
+              No profiles found 🙁
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Pagination */}
+      {!loading && filteredUsers.length > 0 && (
+        <div className="flex justify-center mb-12">
+          <PaginationControlled
+            setPage={setPage}
+            page={pagination?.current_page || page}
+            last_page={pagination?.total_pages || 1}
+          />
+        </div>
+      )}
     </>
   );
 };
 
-export default browseprofile;
+export default Browseprofile;
