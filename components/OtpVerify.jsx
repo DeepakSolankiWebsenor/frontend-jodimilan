@@ -9,7 +9,7 @@ import { toast } from "react-toastify";
 import useApiService from "../services/ApiService";
 import { useRouter } from "next/router";
 
-const OtpVerify = ({ open, onClose, email }) => {
+const OtpVerify = ({ open, onClose, phone, dialingCode = "91" }) => { // Changed email to phone
   const { verifyOtp, resendOtp } = useApiService();
   const router = useRouter();
   const [otp, setOtp] = useState("");
@@ -24,7 +24,7 @@ const OtpVerify = ({ open, onClose, email }) => {
     }
 
     setLoading(true);
-    verifyOtp({ email, otp })
+    verifyOtp({ phone, otp, dialing_code: dialingCode }) // Use phone
       .then((res) => {
         if (res.data.code === 200) {
           localStorage.setItem("token", res.data.data.access_token);
@@ -39,7 +39,7 @@ const OtpVerify = ({ open, onClose, email }) => {
 
   const handleResendOtp = () => {
     setResendLoading(true);
-    resendOtp({ email })
+    resendOtp({ phone, dialing_code: dialingCode }) // Use phone
       .then(() => toast.success("OTP resent successfully!"))
       .catch(() => toast.error("Failed to resend OTP"))
       .finally(() => setResendLoading(false));

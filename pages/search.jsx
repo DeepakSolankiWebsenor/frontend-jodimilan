@@ -55,65 +55,91 @@ function Search() {
   const [userData, setUserData] = useState("");
   const masterData1 = useSelector((state) => state.user);
 
-const getMasterData = () => {
-  const raw = masterData1?.user?.user;
-  if (!raw) return;
+  // ensure CryptoJS is imported
+  // import CryptoJS from "crypto-js";
 
-  try {
-    let parsed;
+  const getMasterData = () => {
+    const raw = masterData1?.user?.user;
+    // prefer env var, fallback to decrypted_key variable if used elsewhere
+    const ENC_KEY = process.env.NEXT_PUBLIC_ENC_KEY || decrypted_key;
+    const ENC_IV = process.env.NEXT_PUBLIC_ENC_IV || decrypted_iv; // if you used decrypted_iv earlier
 
-    // 🟢 CASE 1 — Already JSON, No decrypt needed
-    if (raw.trim().startsWith("{") && raw.trim().endsWith("}")) {
-      parsed = JSON.parse(raw);
-    } else {
-      // 🟡 CASE 2 — Base64 encrypted JSON
-      let decoded;
-      try {
-        decoded = window.atob(raw);
-      } catch {
-        console.error("❌ Not base64. Skip decrypt.");
-        return;
-      }
-
-      const encryptedJson = JSON.parse(decoded);
-
-      if (!encryptedJson?.value || !encryptedJson?.iv) {
-        console.error("❌ Encrypted fields missing");
-        return;
-      }
-
-      const dec = CryptoJS.AES.decrypt(
-        encryptedJson.value,
-        CryptoJS.enc.Base64.parse(decrypted_key),
-        { iv: CryptoJS.enc.Base64.parse(encryptedJson.iv) }
-      );
-
-      const decryptedText = dec.toString(CryptoJS.enc.Utf8);
-      const start = decryptedText.indexOf("{");
-      const end = decryptedText.lastIndexOf("}") + 1;
-
-      if (start < 0 || end <= 0) {
-        console.error("❌ Could not find JSON in decrypted data");
-        return;
-      }
-
-      parsed = JSON.parse(decryptedText.substring(start, end));
+    console.log("🔑 raw master data:", raw);
+    if (!raw) {
+      console.error("❌ No raw data");
+      return;
+    }
+    if (!ENC_KEY || !ENC_IV) {
+      console.error("❌ Encryption key or IV missing");
+      return;
     }
 
-    setUserData(parsed);
+    try {
+      let parsed;
 
-    // Default opposite gender for matchmaking filter
-    setData((prev) => ({
-      ...prev,
-      gender: parsed?.user?.gender === "Male" ? "Female" : "Male",
-    }));
+      // CASE A — already JSON
+      if (
+        typeof raw === "string" &&
+        raw.trim().startsWith("{") &&
+        raw.trim().endsWith("}")
+      ) {
+        parsed = JSON.parse(raw);
+      } else {
+        // CASE B — raw is Base64 ciphertext (your example)
+        if (typeof raw !== "string") {
+          console.error("❌ raw is not a string:", raw);
+          return;
+        }
 
-    console.log("✔ Master user loaded:", parsed);
-  } catch (err) {
-    console.error("❌ getMasterData failed:", err);
-  }
-};
+        // Parse key/iv as HEX (you provided hex strings)
+        const key = CryptoJS.enc.Hex.parse(ENC_KEY);
+        const iv = CryptoJS.enc.Hex.parse(ENC_IV);
 
+        // Create CipherParams from Base64 ciphertext
+        const cipherParams = CryptoJS.lib.CipherParams.create({
+          ciphertext: CryptoJS.enc.Base64.parse(raw),
+        });
+
+        // Decrypt (AES-256-CBC, PKCS7)
+        const dec = CryptoJS.AES.decrypt(cipherParams, key, {
+          iv,
+          mode: CryptoJS.mode.CBC,
+          padding: CryptoJS.pad.Pkcs7,
+        });
+
+        const decryptedText = dec.toString(CryptoJS.enc.Utf8);
+
+        if (!decryptedText) {
+          console.error(
+            "❌ AES decryption returned empty string — check key/iv/ciphertext"
+          );
+          return;
+        }
+
+        // If your decrypted text may contain extra garbage, try to extract JSON
+        const start = decryptedText.indexOf("{");
+        const end = decryptedText.lastIndexOf("}") + 1;
+        const jsonStr =
+          start >= 0 && end > start
+            ? decryptedText.substring(start, end)
+            : decryptedText;
+
+        parsed = JSON.parse(jsonStr);
+      }
+
+      setUserData(parsed);
+
+      // Default opposite gender for matchmaking filter
+      setData((prev) => ({
+        ...prev,
+        gender: parsed?.user?.gender === "Male" ? "Female" : "Male",
+      }));
+
+      console.log("✔ Master user loaded:", parsed);
+    } catch (err) {
+      console.error("❌ getMasterData failed:", err);
+    }
+  };
 
   useEffect(() => {
     getMasterData();
@@ -568,7 +594,11 @@ const getMasterData = () => {
           )}
 
           {dataById && (
-            <Usercard item={dataById} index={1} className="w-[300px]  mx-auto " />
+            <Usercard
+              item={dataById}
+              index={1}
+              className="w-[300px]  mx-auto "
+            />
           )}
 
           <div className="grid justify-center md:grid-cols-3 lg:grid-cols-4 gap-2 lg:px-32 md:px-8">

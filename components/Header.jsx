@@ -39,72 +39,72 @@ function Header() {
   const [openSignup, setOpenSignup] = useState(false);
   const [notificationDrawer, setNotificationDrawer] = useState(false);
 
-const getMasterData = () => {
-  const raw = userData?.user?.user;
-  if (!raw) return;
+// const getMasterData = () => {
+//   const raw = userData?.user?.user;
+//   if (!raw) return;
 
-  try {
-    let parsed;
+//   try {
+//     let parsed;
 
-    // Case 1 → Already JSON (no Base64 decode needed)
-    if (raw.trim().startsWith("{") && raw.trim().endsWith("}")) {
-      parsed = JSON.parse(raw);
-      setDecryptedUserData(parsed);
-      console.log("✔ Parsed JSON (no decrypt needed):", parsed);
-      return;
-    }
+//     // Case 1 → Already JSON (no Base64 decode needed)
+//     if (raw.trim().startsWith("{") && raw.trim().endsWith("}")) {
+//       parsed = JSON.parse(raw);
+//       setDecryptedUserData(parsed);
+//       console.log("✔ Parsed JSON (no decrypt needed):", parsed);
+//       return;
+//     }
 
-    // Case 2 → Base64 encrypted JSON
-    let decoded;
-    try {
-      decoded = window.atob(raw);
-    } catch (err) {
-      console.error("❌ Invalid Base64, cannot decode", err);
-      return;
-    }
+//     // Case 2 → Base64 encrypted JSON
+//     let decoded;
+//     try {
+//       decoded = window.atob(raw);
+//     } catch (err) {
+//       console.error("❌ Invalid Base64, cannot decode", err);
+//       return;
+//     }
 
-    const encryptedJson = JSON.parse(decoded);
+//     const encryptedJson = JSON.parse(decoded);
 
-    if (!encryptedJson?.value || !encryptedJson?.iv) {
-      console.error("❌ Missing encryption fields, corrupted encrypted data");
-      return;
-    }
+//     if (!encryptedJson?.value || !encryptedJson?.iv) {
+//       console.error("❌ Missing encryption fields, corrupted encrypted data");
+//       return;
+//     }
 
-    const dec = CryptoJS.AES.decrypt(
-      encryptedJson.value,
-      CryptoJS.enc.Base64.parse(decrypted_key),
-      { iv: CryptoJS.enc.Base64.parse(encryptedJson.iv) }
-    );
+//     const dec = CryptoJS.AES.decrypt(
+//       encryptedJson.value,
+//       CryptoJS.enc.Base64.parse(decrypted_key),
+//       { iv: CryptoJS.enc.Base64.parse(encryptedJson.iv) }
+//     );
 
-    const decryptedText = dec.toString(CryptoJS.enc.Utf8);
+//     const decryptedText = dec.toString(CryptoJS.enc.Utf8);
 
-    if (!decryptedText) {
-      console.error("❌ AES DECRYPTION FAILED — Wrong key or corrupted data");
-      return;
-    }
+//     if (!decryptedText) {
+//       console.error("❌ AES DECRYPTION FAILED — Wrong key or corrupted data");
+//       return;
+//     }
 
-    // Extract clean JSON from decrypted string
-    const jsonStartIndex = decryptedText.indexOf("{");
-    const jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
+//     // Extract clean JSON from decrypted string
+//     const jsonStartIndex = decryptedText.indexOf("{");
+//     const jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
 
-    if (jsonStartIndex < 0 || jsonEndIndex <= 0) {
-      console.error("❌ Decrypted text does not contain proper JSON");
-      return;
-    }
+//     if (jsonStartIndex < 0 || jsonEndIndex <= 0) {
+//       console.error("❌ Decrypted text does not contain proper JSON");
+//       return;
+//     }
 
-    parsed = JSON.parse(decryptedText.substring(jsonStartIndex, jsonEndIndex));
+//     parsed = JSON.parse(decryptedText.substring(jsonStartIndex, jsonEndIndex));
 
-    setDecryptedUserData(parsed);
-    console.log("✔ Decrypted successfully:", parsed);
-  } catch (err) {
-    console.error("❌ Failed to decrypt user data:", err);
-  }
-};
+//     setDecryptedUserData(parsed);
+//     console.log("✔ Decrypted successfully:", parsed);
+//   } catch (err) {
+//     console.error("❌ Failed to decrypt user data:", err);
+//   }
+// };
 
 
-  useEffect(() => {
-    getMasterData();
-  }, [userData]);
+//   useEffect(() => {
+//     getMasterData();
+//   }, [userData]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");

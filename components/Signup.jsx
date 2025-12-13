@@ -34,7 +34,7 @@ const Signup = ({ open, onClose }) => {
   const [resendLoading, setResendLoading] = useState(false);
   const [signupError, setSignupError] = useState("");
   const [otpServerError, setOtpServerError] = useState("");
-  const [userEmail, setUserEmail] = useState("");
+  const [userPhone, setUserPhone] = useState(""); // Changed from email to phone
   const [options, setOptions] = useState(null);
 
   const masterData = useSelector((state) => state.user);
@@ -56,13 +56,15 @@ const Signup = ({ open, onClose }) => {
     setLoading(true);
     setSignupError("");
 
-    customerSignup({ ...data, dialing_code: "91" })
+    customerSignup({ ...data, password_confirmation: data.password, dialing_code: "91" })
       .then((res) => {
         if (res?.data?.code === 201) {
+        if (res?.data?.code === 201) {
           toast.success("OTP sent successfully!");
-          setUserEmail(data.email);
+          setUserPhone(data.phone); // Store phone
           setStep("otp");
           reset();
+        }
         }
       })
       .catch((err) => {
@@ -82,7 +84,7 @@ const Signup = ({ open, onClose }) => {
     setLoading(true);
     setOtpServerError("");
 
-    verifyOtp({ email: userEmail, otp })
+    verifyOtp({ phone: userPhone, otp, dialing_code: "91" }) // Use phone
       .then((res) => {
         if (res.data.code === 200) {
           toast.success("OTP verified successfully");
@@ -101,10 +103,10 @@ const Signup = ({ open, onClose }) => {
   };
 
   const handleResendOtp = () => {
-    if (!userEmail) return;
+    if (!userPhone) return;
 
     setResendLoading(true);
-     resendOtp({ email: userEmail })
+     resendOtp({ phone: userPhone, dialing_code: "91" }) // Use phone
        .then((res) => {
          if (res?.data?.code === 200) {
            toast.success("New OTP sent");

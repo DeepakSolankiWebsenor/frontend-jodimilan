@@ -27,18 +27,18 @@
     "base-64": "^1.0.0",
     "crypto-js": "^4.1.1",
     "eslint": "8.30.0",
-    "eslint-config-next": "13.1.0",
+    "eslint-config-next": "^15.5.7",
     "firebase": "^12.4.0",
     "html-react-parser": "^3.0.8",
     "laravel-echo": "^1.15.0",
     "localforage": "^1.10.0",
     "moment": "^2.29.4",
-    "next": "13.1.0",
+    "next": "^15.5.7",
     "pusher-js": "^8.0.1",
     "razorpay": "^2.9.6",
-    "react": "18.2.0",
+    "react": "^19.2.1",
     "react-countup": "^6.4.0",
-    "react-dom": "18.2.0",
+    "react-dom": "^19.2.1",
     "react-hook-form": "^7.41.3",
     "react-icons": "^4.7.1",
     "react-images-uploading": "^3.1.7",
@@ -51,13 +51,17 @@
     "react-topbar-progress-indicator": "^4.1.1",
     "redux-persist": "^6.0.0",
     "slick-carousel": "^1.8.1",
-    "socket.io-client": "^4.6.1",
+    "socket.io-client": "^4.8.1",
     "yup": "^1.2.0"
   },
   "devDependencies": {
+    "@types/node": "^24.10.2",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.13",
     "postcss": "^8.4.20",
-    "tailwindcss": "^3.2.4"
+    "tailwindcss": "^3.2.4",
+    "typescript": "^5.9.3"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

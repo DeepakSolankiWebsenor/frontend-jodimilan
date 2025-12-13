@@ -29,10 +29,11 @@ function Membership() {
       .catch((err) => console.log("getPackages error =>", err));
   };
 
-  // Fetch current plan
+  // Fetch current user's active plan
   const getCurrentPlanDetail = () => {
     getCurrentPlan()
       .then((res) => {
+        console.log("getCurrentPlan res =>", res);
         if (res.data.code === 200 && res.data.data) {
           const plan = res.data.data;
 
@@ -66,7 +67,7 @@ function Membership() {
     getPackagesData();
   }, []);
 
-  // Handle Pay
+  // Handle Payment
   const handlePay = () => {
     if (!isLoggedIn) return router.push("/Login");
     if (!planData) return setError("Please select a plan");
@@ -114,6 +115,9 @@ function Membership() {
       .catch(() => setLoading(false));
   };
 
+
+
+  console.log("currentPlanData =>", currentPlanData);
   return (
     <div>
       <Head>
@@ -149,20 +153,22 @@ function Membership() {
             </div>
           )}
 
-          {data.map((item, index) => {
-            const is_current_plan =
+          {data.map((item) => {
+            const isCurrentPlan =
               currentPlanData &&
               item.id === currentPlanData.package_id &&
               new Date(currentPlanData.expiry) > new Date();
 
+            const isSelected = planData?.id === item.id;
+
             return (
               <label
-                key={index}
-                className={`grid grid-cols-2 sm:grid-cols-4 border border-gray-600 rounded-md mb-4 transition ${
-                  is_current_plan
-                    ? "opacity-50"
-                    : "hover:shadow-md cursor-pointer"
-                }`}
+                key={item.id}
+                onClick={() => !isCurrentPlan && setPlanData(item)}
+                className={`grid grid-cols-2 sm:grid-cols-4 border border-gray-600 rounded-md mb-4 transition cursor-pointer
+                  ${isCurrentPlan ? "opacity-50" : "hover:shadow-md"}
+                  ${isSelected ? "ring-2 ring-primary" : ""}
+                `}
               >
                 {/* Title */}
                 <div className="bg-gray-600 col-span-2 sm:col-span-1 text-white text-center flex items-center justify-center rounded-l-md p-3">
@@ -187,14 +193,15 @@ function Membership() {
                   <p className="text-xs">Days</p>
                 </div>
 
-                {/* Price + Select */}
+                {/* Price + Radio */}
                 <div className="bg-gray-50 text-center flex items-center justify-between p-3 rounded-r-md gap-2">
                   <div>
                     <div className="font-semibold flex items-center justify-center gap-1">
                       <CurrencyRupeeIcon fontSize="small" />
                       {item.package_price}
                     </div>
-                    {is_current_plan && (
+
+                    {isCurrentPlan && (
                       <p className="text-xs text-green-600 mt-1 font-medium">
                         Current Plan
                       </p>
@@ -204,8 +211,11 @@ function Membership() {
                   <input
                     type="radio"
                     name="package"
-                    disabled={is_current_plan}
+                    value={item.id}
+                    checked={isSelected}
+                    disabled={isCurrentPlan}
                     onChange={() => setPlanData(item)}
+                    className="cursor-pointer"
                   />
                 </div>
               </label>

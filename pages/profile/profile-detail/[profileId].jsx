@@ -58,12 +58,12 @@ const decryptPayload = (cipherBase64) => {
     }
 
     return JSON.parse(decryptedText);
-
   } catch (err) {
     console.error("❌ Decrypt error:", err);
     return null;
   }
 };
+
 
 
 const ProfileDetail = () => {
@@ -98,34 +98,32 @@ const [alertSeverity, setAlertSeverity] = useState("success");
   const [userData, setUserData] = useState(null); // decrypted logged-in user
 
   // 🔓 Decrypt logged-in master user from redux (if needed)
-  const getMasterData = () => {
-    try {
-      const encryptedData = masterData1?.user?.user;
-      if (!encryptedData) return;
+const getMasterData = () => {
+  try {
+    const cipher = masterData1?.user?.user;
+    if (!cipher) return;
 
-      const encryptedJson = JSON.parse(atob(encryptedData));
+    const keyHex = CryptoJS.enc.Hex.parse(process.env.NEXT_PUBLIC_ENC_KEY);
+    const ivHex = CryptoJS.enc.Hex.parse(process.env.NEXT_PUBLIC_ENC_IV);
 
-      const decrypted = CryptoJS.AES.decrypt(
-        encryptedJson.value,
-        CryptoJS.enc.Base64.parse(decrypted_key),
-        {
-          iv: CryptoJS.enc.Base64.parse(encryptedJson.iv),
-        }
-      );
+    const decrypted = CryptoJS.AES.decrypt(
+      { ciphertext: CryptoJS.enc.Base64.parse(cipher) },
+      keyHex,
+      {
+        iv: ivHex,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7,
+      }
+    );
 
-      const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
+    const text = decrypted.toString(CryptoJS.enc.Utf8);
 
-      const jsonStart = decryptedText.indexOf("{");
-      const jsonEnd = decryptedText.lastIndexOf("}") + 1;
-      const cleanJson = decryptedText.substring(jsonStart, jsonEnd).trim();
-
-      const parsed = JSON.parse(cleanJson);
-      setUserData(parsed);
-      console.log("🔓 Decrypted master user:", parsed);
-    } catch (error) {
-      console.error("❌ Failed to decrypt master user data:", error);
-    }
-  };
+    const parsed = JSON.parse(text);
+    setUserData(parsed);
+  } catch (error) {
+    console.error("❌ Failed to decrypt master user:", error);
+  }
+};
 
 
 const normalizeProfile = (user) => {

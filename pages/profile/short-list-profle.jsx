@@ -10,8 +10,8 @@ import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
 import Head from "next/head";
 import CircularLoader from "../../components/common-component/loader";
 
-// const BASE_URL = "http://localhost:3006/api/";
-const BASE_URL = "hhttps://backend-jodimilan-2ekb.vercel.app/api/";
+const BASE_URL = "http://localhost:3006/api/";
+// const BASE_URL = "hhttps://backend-jodimilan-2ekb.vercel.app/api/";
 
 function ShortListProfile() {
   const router = useRouter();

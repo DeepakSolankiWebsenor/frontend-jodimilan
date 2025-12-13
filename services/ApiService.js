@@ -8,7 +8,7 @@ function useApiService() {
   }
 
   function customerSignup(params) {
-    return http.post("/user/customer/signup", params).then((res) => {
+    return http.post("/auth/signup", params).then((res) => { // Updated URL
       return res;
     });
   }
@@ -25,19 +25,25 @@ function useApiService() {
   }
 
   function customerLogin(params) {
-    return http.post("/user/customer/login", params).then((res) => {
+    return http.post("/auth/login", params).then((res) => { // Updated URL
       return res;
     });
   }
 
+  function loginWithOtp(params) {
+      return http.post("/auth/otp/login", params).then((res) => {
+          return res;
+      });
+  }
+
   function verifyOtp(params) {
-    return http.post("/user/customer/verify/email", params).then((res) => {
+    return http.post("/auth/verify-otp", params).then((res) => { // Updated to public endpoint
       return res;
     });
   }
 
   function resendOtp(params) {
-    return http.post("/user/customer/email/resend-otp", params).then((res) => {
+    return http.post("/auth/resend/otp", params).then((res) => { // Updated URL
       return res;
     });
   }
@@ -755,6 +761,7 @@ function verifyMobileOTP(params) {
     updatePartnerPreferences,
     resendOtp,
     verifyMobileOTP,
+    loginWithOtp, // Added export
   };
 }
 
