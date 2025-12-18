@@ -1,13 +1,11 @@
 // export const payment_url = "https://admin.jodimilan.com/ccavenue/";
-export const payment_url = "http://localhost:3006/api/";
+// export const payment_url = "http://localhost:3006/api/";
+export const payment_url = "https://s18ttfqk-3006.inc1.devtunnels.ms/api/";
 
 export const decrypted_key = "bsCL1j+niPjVN2MAm89+bTKYny2Ji0v9GMFRZPFWWYY=";
 
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== "undefined" && window.location.hostname === "localhost"
-    ? "http://localhost:3006/api"
-    : "https://admin.jodimilan.com/api");
+export const API_BASE_URL = "https://s18ttfqk-3006.inc1.devtunnels.ms/api/";
+// export const API_BASE_URL = "http://localhost:3006/api/";
 
 
 export const firebaseConfig = {
