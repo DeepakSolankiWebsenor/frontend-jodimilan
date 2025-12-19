@@ -688,9 +688,15 @@ function verifyMobileOTP(params) {
   }
 
   function updatePartnerPreferences(data) {
-    return http.post(`user/profile/update-partner-preferences`, data).then((response) => {
-      return response.data;
-    });
+    return http
+      .post(`user/profile/update-partner-preferences`, data, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      .then((response) => {
+        return response.data;
+      });
   }
 
   return {

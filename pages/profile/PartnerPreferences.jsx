@@ -81,18 +81,15 @@ const PartnerPreferences = ({ data, fetchProfile }) => {
   };
 
   const onSubmit = async (data) => {
-    const payload = new FormData();
-    for (const key in data) {
-      if (data[key]) {
-        payload.append(key, data[key]);
-      }
-    }
-    payload.append("enabled", 1);
+    const payload = {
+      ...data,
+      enabled: 1
+    };
 
     setLoading(true);
     try {
       const res = await updatePartnerPreferences(payload);
-      if (res?.data) {
+      if (res?.success || res?.status === 200 || res?.code === 200) {
         toggleEdit();
         fetchProfile();
       }
@@ -137,6 +134,8 @@ const PartnerPreferences = ({ data, fetchProfile }) => {
         </div>
 
         <div className="p-4 grid gap-3 leading-7">
+          {/* Debug print */}
+          {console.log("DEBUG: PartnerPreferences Render - data prop:", data)}
           {/* Marital Status */}
           <div>
             <div className="flex items-center">

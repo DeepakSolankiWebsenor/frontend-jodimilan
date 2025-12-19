@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import Image from "next/image";
+/* Last Update: 2025-12-19 12:25 PM */
 import React, { useCallback, useEffect, useState } from "react";
 import { AiFillEdit } from "react-icons/ai";
 import { FaEdit } from "react-icons/fa";
@@ -27,6 +28,100 @@ import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import ThikanaEnquiryForm from "../../components/ThikanaEnquiryForm";
 import PartnerPreferences from "./PartnerPreferences";
 
+/* AES Decrypt */
+const decryptPayload = (cipherBase64) => {
+  try {
+    if (!cipherBase64) return null;
+
+    const keyHex = CryptoJS.enc.Hex.parse(process.env.NEXT_PUBLIC_ENC_KEY);
+    const ivHex = CryptoJS.enc.Hex.parse(process.env.NEXT_PUBLIC_ENC_IV);
+
+    const decrypted = CryptoJS.AES.decrypt(
+      { ciphertext: CryptoJS.enc.Base64.parse(cipherBase64) },
+      keyHex,
+      {
+        iv: ivHex,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7,
+      }
+    );
+
+    const text = decrypted.toString(CryptoJS.enc.Utf8).trim();
+    if (!text || (!text.startsWith("{") && !text.startsWith("["))) return null;
+
+    return JSON.parse(text);
+  } catch (err) {
+    console.error("Decryption Error:", err);
+    return null;
+  }
+};
+
+const alignUserData = (data) => {
+  console.log("DEBUG: alignUserData input:", data);
+  if (!data) return null;
+  
+  // Clone data to avoid mutations
+  const raw = { ...data };
+  
+  // The API response might have a 'user' property that is the encrypted string itself.
+  if (typeof raw.user === 'string') {
+      delete raw.user;
+  }
+
+  const profile = raw.profile || {};
+
+  // Create a dedicated user object for display
+  const processedUser = {
+    ...raw,
+    ...profile, // Flatten profile fields (like thikana_state ID)
+    fullName: raw.name ? `${raw.name} ${raw.last_name || ""}`.trim() : "---",
+    
+    // Explicitly handle location relations for display
+    caste: raw.casteRelation || raw.caste,
+    religion: raw.religionRelation || raw.religion,
+    state: raw.stateRelation || raw.state,
+    country: raw.countryRelation || raw.country,
+
+    // Flatten location names if relations exist
+    thikana_state_name: profile.thikanaState?.name || profile.thikana_state,
+    thikana_city_name: profile.thikanaCity?.name || profile.thikana_city,
+    thikana_area_name: profile.thikanaArea?.name || profile.thikana_area,
+    thikhana_name: profile.thikhanaRelation?.name || profile.thikhana_id,
+    
+    birth_country_name: profile.birthCountry?.name || profile.birth_country,
+    birth_state_name: profile.birthState?.name || profile.birth_state,
+    birth_city_name: profile.birthCity?.name || profile.birth_city,
+
+    ed_country_name: profile.edCountry?.name || profile.ed_country,
+    ed_state_name: profile.edState?.name || profile.ed_state,
+    ed_city_name: profile.edCity?.name || profile.ed_city,
+  };
+
+  // Ensure partner_preferences is an object
+  if (processedUser.partner_preferences && typeof processedUser.partner_preferences === "string") {
+    try {
+      processedUser.partner_preferences = JSON.parse(processedUser.partner_preferences);
+    } catch (e) {
+      console.warn("Failed to parse partner_preferences JSON string", e);
+    }
+  }
+
+  const aligned = {
+    ...raw,
+    ...profile,
+    profile_img_src: raw.profile_photo || profile.profile_image || null,
+    displayUser: processedUser,
+  };
+
+  console.log("ALIGNED DATA CHECK:", {
+      fullName: aligned.displayUser?.fullName,
+      thikana_state: aligned.displayUser?.thikana_state_name,
+      thikhana: aligned.displayUser?.thikhana_name
+  });
+
+  return aligned;
+};
+
 function EditProfile() {
   const [thikanaEdit, setThikanaEdit] = useState(true);
   const [socialEdit, setSocialEdit] = useState(true);
@@ -37,7 +132,8 @@ function EditProfile() {
   const [aboutEdit, setAboutEdit] = useState(true);
   const [preferenceEdit, setPreferenceEdit] = useState(true);
   const { register, handleSubmit, setValue } = useForm();
-  const [userData, setUserData] = useState("");
+  const [userData, setUserData] = useState(null);
+  console.log("DEBUG: EditProfile initialized. Initial userData:", userData);
   const [isImageUpload, setIsImageUpload] = useState(false);
   const [profileImage, setProfileImage] = useState();
   const [options, setOptions] = useState([]);
@@ -79,26 +175,133 @@ function EditProfile() {
   const getUserPorofileData = () => {
     getUserProfile("/user/profile")
       .then((res) => {
-        if (res.data.status === 200) {
-          console.log(res, "profile");
-          var encrypted_json = JSON.parse(atob(res?.data?.user));
-          var dec = CryptoJS.AES.decrypt(
-            encrypted_json.value,
-            CryptoJS.enc.Base64.parse(decrypted_key),
-            {
-              iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-            }
-          ).toString(CryptoJS.enc.Utf8);
-          const parsed = JSON.parse(dec.slice(8, -2));
-          setUserData(parsed);
+        const code = res?.data?.code ?? res?.data?.status;
+        const success = res?.data?.success === true || res?.data?.status === 200 || code === 200;
 
-          setPhotoPrivacy(parsed?.photo_privacy);
-          setContactPrivacy(parsed?.contact_privacy);
-          dispatch(setUser({ user: res?.data?.user }));
+        if (success) {
+          const encryptedUser = res?.data?.data?.user || res?.data?.user || null;
+          console.log("DEBUG: Encrypted string from API:", encryptedUser ? encryptedUser.substring(0, 50) + "..." : "null");
+          
+          let decrypted = null;
+          if (typeof encryptedUser === 'string') {
+              decrypted = decryptPayload(encryptedUser);
+          } else if (encryptedUser && typeof encryptedUser === 'object') {
+              decrypted = encryptedUser;
+          }
+          
+          console.log("DEBUG: Decrypted payload object:", decrypted);
+          
+          if (decrypted) {
+            console.log("DEBUG: Decrypted partner_preferences:", decrypted.partner_preferences);
+            const parsed = alignUserData(decrypted);
+            console.log("DEBUG: Aligned partner_preferences:", parsed?.displayUser?.partner_preferences);
+            setUserData(parsed);
+            setPhotoPrivacy(parsed?.photo_privacy);
+            setContactPrivacy(parsed?.contact_privacy);
+
+            // Fetch state options for the dropdown if country exists
+            const dispUser = parsed.displayUser || parsed;
+
+            // Autofill form fields
+            const fieldMappings = [
+              "gothra", "moon_sign", "manglik", "birth_time", 
+              "educations", "education_details", "annual_income", 
+              "occupation", "occupation_details", "employeed_in",
+              "height", "diet", "smoke", "drink",
+              "no_of_brothers", "no_of_sisters", 
+              "father_contact_no", "father_occupation",
+              "mother_contact_no", "mother_occupation",
+              "about_yourself"
+            ];
+
+            fieldMappings.forEach(field => {
+              if (parsed[field] !== undefined && parsed[field] !== null) {
+                setValue(field, parsed[field]);
+              } else if (dispUser[field] !== undefined && dispUser[field] !== null) {
+                setValue(field, dispUser[field]);
+              }
+            });
+
+            // Handle location fields (objects with IDs)
+            const bCountry = parsed.birth_country || dispUser.countryRelation || dispUser.country;
+            if (bCountry) {
+              const countryId = typeof bCountry === 'object' ? bCountry.id : bCountry;
+              setValue("birth_country", countryId);
+              setBirthCountry(typeof bCountry === 'object' ? bCountry : { id: bCountry });
+              getStates(countryId).then((res) => {
+                if (res.code === 200) setStateOptions(res.data);
+              });
+            }
+
+            const bState = parsed.birth_state || dispUser.stateRelation || dispUser.state;
+            if (bState) {
+              const stateId = typeof bState === 'object' ? bState.id : bState;
+              setValue("birth_state", stateId);
+              setBirthState(typeof bState === 'object' ? bState : { id: bState });
+              getCities(stateId).then((res) => {
+                if (res.code === 200) setCitiesOptions(res.data);
+              });
+            }
+
+            const bCity = parsed.birth_city || dispUser.cityRelation || dispUser.city;
+            if (bCity) {
+              const cityId = typeof bCity === 'object' ? bCity.id : bCity;
+              setValue("birth_city", cityId);
+              setBirthCity(typeof bCity === 'object' ? bCity : { id: bCity });
+            }
+
+            const tState = parsed.thikana_state || dispUser.stateRelation || dispUser.state;
+            if (tState) {
+              const stateId = typeof tState === 'object' ? tState.id : tState;
+              setValue("thikana_state", stateId);
+              setThikanaState(typeof tState === 'object' ? tState : { id: tState });
+              getCities(stateId).then((res) => {
+                if (res.code === 200) setCitiesOptions(res.data);
+              });
+            }
+
+            const tCity = parsed.thikana_city || dispUser.cityRelation || dispUser.city;
+            if (tCity) {
+              const cityId = typeof tCity === 'object' ? tCity.id : tCity;
+              setValue("thikana_city", cityId);
+              setThikanaCity(typeof tCity === 'object' ? tCity : { id: tCity });
+              getAreas(cityId).then((res) => {
+                if (res.code === 200) setAreaOptions(res.data);
+              });
+            }
+
+            const tArea = parsed.thikana_area || dispUser.areaRelation || dispUser.area;
+            if (tArea) {
+              const areaId = typeof tArea === 'object' ? tArea.id : tArea;
+              setValue("thikana_area", areaId);
+              setThikanaArea(typeof tArea === 'object' ? tArea : { id: tArea });
+              getThikanas(areaId).then((res) => {
+                if (res.code === 200) setThikanaOptions(res.data);
+              });
+            }
+
+            const tThikhana = parsed.thikhana_id || dispUser.thikhana_id || (parsed.profile ? parsed.profile.thikhana_id : null);
+            if (tThikhana) {
+              const thikhanaId = typeof tThikhana === 'object' ? tThikhana.id : tThikhana;
+              setValue("thikhana_id", thikhanaId);
+              setThikana(typeof tThikhana === 'object' ? tThikhana : { id: thikhanaId });
+            }
+
+            if (parsed.mother_caste) {
+              setValue("mother_caste", typeof parsed.mother_caste === 'object' ? parsed.mother_caste.id : parsed.mother_caste);
+            }
+
+            // Simple fields that might be nested or at top level
+            if (dispUser.name) setValue("name", dispUser.name);
+            if (dispUser.email) setValue("email", dispUser.email);
+            if (dispUser.phone) setValue("phone", dispUser.phone);
+
+            dispatch(setUser({ user: encryptedUser }));
+          }
         }
       })
       .catch((error) => {
-        console.log(error);
+        console.error("Fetch Profile Error:", error);
       });
   };
 
@@ -133,24 +336,13 @@ function EditProfile() {
     profileUpdate(formData)
       .then((res) => {
         if (res.status === 200) {
-          var encrypted_json = JSON.parse(atob(res?.data?.user_profile));
-          var dec = CryptoJS.AES.decrypt(
-            encrypted_json.value,
-            CryptoJS.enc.Base64.parse(decrypted_key),
-            {
-              iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-            }
-          );
+          const encryptedUser = res?.data?.user_profile;
+          const decrypted = decryptPayload(encryptedUser);
 
-          var decryptedText = dec.toString(CryptoJS.enc.Utf8);
-          var jsonStartIndex = decryptedText.indexOf("{");
-          var jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
-          var jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
-          jsonData.trim();
-          const parsed = JSON.parse(jsonData);
-
-          setUserData(parsed);
-          dispatch(setUser({ user: res?.data?.user_profile }));
+          if (decrypted) {
+            setUserData(alignUserData(decrypted));
+            dispatch(setUser({ user: encryptedUser }));
+          }
           setLoading(true);
           setTimeout(() => {
             setLoading(false);
@@ -167,24 +359,13 @@ function EditProfile() {
   const handleProfileremove = () => {
     profileImageRemove().then((res) => {
       if (res.data.status === 200) {
-        var encrypted_json = JSON.parse(atob(res?.data?.user));
-        var dec = CryptoJS.AES.decrypt(
-          encrypted_json.value,
-          CryptoJS.enc.Base64.parse(decrypted_key),
-          {
-            iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-          }
-        );
+        const encryptedUser = res?.data?.user;
+        const decrypted = decryptPayload(encryptedUser);
 
-        var decryptedText = dec.toString(CryptoJS.enc.Utf8);
-        var jsonStartIndex = decryptedText.indexOf("{");
-        var jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
-        var jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
-        jsonData.trim();
-        const parsed = JSON.parse(jsonData);
-
-        setUserData(parsed);
-        dispatch(setUser({ user: res?.data?.user }));
+        if (decrypted) {
+          setUserData(alignUserData(decrypted));
+          dispatch(setUser({ user: encryptedUser }));
+        }
         setAlert(true);
         setProfileremove(true);
       }
@@ -192,42 +373,37 @@ function EditProfile() {
   };
 
   const handleEdit = (data) => {
+    console.log("DEBUG: handleEdit Raw Data:", data);
     const params = {};
 
     for (const key in data) {
-      if (data[key]) {
+      if (data[key] !== undefined && data[key] !== null && data[key] !== "") {
         params[key] = data[key];
       }
     }
+    
+    console.log("DEBUG: handleEdit Params to Send:", params);
 
     profileUpdate(params)
       .then((res) => {
-        if (res.status === 200) {
-          var encrypted_json = JSON.parse(atob(res?.data?.user_profile));
-          var dec = CryptoJS.AES.decrypt(
-            encrypted_json.value,
-            CryptoJS.enc.Base64.parse(decrypted_key),
-            {
-              iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-            }
-          );
+        if (res.status === 200 || res.data?.success) {
+          const encryptedUser = res?.data?.data?.user || res?.data?.user || res?.data?.user_profile;
+          const decrypted = decryptPayload(encryptedUser);
 
-          var decryptedText = dec.toString(CryptoJS.enc.Utf8);
-          var jsonStartIndex = decryptedText.indexOf("{");
-          var jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
-          var jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
-          jsonData.trim();
-          const parsed = JSON.parse(jsonData);
-
-          setUserData(parsed);
-          setSocialEdit(true);
-          setEducationEdit(true);
-          setPhysicalEdit(true);
-          setFamilyDetailEdit(true);
-          setThikanaEdit(true);
-          setAboutEdit(true);
-          setPreferenceEdit(true);
-          setAlert(true);
+          if (decrypted) {
+            setUserData(alignUserData(decrypted));
+            setSocialEdit(true);
+            setEducationEdit(true);
+            setPhysicalEdit(true);
+            setFamilyDetailEdit(true);
+            setThikanaEdit(true);
+            setAboutEdit(true);
+            setPreferenceEdit(true);
+            setAlert(true);
+            
+            // Re-fetch to ensure all relational data (like caste names) is fresh
+            getUserPorofileData();
+          }
         }
       })
       .catch((error) => console.log(error));
@@ -367,46 +543,48 @@ function EditProfile() {
   };
 
   const handleUpdatePrivacySettings = (key, value) => {
-    let params;
-
-    if (key == "photo") {
-      params = {
-        photo_privacy: value,
-      };
+    // Optimistic Update: Change the radio selection immediately
+    if (key === "photo") {
+      setPhotoPrivacy(value);
     } else {
-      params = {
-        contact_privacy: value,
-      };
+      setContactPrivacy(value);
     }
+
+    const params = key === "photo" ? { photo_privacy: value } : { contact_privacy: value };
 
     profileUpdate(params)
       .then((res) => {
-        if (res.data?.status === 200) {
-          var encrypted_json = JSON.parse(atob(res?.data?.user_profile));
-          var dec = CryptoJS.AES.decrypt(
-            encrypted_json.value,
-            CryptoJS.enc.Base64.parse(decrypted_key),
-            {
-              iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-            }
-          );
+        const code = res?.data?.code ?? res?.data?.status;
+        const success = res?.data?.success === true || res?.data?.status === 200 || code === 200;
 
-          var decryptedText = dec.toString(CryptoJS.enc.Utf8);
-          var jsonStartIndex = decryptedText.indexOf("{");
-          var jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
-          var jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
-          jsonData.trim();
-          const parsed = JSON.parse(jsonData);
-          setUserData(parsed);
-          setAlert(true);
-          if (key == "photo") {
-            setPhotoPrivacy(value);
-          } else {
-            setContactPrivacy(value);
+        if (success) {
+          const encryptedUser = res?.data?.data?.user || res?.data?.user_profile || res?.data?.user;
+          let decrypted = null;
+          if (typeof encryptedUser === 'string') {
+              decrypted = decryptPayload(encryptedUser);
+          } else if (encryptedUser && typeof encryptedUser === 'object') {
+              decrypted = encryptedUser;
+          }
+
+          if (decrypted) {
+            const parsed = alignUserData(decrypted);
+            setUserData(parsed);
+            setAlert(true);
+            
+            // Sync with final server value just in case
+            if (key === "photo") {
+              setPhotoPrivacy(parsed?.photo_privacy);
+            } else {
+              setContactPrivacy(parsed?.contact_privacy);
+            }
           }
         }
       })
-      .catch((error) => console.log(error));
+      .catch((error) => {
+        console.log("Privacy Update Error:", error);
+        // Optional: Re-fetch current data to reset the radio button on error
+        getUserPorofileData();
+      });
   };
 
   const handleAlbumImageChange = (imageList) => {
@@ -422,30 +600,19 @@ function EditProfile() {
     albumUpload(formData)
       .then((res) => {
         if (res.data.status === 200) {
-          var encrypted_json = JSON.parse(atob(res?.data?.user));
-          var dec = CryptoJS.AES.decrypt(
-            encrypted_json.value,
-            CryptoJS.enc.Base64.parse(decrypted_key),
-            {
-              iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-            }
-          );
+          const encryptedUser = res?.data?.user;
+          const decrypted = decryptPayload(encryptedUser);
 
-          var decryptedText = dec.toString(CryptoJS.enc.Utf8);
-          var jsonStartIndex = decryptedText.indexOf("{");
-          var jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
-          var jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
-          jsonData.trim();
-          const parsed = JSON.parse(jsonData);
-
-          setUserData(parsed);
-          setLoading(true);
-          setAlert(true);
-          setTimeout(() => {
-            setImages([]);
-            setLoading(false);
-            getUserPorofileData();
-          }, 2000);
+          if (decrypted) {
+            setUserData(alignUserData(decrypted));
+            setLoading(true);
+            setAlert(true);
+            setTimeout(() => {
+              setImages([]);
+              setLoading(false);
+              getUserPorofileData();
+            }, 2000);
+          }
         }
       })
       .catch((error) => {
@@ -457,23 +624,11 @@ function EditProfile() {
     deleteAlbumImage(id)
       .then((res) => {
         if (res.data.status === 200) {
-          var encrypted_json = JSON.parse(atob(res?.data?.user));
-          var dec = CryptoJS.AES.decrypt(
-            encrypted_json.value,
-            CryptoJS.enc.Base64.parse(decrypted_key),
-            {
-              iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-            }
-          );
-
-          var decryptedText = dec.toString(CryptoJS.enc.Utf8);
-          var jsonStartIndex = decryptedText.indexOf("{");
-          var jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
-          var jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
-          jsonData.trim();
-          const parsed = JSON.parse(jsonData);
-
-          setUserData(parsed);
+          const encryptedUser = res?.data?.user;
+          const decrypted = decryptPayload(encryptedUser);
+          if (decrypted) {
+            setUserData(alignUserData(decrypted));
+          }
         }
       })
       .catch((error) => {
@@ -517,17 +672,25 @@ function EditProfile() {
     occupation,
     profile_img_src,
     smoke,
-    user,
+    displayUser,
     mother_caste,
     thikana_area,
     thikana_city,
     thikana_state,
     thikhana,
     about_yourself,
-    partner_prefernces,
+    partner_preferences,
     occupation_details,
     education_details,
   } = userData || {};
+
+  console.log("RENDER DEBUG: Current state status:", {
+      userDataExists: !!userData,
+      displayUserExists: !!displayUser,
+      userName: displayUser?.name,
+      userDob: displayUser?.dob,
+      userPhone: displayUser?.phone
+  });
 
   const imageData = userData?.album_images?.map((item) => {
     return item.album_img_src;
@@ -556,7 +719,7 @@ function EditProfile() {
   return (
     <>
       <Head>
-        <title>Edit Profile - {user?.name}</title>
+        <title>Edit Profile - {displayUser?.name || "User"}</title>
         <meta
           name="description"
           content="100% Mobile Verified Profiles. Safe and Secure. Register Free to Find Your Life Partner. Most Trusted Matrimony Service - Brand Trust Report. Register Now to Find Your Soulmate."
@@ -650,7 +813,7 @@ function EditProfile() {
                       ) : (
                         <Image
                           src={
-                            userData?.user?.gender === "Male" ? MenD : WomenD
+                            displayUser?.gender === "Male" ? MenD : WomenD
                           }
                           height={100}
                           width={100}
@@ -709,44 +872,44 @@ function EditProfile() {
                 <div className="flex">
                   <div className="md:w-1/3 w-1/2">Full Name :</div>
                   <div className="md:w-2/3 w-1/2">
-                    {user?.name ?? "--"}
+                    {displayUser?.fullName ?? "---"}
                   </div>
                 </div>
                 <div className="flex">
                   <div className="md:w-1/3 w-1/2">Clan :</div>
                   <div className="md:w-2/3 w-1/2">
-                    {user?.caste?.name ?? "--"}
+                    {displayUser?.caste?.name || displayUser?.caste || "---"}
                   </div>
                 </div>
                 <div className="flex">
                   <div className="md:w-1/3 w-1/2">Date Of Birth :</div>
                   <div className="md:w-2/3 w-1/2">
-                    {user?.dob ?? "--"}
+                    {displayUser?.dob ?? "---"}
                   </div>
                 </div>
                 <div className="flex">
                   <div className="md:w-1/3 w-1/2">Marital Status :</div>
                   <div className="md:w-2/3 w-1/2">
-                    {user?.mat_status ?? "--"}
+                    {displayUser?.mat_status ?? "---"}
                   </div>
                 </div>
                 <div className="flex">
                   <div className="md:w-1/3 w-1/2">Mobile No :</div>
                   <div className="md:w-2/3 w-1/2">
-                    {userData?.user?.phone ?? "--"}
+                    {displayUser?.phone ?? "---"}
                   </div>
                 </div>
                 <div className="flex">
                   <div className="md:w-1/3 w-1/2">Email Address :</div>
                   <div className="md:w-2/3 w-1/2">
-                    {userData?.user?.email ?? "--"}
+                    {displayUser?.email ?? "---"}
                   </div>
                 </div>
               </div>
             </div>
 
-            {userData?.user?.pacakge_id !== null &&
-              userData?.user?.pacakge_id !== "" && (
+            {displayUser?.pacakge_id !== null &&
+              displayUser?.pacakge_id !== "" && (
                 <div className="bg-white drop-shadow-lg md:w-4/5 w-full  text-[15px] font-medium my-4">
                   <div className="p-2 bg-primary flex justify-between items-center">
                     <div className="text-white font-semibold">
@@ -754,7 +917,7 @@ function EditProfile() {
                     </div>
                   </div>
                   <div className="flex p-4">
-                    {userData?.user?.plan_expire ? (
+                    {displayUser?.plan_expire ? (
                       <div className="my-2 text-sm text-red-600 font-semibold">
                         Your plan has been expired.
                       </div>
@@ -771,21 +934,21 @@ function EditProfile() {
                           </div>
                         </div>
                         <div>
-                          <div>{userData?.user?.package?.package_title}</div>
+                          <div>{displayUser?.package?.package_title}</div>
                           <div className="my-2">
-                            {userData?.user?.package?.package_duration} Days
+                            {displayUser?.package?.package_duration} Days
                           </div>
                           <div>
-                            {moment(userData?.user?.pacakge_expiry).format(
+                            {moment(displayUser?.pacakge_expiry).format(
                               "DD-MMMM-YYYY"
                             )}
                           </div>
                           <div className="my-2">
-                            {userData?.user?.package?.total_profile_view}
+                            {displayUser?.package?.total_profile_view}
                           </div>
-                          <div>{userData?.user?.total_profile_view_count}</div>
+                          <div>{displayUser?.total_profile_view_count}</div>
                           <div className="my-2">
-                            {userData?.user?.profile_visit}
+                            {displayUser?.profile_visit}
                           </div>
                         </div>
                       </>
@@ -854,16 +1017,16 @@ function EditProfile() {
                         {manglik ?? "--"}{" "}
                       </div>
                       <div className="">
-                        {birth_country?.name ?? "--"}
+                        {displayUser?.birth_country_name || "--"}
                       </div>
                       <div className="my-2">
-                        {userData?.birth_state?.name ?? "--"}
+                        {displayUser?.birth_state_name || "--"}
                       </div>
                       <div className="">
-                        {birth_city?.name ?? "--"}
+                        {displayUser?.birth_city_name || "--"}
                       </div>
                       <div className="my-2">
-                        {birth_time ?? "--"}
+                        {displayUser?.birth_time ?? "--"}
                       </div>
                     </div>
                   ) : (
@@ -1035,17 +1198,21 @@ function EditProfile() {
                     <div className="my-2">State :</div>
                     <div className="">City :</div>
                     <div className="my-2">Block :</div>
+                    <div className="">Thikana :</div>
                   </div>
                   {thikanaEdit ? (
                     <div className="md:w-2/3 w-1/2">
                       <div className="my-2">
-                        {thikana_state?.name || "--"}
+                        {displayUser?.thikana_state_name || "--"}
                       </div>
                       <div className="">
-                        {thikana_city?.name || "--"}
+                        {displayUser?.thikana_city_name || "--"}
                       </div>
                       <div className="my-2">
-                        {thikana_area?.name || "--"}
+                        {displayUser?.thikana_area_name || "--"}
+                      </div>
+                      <div className="">
+                        {displayUser?.thikhana_name || "--"}
                       </div>
                     </div>
                   ) : (
@@ -1121,6 +1288,31 @@ function EditProfile() {
                           )}
                         </select>
                       </div>
+
+                      <div className="my-2">
+                        <select
+                          name="thikhana_id"
+                          className="md:w-52 w-full border border-gray-300 rounded px-2 text-sm font-medium"
+                          {...register("thikhana_id")}
+                        >
+                          <option value={displayUser?.thikhana_id ?? ""} hidden>
+                            {displayUser?.thikhana_name || "Select Thikana"}
+                          </option>
+                          {thikanaOptions?.length > 0 ? (
+                            thikanaOptions?.map((item, index) => {
+                              return (
+                                <option value={item?.id} key={index}>
+                                  {item?.name}
+                                </option>
+                              );
+                            })
+                          ) : (
+                            <option value="" disabled>
+                              No Thikana Found
+                            </option>
+                          )}
+                        </select>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1181,44 +1373,44 @@ function EditProfile() {
                   {educationEdit ? (
                     <div className="md:w-2/3 w-1/2">
                       <div className="my-2">
-                        {educations ?? "--"}{" "}
+                        {displayUser?.educations ?? "--"}{" "}
                       </div>
                       <div className="my-2 block md:hidden">
-                        {education_details?.length > 17
-                          ? education_details.substring(0, 18)
-                          : education_details ?? "--"}{" "}
+                        {displayUser?.education_details?.length > 17
+                          ? displayUser?.education_details.substring(0, 18)
+                          : displayUser?.education_details ?? "--"}{" "}
                       </div>
                       <div className="my-2 md:block hidden">
-                        {education_details ?? "--"}{" "}
+                        {displayUser?.education_details ?? "--"}{" "}
                       </div>
                       <div className="block md:hidden">
                         {" "}
-                        {annual_income?.length > 17
-                          ? annual_income.substring(0, 18)
-                          : annual_income ?? "--"}{" "}
+                        {displayUser?.annual_income?.length > 17
+                          ? displayUser?.annual_income.substring(0, 18)
+                          : displayUser?.annual_income ?? "--"}{" "}
                       </div>
                       <div className="md:block hidden">
                         {" "}
-                        {annual_income ?? "--"}{" "}
+                        {displayUser?.annual_income ?? "--"}{" "}
                       </div>
                       <div className="my-2">
-                        {occupation ?? "--"}{" "}
+                        {displayUser?.occupation ?? "--"}{" "}
                       </div>
                       <div className="my-2 block md:hidden">
-                        {occupation_details?.length > 17
-                          ? occupation_details.substring(0, 18)
-                          : occupation_details ?? "--"}{" "}
+                        {displayUser?.occupation_details?.length > 17
+                          ? displayUser?.occupation_details.substring(0, 18)
+                          : displayUser?.occupation_details ?? "--"}{" "}
                       </div>
                       <div className="my-2 md:block hidden">
-                        {occupation_details ?? "--"}{" "}
+                        {displayUser?.occupation_details ?? "--"}{" "}
                       </div>
-                      <div> {employeed_in ?? "--"} </div>
+                      <div> {displayUser?.employeed_in ?? "--"} </div>
                       <div className="my-2">
-                        {ed_country?.name ?? "--"}
+                        {displayUser?.ed_country_name || "--"}
                       </div>
-                      <div> {ed_state?.name ?? "--"} </div>
+                      <div> {displayUser?.ed_state_name || "--"} </div>
                       <div className="my-2">
-                        {ed_city?.name ?? "--"}
+                        {displayUser?.ed_city_name || "--"}
                       </div>
                     </div>
                   ) : (
@@ -1441,11 +1633,11 @@ function EditProfile() {
                     <div className="md:w-2/3 w-1/2">
                       <div className="my-2">
                         {" "}
-                        {height ?? "--"}{" "}
+                        {displayUser?.height ?? "--"}{" "}
                       </div>
-                      <div className=""> {diet ?? "--"} </div>
-                      <div className="my-2"> {smoke ?? "--"} </div>
-                      <div className=""> {drink ?? "--"} </div>
+                      <div className=""> {displayUser?.diet ?? "--"} </div>
+                      <div className="my-2"> {displayUser?.smoke ?? "--"} </div>
+                      <div className=""> {displayUser?.drink ?? "--"} </div>
                     </div>
                   ) : (
                     <div className="md:w-2/3 w-1/2">
@@ -1568,25 +1760,26 @@ function EditProfile() {
                     <div className="md:w-2/3 w-1/2">
                       <div className="">
                         {" "}
-                        {no_of_brothers ?? "--"}{" "}
+                        {displayUser?.no_of_brothers ?? "--"}{" "}
                       </div>
                       <div className="my-2">
-                        {no_of_sisters ?? "--"}
+                        {" "}
+                        {displayUser?.no_of_sisters ?? "--"}{" "}
                       </div>
                       <div className="my-2">
-                        {father_contact_no ?? "--"}
+                        {displayUser?.father_contact_no ?? "--"}
                       </div>
                       <div className="">
-                        {father_occupation ?? "--"}
+                        {displayUser?.father_occupation ?? "--"}
                       </div>
                       <div className="my-2">
-                        {mother_contact_no ?? "--"}
+                        {displayUser?.mother_contact_no ?? "--"}
+                      </div>
+                      <div className="">
+                        {displayUser?.mother_occupation ?? "--"}
                       </div>
                       <div className="my-2">
-                        {mother_occupation ?? "--"}
-                      </div>
-                      <div className="my-2">
-                        {mother_caste?.name ?? "--"}
+                        {displayUser?.mother_caste?.name || displayUser?.mother_caste || "--"}
                       </div>
                     </div>
                   ) : (
@@ -1875,7 +2068,7 @@ function EditProfile() {
                       </div>
                     ) : (
                       <div className="max-w-[50%]">
-                        {userData?.about_yourself || "--"}
+                        {displayUser?.about_yourself || "--"}
                       </div>
                     )}
                   </div>
@@ -1883,10 +2076,9 @@ function EditProfile() {
               </form>
             </div>
 
-            {/* Preferences */}
             <PartnerPreferences
               fetchProfile={getUserPorofileData}
-              data={userData?.user?.partner_preferences}
+              data={displayUser?.partner_preferences || userData?.partner_preferences}
             />
 
             <div className="mt-4">
