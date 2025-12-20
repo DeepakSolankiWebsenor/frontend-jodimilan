@@ -1,4 +1,5 @@
-import { io, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
+import { API_BASE_URL } from './appConfig';
 
 class SocketService {
   socket = null;
@@ -18,12 +19,13 @@ class SocketService {
       return;
     }
 
-    // Remove /api from the URL for Socket.IO connection
-    let SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    // Use API_BASE_URL from appConfig, removing /api for the socket connection
+    let SOCKET_URL = API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006';
     
-    // If URL ends with /api, remove it for Socket.IO
-    if (SOCKET_URL.endsWith('/api')) {
-      SOCKET_URL = SOCKET_URL.replace('/api', '');
+    if (SOCKET_URL.endsWith('/api/')) {
+      SOCKET_URL = SOCKET_URL.slice(0, -5);
+    } else if (SOCKET_URL.endsWith('/api')) {
+      SOCKET_URL = SOCKET_URL.slice(0, -4);
     }
 
     console.log('🔌 Connecting to Socket.IO server:', SOCKET_URL);

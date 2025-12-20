@@ -55,8 +55,15 @@ function ShortListProfile() {
   };
 
   const handleViewProfile = (id) => {
+    console.log("Navigating to profile with ID:", id);
+    if (!id) {
+        console.error("ID is undefined!");
+        return;
+    }
     router.push(`/profile/profile-detail/${id}`);
   };
+
+
 
   return (
     <div>

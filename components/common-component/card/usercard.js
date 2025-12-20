@@ -6,7 +6,7 @@ import { useRouter } from "next/router";
 
 const Usercard = ({ item, index, className }) => {
   const { profile_img_src, height, occupation, birth_city, photo_privacy } =
-    item.userprofile || {};
+    item.userprofile || item.profile || {};
   const [user, setUser] = useState(false);
 
   useEffect(() => {

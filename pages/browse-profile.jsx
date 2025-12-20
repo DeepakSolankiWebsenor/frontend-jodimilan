@@ -51,19 +51,59 @@ const Browseprofile = () => {
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [pagination, setPagination] = useState({});
   const [options, setOptions] = useState([]);
+  const [states, setStates] = useState([]);
+  const [cities, setCities] = useState([]);
 
-  const { getUsers, BrowseProfileData } = useApiService();
+  const { getUsers, BrowseProfileData, getStates, getCities } = useApiService();
   const filterMaster = useSelector((state) => state.user?.common_data);
 
   const [filterTags, setFilterTags] = useState({
     occupation: [],
+    state: [],
     birth_city: [],
     caste: [],
   });
 
   useEffect(() => {
     setOptions(filterMaster);
+    // Fetch initial states (Default Country ID 101 for India)
+    getStates(101).then((res) => {
+      if (res?.data) setStates(res.data);
+    });
   }, [filterMaster]);
+
+  // Fetch Cities when State changes
+  useEffect(() => {
+    if (filterTags.state.length > 0) {
+      // Fetch cities for the last selected state (or all selected states if API supports it, 
+      // but usually typical UX is to load cities for selected states)
+      // For simplicity/API limitation, we might iterate or fetching for the most specific one. 
+      // Assuming getCities takes a single state ID.
+      // If multiple states, we might need to fetch for all and merge, 
+      // but let's start with fetching for the last added state or just all if possible.
+      
+      // Better approach: reset cities and fetch for all selected states
+      // const allCities = [];
+      // Promise.all(filterTags.state.map(id => getCities(id))).then(...)
+      
+      // For now, let's just fetch for the most recent one or handle differently.
+      // Let's iterate and merge.
+      
+      const fetchAllCities = async () => {
+         let mergedCities = [];
+         for(const stateId of filterTags.state) {
+            const res = await getCities(stateId);
+            if(res?.data) mergedCities = [...mergedCities, ...res.data];
+         }
+         setCities(mergedCities);
+      };
+      
+      fetchAllCities();
+
+    } else {
+      setCities([]);
+    }
+  }, [filterTags.state]);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -105,9 +145,10 @@ const Browseprofile = () => {
   const handleFilterEvent = async () => {
     setLoading(true);
     let query = "";
-    const { occupation, birth_city, caste } = filterTags;
+    const { occupation, state, birth_city, caste } = filterTags;
 
     occupation.forEach((v, i) => (query += `occupation[${i}]=${v}&`));
+    state.forEach((v, i) => (query += `state[${i}]=${v}&`));
     birth_city.forEach((v, i) => (query += `city[${i}]=${v}&`));
     caste.forEach((v, i) => (query += `caste[${i}]=${v}&`));
 
@@ -143,7 +184,7 @@ const Browseprofile = () => {
 
       <div className="my-10 flex lg:flex-row flex-col px-4 md:px-10 gap-6">
         {/* Sidebar Filter */}
-        <div className="md:w-1/4 shadow-md rounded-lg">
+        <div className="md:w-1/4 shadow-md rounded-lg h-fit">
           <div className="h-10 bg-sky-400 text-sm text-white font-medium flex px-4 items-center">
             FILTER PROFILES
           </div>
@@ -154,6 +195,7 @@ const Browseprofile = () => {
               BY Occupation {filterTags.occupation.length > 0 && `[${filterTags.occupation.length}]`}
             </AccordionSummary>
             <AccordionDetails>
+              <div className="max-h-60 overflow-y-auto">
               {options?.options_type?.occupation?.map((item, idx) => (
                 <label key={idx} className="block mt-2 text-gray-700">
                   <input
@@ -164,6 +206,28 @@ const Browseprofile = () => {
                   <span className="ml-2">{item}</span>
                 </label>
               ))}
+              </div>
+            </AccordionDetails>
+          </Accordion>
+
+           {/* STATE */}
+           <Accordion expanded={expanded === "panelState"} onChange={handleChange("panelState")}>
+            <AccordionSummary>
+              BY State {filterTags.state.length > 0 && `[${filterTags.state.length}]`}
+            </AccordionSummary>
+            <AccordionDetails>
+              <div className="max-h-60 overflow-y-auto">
+              {states?.map((item, idx) => (
+                <label key={idx} className="block mt-2 text-gray-700">
+                  <input
+                    type="checkbox"
+                    value={item.id}
+                    onChange={(e) => handleFilterChange("state", e)}
+                  />
+                  <span className="ml-2">{item.name}</span>
+                </label>
+              ))}
+              </div>
             </AccordionDetails>
           </Accordion>
 
@@ -173,16 +237,22 @@ const Browseprofile = () => {
               BY City {filterTags.birth_city.length > 0 && `[${filterTags.birth_city.length}]`}
             </AccordionSummary>
             <AccordionDetails>
-              {options?.city?.map((item, idx) => (
-                <label key={idx} className="block mt-2 text-gray-700">
-                  <input
-                    type="checkbox"
-                    value={item.id}
-                    onChange={(e) => handleFilterChange("birth_city", e)}
-                  />
-                  <span className="ml-2">{item.name}</span>
-                </label>
-              ))}
+               <div className="max-h-60 overflow-y-auto">
+              {cities.length > 0 ? (
+                cities.map((item, idx) => (
+                  <label key={idx} className="block mt-2 text-gray-700">
+                    <input
+                      type="checkbox"
+                      value={item.id}
+                      onChange={(e) => handleFilterChange("birth_city", e)}
+                    />
+                    <span className="ml-2">{item.name}</span>
+                  </label>
+                ))
+              ) : (
+                <div className="text-gray-500 text-sm">Select a state first</div>
+              )}
+              </div>
             </AccordionDetails>
           </Accordion>
 
@@ -192,6 +262,7 @@ const Browseprofile = () => {
               BY Clan {filterTags.caste.length > 0 && `[${filterTags.caste.length}]`}
             </AccordionSummary>
             <AccordionDetails>
+              <div className="max-h-60 overflow-y-auto">
               {options?.caste?.map((item, idx) => (
                 <label key={idx} className="block mt-2 text-gray-700">
                   <input
@@ -202,6 +273,7 @@ const Browseprofile = () => {
                   <span className="ml-2">{item.name}</span>
                 </label>
               ))}
+              </div>
             </AccordionDetails>
           </Accordion>
 
@@ -214,7 +286,7 @@ const Browseprofile = () => {
         </div>
 
         {/* Profile Cards */}
-        <div className="md:w-4/4">
+        <div className="md:w-3/4">
           {loading ? (
             <div className="flex justify-center py-10">
               <CircularLoader />

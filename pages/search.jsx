@@ -285,33 +285,43 @@ function Search() {
       searchById(rytId)
         .then((res) => {
           setSearchData([]);
-          if (res.data.status === 200) {
+          if (res.data.code === 200 || res.data.status === 200) {
             console.log(res, "res search id");
-            var encrypted_json = JSON.parse(atob(res?.data?.users));
-            var dec = CryptoJS.AES.decrypt(
-              encrypted_json.value,
-              CryptoJS.enc.Base64.parse(decrypted_key),
-              {
-                iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-              }
-            );
 
-            var decryptedText = dec.toString(CryptoJS.enc.Utf8);
+            if (res.data.data && !res.data.users) {
+               // Handle unencrypted data
+               const parsed = res.data.data;
+               setUserSearchData([parsed]); // searchData loop expects an array for grid, but card at top uses object
+               setDataById(parsed);
+               setMessage("");
+            } else if (res.data.users) {
+               // Handle encrypted data
+                var encrypted_json = JSON.parse(atob(res?.data?.users));
+                var dec = CryptoJS.AES.decrypt(
+                  encrypted_json.value,
+                  CryptoJS.enc.Base64.parse(decrypted_key),
+                  {
+                    iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
+                  }
+                );
 
-            var jsonStartIndex = decryptedText.indexOf("{");
-            var jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
-            var jsonData = decryptedText.substring(
-              jsonStartIndex,
-              jsonEndIndex
-            );
+                var decryptedText = dec.toString(CryptoJS.enc.Utf8);
 
-            jsonData.trim();
-            const parsed = JSON.parse(jsonData);
+                var jsonStartIndex = decryptedText.indexOf("{");
+                var jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
+                var jsonData = decryptedText.substring(
+                  jsonStartIndex,
+                  jsonEndIndex
+                );
 
-            setUserSearchData(parsed);
-            setDataById(parsed);
-            setMessage("");
-          } else if (res.data.status === 404) {
+                jsonData.trim();
+                const parsed = JSON.parse(jsonData);
+
+                setUserSearchData(parsed);
+                setDataById(parsed);
+                setMessage("");
+            }
+          } else if (res.data.status === 404 || res.data.code === 404) {
             setMessage(res.data.message);
             setSearchData();
             setDataById("");

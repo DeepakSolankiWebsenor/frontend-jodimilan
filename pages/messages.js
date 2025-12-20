@@ -298,7 +298,7 @@ export default function Messages() {
   const handleBlockUser = () => {
     if (!selectedChat) return;
 
-    const isBlocked = selectedChat.block?.some(
+    const isBlocked = Array.isArray(selectedChat.block) && selectedChat.block.some(
       (item) => Number(item.blocked_by) === currentUserId
     );
 
@@ -514,7 +514,7 @@ export default function Messages() {
 
   const isBlocked = () => {
     if (!selectedChat) return false;
-    return selectedChat.block?.some(
+    return Array.isArray(selectedChat.block) && selectedChat.block.some(
       (item) => Number(item.blocked_by) === currentUserId || Number(item.blocked_by) === selectedChat.id
     );
   };
