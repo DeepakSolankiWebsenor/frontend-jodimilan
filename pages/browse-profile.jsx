@@ -132,9 +132,9 @@ const Browseprofile = () => {
   };
 
   const handleFilterChange = (type, event) => {
-    const filters = { ...filterTags };
     const value = event.target.value;
-
+    const filters = { ...filterTags };
+    
     filters[type] = filters[type].includes(value)
       ? filters[type].filter((v) => v !== value)
       : [...filters[type], value];
@@ -145,25 +145,28 @@ const Browseprofile = () => {
   const handleFilterEvent = async () => {
     setLoading(true);
     let query = "";
-    const { occupation, state, birth_city, caste } = filterTags;
-
-    occupation.forEach((v, i) => (query += `occupation[${i}]=${v}&`));
-    state.forEach((v, i) => (query += `state[${i}]=${v}&`));
-    birth_city.forEach((v, i) => (query += `city[${i}]=${v}&`));
-    caste.forEach((v, i) => (query += `caste[${i}]=${v}&`));
-
+    
     try {
-      const res = await BrowseProfileData(query);
-      const items = res?.data?.data?.items || [];
-      const paginate = res?.data?.data?.pagination || {};
+        const { occupation, state, birth_city, caste } = filterTags;
 
-      setFilteredUsers(items);
-      setPagination(paginate);
-      setPage(paginate?.current_page || 1);
+        if (Array.isArray(occupation)) occupation.forEach((v, i) => (query += `occupation[${i}]=${v}&`));
+        if (Array.isArray(state)) state.forEach((v, i) => (query += `state[${i}]=${v}&`));
+        if (Array.isArray(birth_city)) birth_city.forEach((v, i) => (query += `city[${i}]=${v}&`));
+        if (Array.isArray(caste)) caste.forEach((v, i) => (query += `caste[${i}]=${v}&`));
+
+        const res = await BrowseProfileData(query);
+
+        const items = res?.data?.data?.items || [];
+        const paginate = res?.data?.data?.pagination || {};
+
+        setFilteredUsers(items);
+        setPagination(paginate);
+        setPage(paginate?.current_page || 1);
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -200,10 +203,10 @@ const Browseprofile = () => {
                 <label key={idx} className="block mt-2 text-gray-700">
                   <input
                     type="checkbox"
-                    value={item}
+                    value={item?.id || item}
                     onChange={(e) => handleFilterChange("occupation", e)}
                   />
-                  <span className="ml-2">{item}</span>
+                  <span className="ml-2">{item?.name || item}</span>
                 </label>
               ))}
               </div>

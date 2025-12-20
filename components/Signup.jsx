@@ -209,13 +209,13 @@ const Signup = ({ open, onClose }) => {
               </div>
 
               <div className="grid gap-1">
-                <label className="text-sm font-medium">Religion</label>
+                <label className="text-sm font-medium">State</label>
                 <select
                   {...register("religion", { required: "Required" })}
                   className="p-3 bg-gray-200 rounded text-xs outline-none"
                 >
                   <option hidden>Select</option>
-                  {options?.religion?.map((item, i) => (
+                  {options?.state?.map((item, i) => (
                     <option key={i} value={item.id}>
                       {item.name}
                     </option>
