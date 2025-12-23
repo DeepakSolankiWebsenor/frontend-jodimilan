@@ -586,6 +586,14 @@ function verifyMobileOTP(params) {
       });
   }
 
+  function getOrderDetails(orderNumber) {
+    return http.get(`/user/order/details/${orderNumber}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+  }
+
   function sessionCreate(params) {
     return http
       .post("/user/session/create", params, {
@@ -742,6 +750,7 @@ function verifyMobileOTP(params) {
     getSlider,
     removeFromShortlist,
     createOrder,
+    getOrderDetails,
     orderCheckout,
     orderHistory,
     sessionCreate,

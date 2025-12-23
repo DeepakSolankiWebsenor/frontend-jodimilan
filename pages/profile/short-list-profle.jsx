@@ -9,7 +9,7 @@ import { Alert, Snackbar } from "@mui/material";
 import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
 import Head from "next/head";
 import CircularLoader from "../../components/common-component/loader";
-import {BASE_URL} from "../../services/appConfig";
+import {API_BASE_URL } from "../../services/appConfig";
 import { useSelector } from "react-redux";
 import CryptoJS from "crypto-js";
 import MembershipPopup from "../../components/common-component/MembershipPopup";
@@ -181,7 +181,7 @@ function ShortListProfile() {
                   <div className="w-full h-64 bg-gray-100">
                     {user?.profile_photo ? (
                       <img
-                        src={`${BASE_URL}${user.profile_photo}`}
+                        src={`${API_BASE_URL }${user.profile_photo}`}
                         alt="Profile"
                         className="w-24 h-32 object-cover rounded-md mx-auto"
                       />
