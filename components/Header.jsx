@@ -20,8 +20,9 @@ import Popper from "@mui/material/Popper";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 import Signup from "./Signup";
-import { markNotificationRead } from "../services/redux/slices/notificationSlice";
+import { markNotificationsRead, fetchNotifications } from "../services/redux/slices/notificationSlice";
 import NotificationDrawer from "./NotificationDrawer";
+import { http } from "../services/http"; // Import http for API calls
 
 function Header() {
   const dispatch = useDispatch();
@@ -29,7 +30,7 @@ function Header() {
   const router = useRouter();
   const [alert, setAlert] = useState(false);
   const userData = useSelector(getUSer);
-  const { unreadCounts } = useSelector((state) => state.notification);
+  const { unreadCounts } = useSelector((state) => state.notification || {});
   const [decryptedUserData, setDecryptedUserData] = useState(null);
   const [dropdown, setDropdown] = useState(false);
   const [openProfile, setOpenProfile] = React.useState(false);
@@ -39,72 +40,69 @@ function Header() {
   const [openSignup, setOpenSignup] = useState(false);
   const [notificationDrawer, setNotificationDrawer] = useState(false);
 
-// const getMasterData = () => {
-//   const raw = userData?.user?.user;
-//   if (!raw) return;
+const getMasterData = () => {
+  try {
+    const raw = userData?.user?.user || userData?.user;
+    if (!raw) return;
 
-//   try {
-//     let parsed;
+    if (typeof raw === "object") {
+      setDecryptedUserData(raw);
+    } else {
+      let decryptedText = "";
 
-//     // Case 1 → Already JSON (no Base64 decode needed)
-//     if (raw.trim().startsWith("{") && raw.trim().endsWith("}")) {
-//       parsed = JSON.parse(raw);
-//       setDecryptedUserData(parsed);
-//       console.log("✔ Parsed JSON (no decrypt needed):", parsed);
-//       return;
-//     }
+      // 🔥 Method 1: Laravel-style JSON (Base64 -> JSON {value, iv})
+      try {
+        const decoded = window.atob(raw);
+        if (decoded.trim().startsWith("{")) {
+          const encrypted_json = JSON.parse(decoded);
+          if (encrypted_json.value && encrypted_json.iv) {
+            const dec = CryptoJS.AES.decrypt(
+              encrypted_json.value,
+              CryptoJS.enc.Base64.parse(decrypted_key),
+              { iv: CryptoJS.enc.Base64.parse(encrypted_json.iv) }
+            );
+            decryptedText = dec.toString(CryptoJS.enc.Utf8);
+          }
+        }
+      } catch (err) {}
 
-//     // Case 2 → Base64 encrypted JSON
-//     let decoded;
-//     try {
-//       decoded = window.atob(raw);
-//     } catch (err) {
-//       console.error("❌ Invalid Base64, cannot decode", err);
-//       return;
-//     }
+      // 🔥 Method 2: Simple Ciphertext (Fixed IV from .env)
+      if (!decryptedText) {
+        try {
+          const keyHex = CryptoJS.enc.Hex.parse(process.env.NEXT_PUBLIC_ENC_KEY);
+          const ivHex = CryptoJS.enc.Hex.parse(process.env.NEXT_PUBLIC_ENC_IV);
+          const dec = CryptoJS.AES.decrypt(raw, keyHex, {
+            iv: ivHex,
+            mode: CryptoJS.mode.CBC,
+            padding: CryptoJS.pad.Pkcs7,
+          });
+          decryptedText = dec.toString(CryptoJS.enc.Utf8);
+        } catch (err) {}
+      }
 
-//     const encryptedJson = JSON.parse(decoded);
+      if (decryptedText) {
+        const jsonStartIndex = decryptedText.indexOf("{");
+        const jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
+        if (jsonStartIndex >= 0 && jsonEndIndex > 0) {
+          const jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
+          setDecryptedUserData(JSON.parse(jsonData.trim()));
+        }
+      }
+    }
+  } catch (error) {
+    console.error("❌ Failed to decrypt master user in Header:", error);
+  }
+};
 
-//     if (!encryptedJson?.value || !encryptedJson?.iv) {
-//       console.error("❌ Missing encryption fields, corrupted encrypted data");
-//       return;
-//     }
+  useEffect(() => {
+    if (loggedIn) {
+      dispatch(fetchNotifications());
+    }
+  }, [loggedIn, dispatch]);
 
-//     const dec = CryptoJS.AES.decrypt(
-//       encryptedJson.value,
-//       CryptoJS.enc.Base64.parse(decrypted_key),
-//       { iv: CryptoJS.enc.Base64.parse(encryptedJson.iv) }
-//     );
-
-//     const decryptedText = dec.toString(CryptoJS.enc.Utf8);
-
-//     if (!decryptedText) {
-//       console.error("❌ AES DECRYPTION FAILED — Wrong key or corrupted data");
-//       return;
-//     }
-
-//     // Extract clean JSON from decrypted string
-//     const jsonStartIndex = decryptedText.indexOf("{");
-//     const jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
-
-//     if (jsonStartIndex < 0 || jsonEndIndex <= 0) {
-//       console.error("❌ Decrypted text does not contain proper JSON");
-//       return;
-//     }
-
-//     parsed = JSON.parse(decryptedText.substring(jsonStartIndex, jsonEndIndex));
-
-//     setDecryptedUserData(parsed);
-//     console.log("✔ Decrypted successfully:", parsed);
-//   } catch (err) {
-//     console.error("❌ Failed to decrypt user data:", err);
-//   }
-// };
-
-
-//   useEffect(() => {
-//     getMasterData();
-//   }, [userData]);
+  useEffect(() => {
+    getMasterData();
+  }, [userData]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -116,7 +114,12 @@ function Header() {
     return () => {};
   }, [router]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+       await http.post("/auth/logout", {});
+    } catch (error) {
+       console.error("Logout error", error);
+    }
     router.push("/Login");
     localStorage.clear();
     setAlert(true);
@@ -157,7 +160,7 @@ function Header() {
   return (
     <header
       id="haeder"
-      className="h-[75px] fixed top-0 z-20 w-full shadow-sm sm:px-20"
+      className="h-[75px] fixed top-0 z-20 w-full shadow-sm xl:px-20 "
     >
       <Snackbar
         open={alert}
@@ -178,7 +181,7 @@ function Header() {
         priority
       />
 
-      <div className="relative z-10 flex items-center justify-between h-full px-5">
+      <div className="relative z-10 flex items-center h-full px-5">
         <Link href={"/"} legacyBehavior>
           <a className="flex items-center">
             <Image
@@ -191,7 +194,7 @@ function Header() {
           </a>
         </Link>
 
-        <div className="sm:flex items-center gap-5 hidden">
+        <div className="hidden xl:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center gap-5">
           <Link href="/browse-profile" legacyBehavior>
             <div className="font-semibold text-sm cursor-pointer hover:text-primary">
               Browse Profile
@@ -295,11 +298,11 @@ function Header() {
           )}
         </div>
 
-        <div>
+        <div className="ml-auto flex items-center gap-4">
           {!loggedIn ? (
             <div className="flex items-center gap-4">
               <button
-                className="hidden sm:block text-sm font-semibold px-5 py-2 bg-transparent border border-primary rounded-full text-primary outline-none cursor-pointer hover:text-white hover:bg-primary ml-2"
+                className="hidden xl:block text-sm font-semibold px-5 py-2 bg-transparent border border-primary rounded-full text-primary outline-none cursor-pointer hover:text-white hover:bg-primary ml-2"
                 onClick={() => router.push("/Login")}
               >
                 Login
@@ -309,13 +312,13 @@ function Header() {
                   setOpenSignup(true);
                   setDrawerOpen(false);
                 }}
-                className="hidden sm:block text-sm font-semibold px-5 py-2 bg-primary rounded-full text-white outline-none cursor-pointer"
+                className="hidden xl:block text-sm font-semibold px-5 py-2 bg-primary rounded-full text-white outline-none cursor-pointer"
               >
                 Sign Up
               </button>
             </div>
           ) : (
-            <div className="nav-item dropdown h-24 cursor-pointer">
+            <div className="nav-item dropdown h-auto cursor-pointer">
               <div
                 ref={anchorProfileRef}
                 id="composition-button"
@@ -329,12 +332,12 @@ function Header() {
                   <div>
                     <img
                       src={decryptedUserData?.profile_img_src}
-                      className="h-8 w-8 rounded-full mt-9"
+                      className="h-8 w-8 rounded-full xl:mt-9"
                       alt="asdf"
                     />
                   </div>
                 ) : (
-                  <div className="mt-9">
+                  <div className="cursor-pointer xl:ml-40 xl:mt-[34.5px] xl:mb-10">
                     <Badge badgeContent={unreadCounts} color="info">
                       <RxAvatar size={25} />
                     </Badge>
@@ -378,7 +381,7 @@ function Header() {
                                 <li className="flex items-center justify-between">
                                   <button
                                     onClick={() => {
-                                      dispatch(markNotificationRead());
+                                      dispatch(markNotificationsRead());
                                       setNotificationDrawer(true);
                                     }}
                                     className="outline-none dropdown-item"
@@ -452,7 +455,7 @@ function Header() {
           )}
         </div>
 
-        <div className="sm:hidden">
+        <div className="xl:hidden">
           <IconButton
             edge="end"
             color="inherit"
@@ -468,8 +471,9 @@ function Header() {
         anchor="right"
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
+        className=""
       >
-        <div className="w-[260px] h-full flex flex-col bg-white shadow-lg p-4">
+        <div className="  w-[260px] h-full flex flex-col bg-white shadow-lg p-4">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Menu</h2>
             <IconButton onClick={() => setDrawerOpen(false)}>
@@ -491,8 +495,8 @@ function Header() {
                 </Link>
 
                 <div>
-                  <p className="font-semibold mt-2">Interests</p>
-                  <div className="pl-2 space-y-1 text-gray-700">
+                  <p className="font-bold mt-2 mb-2 ">Interests</p>
+                  <div className=" space-y-1 text-gray-700">
                     <p
                       onClick={() => router.push("/interest-receive-accept")}
                       className="cursor-pointer hover:text-primary"

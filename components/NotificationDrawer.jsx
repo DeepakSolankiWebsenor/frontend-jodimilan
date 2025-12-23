@@ -40,7 +40,7 @@ const NotificationDrawer = ({ open, onClose }) => {
             <ListItem alignItems="flex-start">
               <ListItemAvatar>
                 <Avatar sx={{ bgcolor: "primary.main" }}>
-                  {item.details.name.charAt(0)}
+                  {item.details?.name?.charAt(0) || "S"}
                 </Avatar>
               </ListItemAvatar>
               <ListItemText

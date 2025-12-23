@@ -36,6 +36,8 @@ const Signup = ({ open, onClose }) => {
   const [otpServerError, setOtpServerError] = useState("");
   const [userPhone, setUserPhone] = useState(""); // Changed from email to phone
   const [options, setOptions] = useState(null);
+  const [timer, setTimer] = useState(0);
+  const [isResendDisabled, setIsResendDisabled] = useState(false);
 
   const masterData = useSelector((state) => state.user);
 
@@ -52,6 +54,19 @@ const Signup = ({ open, onClose }) => {
     setOptions(masterData?.common_data);
   }, [masterData]);
 
+  useEffect(() => {
+    let interval;
+    if (timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    } else {
+      setIsResendDisabled(false);
+      clearInterval(interval);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
+
   const onSubmit = (data) => {
     setLoading(true);
     setSignupError("");
@@ -59,12 +74,12 @@ const Signup = ({ open, onClose }) => {
     customerSignup({ ...data, password_confirmation: data.password, dialing_code: "91" })
       .then((res) => {
         if (res?.data?.code === 201) {
-        if (res?.data?.code === 201) {
           toast.success("OTP sent successfully!");
           setUserPhone(data.phone); // Store phone
           setStep("otp");
+          setTimer(30);
+          setIsResendDisabled(true);
           reset();
-        }
         }
       })
       .catch((err) => {
@@ -102,8 +117,8 @@ const Signup = ({ open, onClose }) => {
       .finally(() => setLoading(false));
   };
 
-  const handleResendOtp = () => {
-    if (!userPhone) return;
+   const handleResendOtp = () => {
+    if (!userPhone || isResendDisabled) return;
 
     setResendLoading(true);
      resendOtp({ phone: userPhone, dialing_code: "91" }) // Use phone
@@ -111,6 +126,8 @@ const Signup = ({ open, onClose }) => {
          if (res?.data?.code === 200) {
            toast.success("New OTP sent");
            setOtp("");
+           setTimer(30);
+           setIsResendDisabled(true);
          }
        })
        .catch(() => toast.error("Failed to resend OTP"))
@@ -369,10 +386,18 @@ const Signup = ({ open, onClose }) => {
 
             <button
               onClick={handleResendOtp}
-              disabled={resendLoading}
-              className="border border-primary text-primary rounded-lg px-3 py-2"
+              disabled={resendLoading || isResendDisabled}
+              className={`border border-primary rounded-lg px-3 py-2 ${
+                resendLoading || isResendDisabled
+                  ? "opacity-50 cursor-not-allowed text-gray-400 border-gray-400"
+                  : "text-primary"
+              }`}
             >
-              {resendLoading ? "Sending..." : "Resend OTP"}
+              {resendLoading
+                ? "Sending..."
+                : timer > 0
+                ? `Resend OTP (${timer}s)`
+                : "Resend OTP"}
             </button>
 
             <button

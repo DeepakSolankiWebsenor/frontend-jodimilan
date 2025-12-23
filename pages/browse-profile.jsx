@@ -64,6 +64,8 @@ const Browseprofile = () => {
     caste: [],
   });
 
+  console.log("DEBUG: Current Filter Tags:", filterTags);
+
   useEffect(() => {
     setOptions(filterMaster);
     // Fetch initial states (Default Country ID 101 for India)
@@ -75,33 +77,25 @@ const Browseprofile = () => {
   // Fetch Cities when State changes
   useEffect(() => {
     if (filterTags.state.length > 0) {
-      // Fetch cities for the last selected state (or all selected states if API supports it, 
-      // but usually typical UX is to load cities for selected states)
-      // For simplicity/API limitation, we might iterate or fetching for the most specific one. 
-      // Assuming getCities takes a single state ID.
-      // If multiple states, we might need to fetch for all and merge, 
-      // but let's start with fetching for the last added state or just all if possible.
-      
-      // Better approach: reset cities and fetch for all selected states
-      // const allCities = [];
-      // Promise.all(filterTags.state.map(id => getCities(id))).then(...)
-      
-      // For now, let's just fetch for the most recent one or handle differently.
-      // Let's iterate and merge.
-      
       const fetchAllCities = async () => {
          let mergedCities = [];
          for(const stateId of filterTags.state) {
             const res = await getCities(stateId);
             if(res?.data) mergedCities = [...mergedCities, ...res.data];
          }
-         setCities(mergedCities);
+         // Ensure unique cities by ID
+         const uniqueCities = Array.from(new Map(mergedCities.map(item => [item.id, item])).values());
+         setCities(uniqueCities);
       };
       
       fetchAllCities();
 
     } else {
       setCities([]);
+      // Reset selected cities if no state is selected
+      if (filterTags.birth_city.length > 0) {
+        setFilterTags(prev => ({ ...prev, birth_city: [] }));
+      }
     }
   }, [filterTags.state]);
 
@@ -169,6 +163,19 @@ const Browseprofile = () => {
     }
   };
 
+  const handleResetFilter = () => {
+    setFilterTags({
+      occupation: [],
+      state: [],
+      birth_city: [],
+      caste: [],
+    });
+    setCities([]);
+    setPage(1);
+    // Directly fetch users to reset list
+    fetchUsers(); 
+  };
+
   return (
     <>
       <Head>
@@ -203,6 +210,7 @@ const Browseprofile = () => {
                 <label key={idx} className="block mt-2 text-gray-700">
                   <input
                     type="checkbox"
+                    checked={filterTags.occupation.includes(String(item?.id || item))}
                     value={item?.id || item}
                     onChange={(e) => handleFilterChange("occupation", e)}
                   />
@@ -224,6 +232,7 @@ const Browseprofile = () => {
                 <label key={idx} className="block mt-2 text-gray-700">
                   <input
                     type="checkbox"
+                    checked={filterTags.state.includes(String(item.id))}
                     value={item.id}
                     onChange={(e) => handleFilterChange("state", e)}
                   />
@@ -246,6 +255,7 @@ const Browseprofile = () => {
                   <label key={idx} className="block mt-2 text-gray-700">
                     <input
                       type="checkbox"
+                      checked={filterTags.birth_city.includes(String(item.id))}
                       value={item.id}
                       onChange={(e) => handleFilterChange("birth_city", e)}
                     />
@@ -270,6 +280,7 @@ const Browseprofile = () => {
                 <label key={idx} className="block mt-2 text-gray-700">
                   <input
                     type="checkbox"
+                    checked={filterTags.caste.includes(String(item.id))}
                     value={item.id}
                     onChange={(e) => handleFilterChange("caste", e)}
                   />
@@ -282,9 +293,15 @@ const Browseprofile = () => {
 
           <button
             onClick={handleFilterEvent}
-            className="text-center bg-sky-500 h-10 w-full border rounded-b-lg text-white font-semibold"
+            className="text-center bg-sky-500 h-10 w-full text-white font-semibold"
           >
             Apply Filter
+          </button>
+          <button
+            onClick={handleResetFilter}
+            className="text-center bg-gray-500 h-10 w-full border rounded-b-lg text-white font-semibold"
+          >
+            Reset Filter
           </button>
         </div>
 

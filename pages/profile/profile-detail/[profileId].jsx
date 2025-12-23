@@ -1,7 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
 import React, { useEffect, useRef, useState, Fragment } from "react";
+import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
+import { decrypted_key } from "../../../services/appConfig";
 import {
   Alert,
   CircularProgress,
@@ -19,16 +21,17 @@ import { Dialog, Transition } from "@headlessui/react";
 import PermContactCalendarOutlinedIcon from "@mui/icons-material/PermContactCalendarOutlined";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import Head from "next/head";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import CryptoJS from "crypto-js";
+import { fetchNotifications } from "../../../services/redux/slices/notificationSlice";
 
 import useApiService from "../../../services/ApiService";
-import { decrypted_key } from "../../../services/appConfig";
 
 import WomenD from "../../../public/images/girldefault.png";
 import MenD from "../../../public/images/mendefault.png";
 import KingIcon from "../../../public/images/king_crown.png";
 import QueenIcon from "../../../public/images/queen_crown.png";
+import MembershipPopup from "../../../components/common-component/MembershipPopup";
 
 /**
  * Helper to decrypt the encrypted payload (data.user) that comes as:
@@ -69,6 +72,7 @@ const decryptPayload = (cipherBase64) => {
 const ProfileDetail = () => {
   const router = useRouter();
   const { profileId } = router.query;
+  const dispatch = useDispatch();
 
   const {
     profileById,
@@ -89,6 +93,7 @@ const ProfileDetail = () => {
   const [userNotFound, setUserNotFound] = useState(false);
   const [blockedObj, setBlockedObj] = useState(null);
 const [alertSeverity, setAlertSeverity] = useState("success");
+const [showMembershipPopup, setShowMembershipPopup] = useState(false);
 
 
   const cancelButtonRef = useRef(null);
@@ -100,26 +105,64 @@ const [alertSeverity, setAlertSeverity] = useState("success");
   // 🔓 Decrypt logged-in master user from redux (if needed)
 const getMasterData = () => {
   try {
-    const cipher = masterData1?.user?.user;
-    if (!cipher) return;
+    const raw = masterData1?.user?.user || masterData1?.user;
+    if (!raw) return;
 
-    const keyHex = CryptoJS.enc.Hex.parse(process.env.NEXT_PUBLIC_ENC_KEY);
-    const ivHex = CryptoJS.enc.Hex.parse(process.env.NEXT_PUBLIC_ENC_IV);
+    if (typeof raw === "object") {
+      setUserData(raw);
+    } else {
+      let decryptedText = "";
 
-    const decrypted = CryptoJS.AES.decrypt(
-      { ciphertext: CryptoJS.enc.Base64.parse(cipher) },
-      keyHex,
-      {
-        iv: ivHex,
-        mode: CryptoJS.mode.CBC,
-        padding: CryptoJS.pad.Pkcs7,
+      // 🔥 Method 1: Laravel-style JSON (Base64 -> JSON {value, iv})
+      try {
+        const decoded = window.atob(raw);
+        if (decoded.trim().startsWith("{")) {
+          const encrypted_json = JSON.parse(decoded);
+          if (encrypted_json.value && encrypted_json.iv) {
+            const dec = CryptoJS.AES.decrypt(
+              encrypted_json.value,
+              CryptoJS.enc.Base64.parse(decrypted_key),
+              { iv: CryptoJS.enc.Base64.parse(encrypted_json.iv) }
+            );
+            decryptedText = dec.toString(CryptoJS.enc.Utf8);
+          }
+        }
+      } catch (err) {
+        // Not JSON-in-Base64
       }
-    );
 
-    const text = decrypted.toString(CryptoJS.enc.Utf8);
+      // 🔥 Method 2: Simple Ciphertext (Fixed IV from .env)
+      if (!decryptedText) {
+        try {
+          const keyHex = CryptoJS.enc.Hex.parse(process.env.NEXT_PUBLIC_ENC_KEY);
+          const ivHex = CryptoJS.enc.Hex.parse(process.env.NEXT_PUBLIC_ENC_IV);
+          const dec = CryptoJS.AES.decrypt(raw, keyHex, {
+            iv: ivHex,
+            mode: CryptoJS.mode.CBC,
+            padding: CryptoJS.pad.Pkcs7,
+          });
+          decryptedText = dec.toString(CryptoJS.enc.Utf8);
+        } catch (err) {
+          // both methods failed
+        }
+      }
 
-    const parsed = JSON.parse(text);
-    setUserData(parsed);
+      if (decryptedText) {
+        const jsonStartIndex = decryptedText.indexOf("{");
+        const jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
+        if (jsonStartIndex >= 0 && jsonEndIndex > 0) {
+          const jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
+          const parsed = JSON.parse(jsonData.trim());
+          setUserData(parsed);
+          
+          // Check membership
+          const hasMembership = parsed?.package_id || parsed?.package;
+          if (!hasMembership) {
+            setShowMembershipPopup(true);
+          }
+        }
+      }
+    }
   } catch (error) {
     console.error("❌ Failed to decrypt master user:", error);
   }
@@ -212,6 +255,9 @@ setProfileData(normalized);
       })
       .catch((err) => {
         console.error("❌ profileById error:", err);
+        if (err?.response?.status === 403) {
+          setShowMembershipPopup(true);
+        }
       })
       .finally(() => setIsDataLoading(false));
   };
@@ -233,21 +279,28 @@ setProfileData(normalized);
   }, [router.isReady, profileId]);
 
   const handleWishlist = () => {
-    if (!profileData?.shortlist_profile_id) {
-      const params = { user_profile_id: profileData?.id };
-      addToWishlist(params)
-        .then((res) => {
-          if (res.data.status === 200 || res.data.code === 200) {
-            setAlertMsg("You have added this user to wishlist!");
-            setAlert(true);
-            fetchProfileById();
-          } else if (res.data.status === 401) {
-            setAlert(true);
-            setAlertMsg(res?.data?.message);
-          }
-        })
-        .catch((error) => console.error(error));
-    }
+    const params = { user_profile_id: profileData?.id };
+    addToWishlist(params)
+      .then((res) => {
+        if (res.data.status === 200 || res.data.code === 200) {
+          setAlertMsg(res.data.message || "Action Successful");
+          setAlertSeverity("success");
+          setAlert(true);
+          setAlert(true);
+          dispatch(fetchNotifications());
+          fetchProfileById();
+        } else if (res.data.status === 401 || res.data.code === 401) {
+          setAlertMsg(res?.data?.message || "Unauthorized");
+          setAlertSeverity("error");
+          setAlert(true);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        setAlertMsg(error?.response?.data?.message || "Something went wrong");
+        setAlertSeverity("error");
+        setAlert(true);
+      });
   };
 
   const handleBlockUser = () => {
@@ -323,6 +376,9 @@ setProfileData(normalized);
         setAlertMsg(message || "Interest Sent Successfully!");
         setAlertSeverity("success");
         setAlert(true);
+        setAlertSeverity("success");
+        setAlert(true);
+        dispatch(fetchNotifications());
         fetchProfileById();
       } else {
         setAlertMsg(message || "Something went wrong");
@@ -358,6 +414,24 @@ setProfileData(normalized);
     );
   }
 
+
+
+
+
+
+const partnerPreferences = profileData?.partner_preferences
+  ? JSON.parse(profileData.partner_preferences)
+  : null;
+
+
+
+
+
+
+
+
+
+
   return (
     <div>
       <Head>
@@ -365,6 +439,11 @@ setProfileData(normalized);
       </Head>
 
       {/* Snackbar */}
+      <MembershipPopup
+        open={showMembershipPopup}
+        onClose={() => setShowMembershipPopup(false)}
+        message="Without membership not able to see view details"
+      />
 <Snackbar
   open={alert}
   autoHideDuration={3000}
@@ -724,17 +803,17 @@ setProfileData(normalized);
                         className={`${
                           !profileData?.friend_request_sent &&
                           !profileData?.friend_request_approved
-                            ? "hover:bg-primary"
-                            : ""
-                        }  md:flex items-center md:px-2 md:py-0 my-auto cursor-pointer`}
+                            ? "hover:bg-primary cursor-pointer"
+                            : "opacity-60 cursor-default"
+                        }  md:flex items-center md:px-2 md:py-0 my-auto`}
+                        onClick={(!profileData?.friend_request_sent && !profileData?.friend_request_approved) ? handleSendRequest : undefined}
                       >
                         <button
                           disabled={
                             profileData?.friend_request_sent ||
                             profileData?.friend_request_approved
                           }
-                          className="block md:w-auto w-12 md:text-left md:text-base text-xs lg:px-2 md:pl-2 md:py-2"
-                          onClick={handleSendRequest}
+                          className="block md:w-auto md:text-left md:text-base text-xs lg:px-2 md:pl-2 md:py-2"
                         >
                           {profileData?.friend_request_approved
                             ? "Interest Approved"
@@ -757,9 +836,9 @@ setProfileData(normalized);
                         className={`${
                           !profileData?.shortlist_profile_id
                             ? "hover:bg-primary cursor-pointer"
-                            : ""
+                            : "opacity-60 cursor-default"
                         }  md:flex my-auto items-center lg:px-3 md:px-1 `}
-                        onClick={handleWishlist}
+                        onClick={!profileData?.shortlist_profile_id ? handleWishlist : undefined}
                       >
                         <div className="md:block md:text-base text-xs lg:px-2 md:pl-2 py-2">
                           {profileData?.shortlist_profile_id
@@ -860,14 +939,24 @@ setProfileData(normalized);
                     </div>
 
                     {/* Partner preferences */}
-                    <div className="bg-white p-3 lg:h-[120px] flex flex-col justify-center mt-5">
-                      <div className="font-semibold lg:text-[20px] text-[17px] text-[#0560af] flex items-center gap-2">
-                        <InfoOutlinedIcon /> Partner Preferences
-                      </div>
-                      <div className="mt-2 font-medium text-[#34495e] text-sm md:text-sm lg:text-base">
-                        {profileData?.profile?.partner_prefernces || ""}
-                      </div>
-                    </div>
+                  {/* Partner preferences */}
+<div className="bg-white p-3 lg:h-[180px] flex flex-col justify-center mt-5">
+  <div className="font-semibold lg:text-[20px] text-[17px] text-[#0560af] flex items-center gap-2">
+    <InfoOutlinedIcon /> Partner Preferences
+  </div>
+
+  {partnerPreferences ? (
+    <div className="mt-2 font-medium text-[#34495e] text-sm md:text-sm lg:text-base space-y-1">
+      <div>Marital Status: {partnerPreferences.marital_status}</div>
+      <div>Religion: {partnerPreferences.religion}</div>
+      <div>Caste: {partnerPreferences.caste}</div>
+      <div>Age Range: {partnerPreferences.min_age} - {partnerPreferences.max_age}</div>
+    </div>
+  ) : (
+    <div className="mt-2 text-gray-400 text-sm">No preferences added</div>
+  )}
+</div>
+
                   </div>
 
                   {/* Right side similar profiles etc. — you can re-add later */}

@@ -27,12 +27,12 @@ const About = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const cmsData = data?.[0];
+  const cmsData = data;
 
   return (
     <>
       <Head>
-        <title>About Us - JodiMilan</title>
+        <title>{cmsData?.title || "About Us"} - MyShaadi</title>
         <meta
           name="description"
           content="100% Mobile Verified Profiles. Safe and Secure. Register Free to Find Your Life Partner. Most Trusted Matrimony Service - Brand Trust Report. Register Now to Find Your Soulmate."
@@ -47,12 +47,12 @@ const About = () => {
         <div className="mt-12 text-center px-6">
           {/* Title */}
           <div className="text-3xl md:text-4xl font-bold">
-            {cmsData?.cms_type || "Loading..."}
+            {cmsData?.cmsType || "Loading..."}
           </div>
 
           {/* Brand Name */}
           <div className="text-3xl md:text-4xl mt-1">
-            <span className="text-primary font-semibold">JodiMilan</span>
+            <span className="text-primary font-semibold">MyShaadi</span>
             <span className="text-primary">.com</span>
           </div>
 
@@ -61,7 +61,9 @@ const About = () => {
             {cmsData?.description ? (
               <div>{parse(cmsData?.description)}</div>
             ) : (
-              <div>Loading content...</div>
+              <div>
+                Loading...
+              </div>
             )}
           </div>
 

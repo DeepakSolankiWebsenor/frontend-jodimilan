@@ -139,8 +139,8 @@ function EditProfile() {
   const [options, setOptions] = useState([]);
   const router = useRouter();
   const [profileremove, setProfileremove] = useState(false);
-  const [photoPrivacy, setPhotoPrivacy] = useState("");
-  const [contactPrivacy, setContactPrivacy] = useState("");
+  const [photoPrivacy, setPhotoPrivacy] = useState("Yes");
+  const [contactPrivacy, setContactPrivacy] = useState("Yes");
   const {
     profileUpdate,
     profileImageRemove,
@@ -196,8 +196,8 @@ function EditProfile() {
             const parsed = alignUserData(decrypted);
             console.log("DEBUG: Aligned partner_preferences:", parsed?.displayUser?.partner_preferences);
             setUserData(parsed);
-            setPhotoPrivacy(parsed?.photo_privacy);
-            setContactPrivacy(parsed?.contact_privacy);
+            setPhotoPrivacy(parsed?.photo_privacy || "Yes");
+            setContactPrivacy(parsed?.contact_privacy || "Yes");
 
             // Fetch state options for the dropdown if country exists
             const dispUser = parsed.displayUser || parsed;
@@ -1779,7 +1779,7 @@ function EditProfile() {
                         {displayUser?.mother_occupation ?? "--"}
                       </div>
                       <div className="my-2">
-                        {displayUser?.mother_caste?.name || displayUser?.mother_caste || "--"}
+                        {displayUser?.motherCaste?.name || displayUser?.mother_caste || "--"}
                       </div>
                     </div>
                   ) : (

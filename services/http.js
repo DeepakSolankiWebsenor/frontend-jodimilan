@@ -32,7 +32,11 @@ http.interceptors.request.use(
 http.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error?.response?.status === 401) {
+    // Check if the error is 401 and not a login request
+    const isLoginRequest = error?.config?.url?.includes("/auth/login");
+    const isAlreadyOnLoginPage = typeof window !== "undefined" && window.location.pathname === "/Login";
+
+    if (error?.response?.status === 401 && !isLoginRequest && !isAlreadyOnLoginPage) {
       localStorage.clear();
       sessionStorage.clear();
       window.location.href = "/Login";

@@ -2,9 +2,18 @@ import { useRouter } from "next/router";
 import Head from "next/head";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
+import { useDispatch } from "react-redux";
+import { useEffect } from "react";
+import { fetchNotifications } from "../services/redux/slices/notificationSlice";
+
 export default function PaymentSuccess() {
   const router = useRouter();
   const { order } = router.query;
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(fetchNotifications());
+  }, [dispatch]);
 
   return (
     <>

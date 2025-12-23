@@ -14,6 +14,7 @@ import socketService from "../services/socketService";
 import MessageStatus from "../components/chat/MessageStatus";
 import TypingIndicator from "../components/chat/TypingIndicator";
 import styles from "../styles/chat.module.css";
+import MembershipPopup from "../components/common-component/MembershipPopup";
 import CryptoJS from "crypto-js";
 import { decrypted_key } from "../services/appConfig";
 
@@ -30,6 +31,7 @@ export default function Messages() {
   const [typingUsers, setTypingUsers] = useState({});
   const [alert, setAlert] = useState({ open: false, message: "" });
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showMembershipPopup, setShowMembershipPopup] = useState(false);
 
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -43,7 +45,41 @@ export default function Messages() {
     chatCounting,
   } = useApiService();
 
-  const [currentUserId, setCurrentUserId] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(() => {
+    // Check if we're in the browser (not SSR)
+    if (typeof window === 'undefined') {
+      return null;
+    }
+    
+    // Initialize immediately from localStorage if available
+    const storedId = localStorage.getItem("user_id");
+    if (storedId) {
+      const userId = Number(storedId);
+      if (!isNaN(userId) && userId !== 0) {
+        console.log('🆔 ⚡ Initializing User ID from localStorage immediately:', userId);
+        return userId;
+      }
+    }
+    
+    // Try to get from JWT token as last resort
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.userId) {
+          const userId = Number(payload.userId);
+          console.log('🆔 ⚡ Initializing User ID from JWT token:', userId);
+          localStorage.setItem('user_id', userId.toString());
+          return userId;
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error parsing JWT token:', error);
+    }
+    
+    return null;
+  });
+  const [pendingMessages, setPendingMessages] = useState(new Map()); // Track optimistic messages
   
   // Use ref to track selected chat for socket listeners (fixes stale closure issue)
   const selectedChatRef = useRef(null);
@@ -53,45 +89,128 @@ export default function Messages() {
     selectedChatRef.current = selectedChat;
   }, [selectedChat]);
 
-  // Initialize currentUserId from Redux user (PRIMARY SOURCE)
+  // 🔒 CRITICAL: Initialize currentUserId from Redux user (PRIMARY SOURCE)
+  // Always ensure it's a NUMBER to fix message alignment issues
   useEffect(() => {
     if (user?.id) {
+      // Force conversion to number and validate
       const userId = Number(user.id);
+      
+      if (isNaN(userId) || userId === 0) {
+        console.error('❌ Invalid user ID from Redux:', user.id);
+        return;
+      }
+      
       setCurrentUserId(userId);
-      console.log('🆔 Setting User ID from Redux:', userId, typeof userId);
-      // Also save to localStorage for consistency
+      console.log('🆔 ✅ Setting User ID from Redux:', userId, '(type:', typeof userId, ')');
+      
+      // Save to localStorage for consistency
       localStorage.setItem('user_id', userId.toString());
     }
   }, [user]);
 
   // Fallback: Initialize from localStorage if Redux not available yet
   useEffect(() => {
+    // Only run in browser
+    if (typeof window === 'undefined') {
+      return;
+    }
+    
     if (!currentUserId) {
-      const userId = Number(localStorage.getItem("user_id"));
-      if (userId && userId !== 0) {
-        setCurrentUserId(userId);
-        console.log('🆔 Setting User ID from localStorage (fallback):', userId, typeof userId);
+      const storedId = localStorage.getItem("user_id");
+      if (storedId) {
+        const userId = Number(storedId);
+        
+        if (!isNaN(userId) && userId !== 0) {
+          setCurrentUserId(userId);
+          console.log('🆔 ⚠️ Setting User ID from localStorage (fallback):', userId, '(type:', typeof userId, ')');
+        } else {
+          console.error('❌ Invalid user ID in localStorage:', storedId);
+        }
+      } else {
+        // Try JWT token as last resort
+        try {
+          const token = localStorage.getItem("token");
+          if (token) {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            if (payload.userId) {
+              const userId = Number(payload.userId);
+              setCurrentUserId(userId);
+              localStorage.setItem('user_id', userId.toString());
+              console.log('🆔 ⚠️ Setting User ID from JWT token (last resort):', userId);
+            } else {
+              console.error('❌ No userId in JWT token payload');
+            }
+          } else {
+            console.error('❌ No token found. User needs to login.');
+          }
+        } catch (error) {
+          console.error('❌ Error parsing JWT token:', error);
+        }
       }
     }
+  }, [currentUserId]);
+  
+  // Debug: Log currentUserId whenever it changes
+  useEffect(() => {
+    console.log('🆔 Current User ID State:', currentUserId, 'Type:', typeof currentUserId);
   }, [currentUserId]);
 
   // Decrypt and get user data
   useEffect(() => {
     getUserProfile()
       .then((res) => {
-        if (res.data?.status === 200) {
-          const encrypted_json = JSON.parse(window.atob(res?.data?.user));
-          const dec = CryptoJS.AES.decrypt(
-            encrypted_json.value,
-            CryptoJS.enc.Base64.parse(decrypted_key),
-            { iv: CryptoJS.enc.Base64.parse(encrypted_json.iv) }
-          );
-          const decryptedText = dec.toString(CryptoJS.enc.Utf8);
-          const jsonStartIndex = decryptedText.indexOf("{");
-          const jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
-          const jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
-          const parsed = JSON.parse(jsonData.trim());
-          setUserData(parsed);
+        if (res.data?.code === 200 || res.data?.status === 200) {
+          const raw = res?.data?.data?.user;
+          if (!raw) return;
+
+          let decryptedText = "";
+
+          // 🔥 Method 1: Laravel-style JSON (Base64 -> JSON {value, iv})
+          try {
+            const decoded = window.atob(raw);
+            if (decoded.trim().startsWith("{")) {
+              const encrypted_json = JSON.parse(decoded);
+              if (encrypted_json.value && encrypted_json.iv) {
+                const dec = CryptoJS.AES.decrypt(
+                  encrypted_json.value,
+                  CryptoJS.enc.Base64.parse(decrypted_key),
+                  { iv: CryptoJS.enc.Base64.parse(encrypted_json.iv) }
+                );
+                decryptedText = dec.toString(CryptoJS.enc.Utf8);
+              }
+            }
+          } catch (err) {}
+
+          // 🔥 Method 2: Simple Ciphertext (Fixed IV from .env)
+          if (!decryptedText) {
+            try {
+              const keyHex = CryptoJS.enc.Hex.parse(process.env.NEXT_PUBLIC_ENC_KEY);
+              const ivHex = CryptoJS.enc.Hex.parse(process.env.NEXT_PUBLIC_ENC_IV);
+              const dec = CryptoJS.AES.decrypt(raw, keyHex, {
+                iv: ivHex,
+                mode: CryptoJS.mode.CBC,
+                padding: CryptoJS.pad.Pkcs7,
+              });
+              decryptedText = dec.toString(CryptoJS.enc.Utf8);
+            } catch (err) {}
+          }
+
+          if (decryptedText) {
+            const jsonStartIndex = decryptedText.indexOf("{");
+            const jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
+            if (jsonStartIndex >= 0 && jsonEndIndex > 0) {
+              const jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
+              const parsed = JSON.parse(jsonData.trim());
+              setUserData(parsed);
+              
+              // Check membership
+              const hasMembership = parsed?.package_id || parsed?.package;
+              if (!hasMembership) {
+                setShowMembershipPopup(true);
+              }
+            }
+          }
         }
       })
       .catch((error) => console.log(error));
@@ -154,13 +273,24 @@ export default function Messages() {
     getAllfriends()
       .then((res) => {
         if (res?.status === 200) {
+          console.log('📋 Raw friends API response:', res.data.data);
+          
           const currentChat = selectedChatRef.current;
           
           const formattedFriends = res.data.data.map((item) => {
+            // Log raw item to debug session ID issue
+            console.log('🔍 Raw item from API:', {
+              itemId: item.id,
+              friendId: item.friend?.id,
+              friendName: item.friend?.name,
+              lastMessageSessionId: item.lastMessage?.session_id,
+              fullItem: item
+            });
+            
             // Force unreadCount to 0 if this is the active chat
             const isCurrentChat = currentChat && Number(item.id) === Number(currentChat.session.id);
             
-            return {
+            const friendData = {
               id: item.friend.id,
               name: item.friend.name,
               ryt_id: item.friend.ryt_id,
@@ -168,20 +298,45 @@ export default function Messages() {
                 ? `${process.env.NEXT_PUBLIC_BASE_URL}/${item.friend.profile_photo}`
                 : null,
               session: {
-                id: item.id,
+                id: item.id, // This should be the session ID from backend
                 unreadCount: isCurrentChat ? 0 : (item.unreadCount || 0),
               },
               block: item.block ? JSON.parse(item.block) : [],
               lastMessage: item.lastMessage,
               lastMessageAt: item.last_message_at,
             };
+            
+            console.log('✅ Formatted friend data:', {
+              friendId: friendData.id,
+              friendName: friendData.name,
+              sessionId: friendData.session.id,
+              sessionIdType: typeof friendData.session.id
+            });
+            
+            // Log if this is the current chat
+            if (isCurrentChat) {
+              console.log('🔄 Refreshing current chat in sidebar:', {
+                sessionId: item.id,
+                friendName: item.friend.name,
+                lastMessage: item.lastMessage?.message?.substring(0, 30),
+                unreadCount: 0
+              });
+            }
+            
+            return friendData;
           });
+          
           setFriends(formattedFriends);
           setAllFriends(formattedFriends);
           setLoading(false);
+          
+          console.log('✅ Friends list updated:', formattedFriends.length, 'conversations');
         }
       })
-      .catch((error) => console.log(error));
+      .catch((error) => {
+        console.error('❌ Error fetching friends:', error);
+        setLoading(false);
+      });
   };
 
   const loadMessages = (sessionId) => {
@@ -203,7 +358,16 @@ export default function Messages() {
   };
 
   const handleChatSelect = (friend) => {
+    console.log('👆 Chat selected:', {
+      friendId: friend.id,
+      friendName: friend.name,
+      sessionId: friend.session?.id,
+      sessionData: friend.session,
+      fullFriendData: friend
+    });
+    
     setSelectedChat(friend);
+    
     // Clear typing indicator for this user
     setTypingUsers(prev => {
       const newTyping = { ...prev };
@@ -217,17 +381,47 @@ export default function Messages() {
   };
 
   const handleSendMessage = () => {
-    if (!message.trim() || !selectedChat) return;
+    if (!message.trim() || !selectedChat || !currentUserId) {
+      console.warn('⚠️ Cannot send message:', { hasMessage: !!message.trim(), hasChat: !!selectedChat, hasUserId: !!currentUserId });
+      return;
+    }
 
+    // Validate session ID
+    const sessionId = Number(selectedChat.session?.id);
+    if (!sessionId || sessionId === 0 || isNaN(sessionId)) {
+      console.error('❌ Invalid session ID:', {
+        sessionId: selectedChat.session?.id,
+        sessionData: selectedChat.session,
+        selectedChat: selectedChat
+      });
+      console.error('🚨 ERROR: Invalid chat session. Please refresh the page and try again.');
+      return;
+    }
+
+    // Generate unique temp ID using timestamp + random
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const messageText = message.trim();
+    
     const tempMessage = {
-      id: Date.now(),
-      message: message,
-      from_user_id: currentUserId,
-      to_user_id: selectedChat.id,
-      session_id: selectedChat.session.id,
+      id: tempId,
+      message: messageText,
+      from_user_id: Number(currentUserId), // Ensure it's a number
+      to_user_id: Number(selectedChat.id),
+      session_id: sessionId,
       created_at: new Date(),
       status: 'sending',
     };
+
+    console.log('📤 Sending message:', {
+      tempId,
+      from_user_id: tempMessage.from_user_id,
+      to_user_id: tempMessage.to_user_id,
+      session_id: tempMessage.session_id,
+      message: messageText.substring(0, 30)
+    });
+
+    // Track pending message
+    setPendingMessages(prev => new Map(prev).set(tempId, messageText));
 
     // Optimistic update
     setMessages(prev => [...prev, tempMessage]);
@@ -238,24 +432,42 @@ export default function Messages() {
 
     // Send via API
     sendMessageAPI(selectedChat.session.id, {
-      message: message,
+      message: messageText,
       message_type: "text",
     })
       .then((res) => {
-        // Update temp message with real data
+        console.log('✅ Message sent successfully:', res.data.data.id);
+        
+        // Remove from pending
+        setPendingMessages(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(tempId);
+          return newMap;
+        });
+        
+        // Replace temp message with real message from server
         setMessages(prev =>
           prev.map(msg =>
-            msg.id === tempMessage.id ? { ...res.data.data, status: 'sent' } : msg
+            msg.id === tempId ? { ...res.data.data, status: 'sent' } : msg
           )
         );
+        
         fetchFriends(); // Update last message in list
       })
       .catch((error) => {
-        console.log(error);
+        console.error('❌ Failed to send message:', error);
+        
+        // Remove from pending
+        setPendingMessages(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(tempId);
+          return newMap;
+        });
+        
         // Mark as failed
         setMessages(prev =>
           prev.map(msg =>
-            msg.id === tempMessage.id ? { ...msg, status: 'failed' } : msg
+            msg.id === tempId ? { ...msg, status: 'failed' } : msg
           )
         );
       });
@@ -332,41 +544,91 @@ export default function Messages() {
   const handleNewMessage = (data) => {
     const currentChat = selectedChatRef.current;
     
-    console.log('📨 New message received:', {
+    // Ensure all IDs are numbers for comparison
+    const messageFromUserId = Number(data.from_user_id);
+    const messageToUserId = Number(data.to_user_id);
+    const messageSessionId = Number(data.session_id);
+    const myUserId = Number(currentUserId);
+    
+    console.log('📨 New message received via socket:', {
       messageId: data.id,
-      from_user_id: data.from_user_id,
-      to_user_id: data.to_user_id,
-      currentUserId: currentUserId,
+      from_user_id: messageFromUserId,
+      to_user_id: messageToUserId,
+      myUserId: myUserId,
       selectedSessionId: currentChat?.session?.id,
-      dataSessionId: data.session_id,
-      message: data.message
+      dataSessionId: messageSessionId,
+      message: data.message?.substring(0, 30),
+      isMine: messageFromUserId === myUserId
     });
 
-    // CRITICAL FIX: Only add message if it's FROM the other person (not from me)
-    // The sender already has the message from optimistic update
-    if (Number(data.from_user_id) === Number(currentUserId)) {
-      console.log('ℹ️ My own message from socket, ignoring (already have from optimistic update)');
-      // Update the existing message with real ID and status from server
-      setMessages(prev =>
-        prev.map(msg =>
-          msg.message === data.message && msg.from_user_id === currentUserId && msg.id > 1000000000000
-            ? { ...data, status: 'sent' }
-            : msg
-        )
-      );
-      fetchFriends();
+    // CRITICAL: Check if currentUserId is set
+    if (!myUserId || isNaN(myUserId)) {
+      console.error('❌ currentUserId not set or invalid! Cannot process message.');
       return;
     }
 
-    // Only add message if it's for the currently open chat
-    if (currentChat && Number(data.session_id) === Number(currentChat.session.id)) {
+    // Case 1: This is MY OWN message echoed back from server
+    // The sender already has this message from optimistic update
+    if (messageFromUserId === myUserId) {
+      console.log('ℹ️ My own message from socket - updating temp message with real ID');
+      
+      // Find and update the pending temp message
+      setMessages(prev => {
+        // Try to find temp message by matching text in pending messages
+        const tempMsg = prev.find(msg => 
+          String(msg.id).startsWith('temp_') && 
+          msg.message === data.message &&
+          Number(msg.from_user_id) === myUserId
+        );
+        
+        if (tempMsg) {
+          console.log('✅ Found temp message to replace:', tempMsg.id);
+          // Replace temp with real message
+          return prev.map(msg =>
+            msg.id === tempMsg.id ? { ...data, status: 'sent' } : msg
+          );
+        } else {
+          // Temp message might have already been replaced, check for duplicate
+          const exists = prev.some(msg => msg.id === data.id);
+          if (exists) {
+            console.log('⚠️ Message already exists (real ID), skipping');
+            return prev;
+          }
+          
+          // This shouldn't happen, but add it anyway
+          console.warn('⚠️ No temp message found, but adding real message');
+          return [...prev, { ...data, status: 'sent' }];
+        }
+      });
+      
+      // Remove from pending messages
+      setPendingMessages(prev => {
+        const newMap = new Map(prev);
+        // Find and remove the pending message with matching text
+        for (let [key, value] of newMap.entries()) {
+          if (value === data.message) {
+            newMap.delete(key);
+            break;
+          }
+        }
+        return newMap;
+      });
+      
+      fetchFriends(); // Update sidebar
+      return;
+    }
+
+    // Case 2: This is a message FROM another user TO me
+    // Only add if it's for the currently open chat
+    if (currentChat && messageSessionId === Number(currentChat.session.id)) {
       // Check if message already exists to prevent duplicates
       setMessages(prev => {
         const exists = prev.some(msg => msg.id === data.id);
         if (exists) {
-          console.log('⚠️ Message already exists, skipping');
+          console.log('⚠️ Received message already exists, skipping duplicate');
           return prev;
         }
+        
         console.log('✅ Adding friend\'s message to chat');
         return [...prev, data];
       });
@@ -376,11 +638,12 @@ export default function Messages() {
         markMessagesAsRead(currentChat.session.id);
       } else {
         // Otherwise just mark as delivered
-        socketService.messageDelivered(currentChat.session.id, data.id, data.from_user_id, currentUserId);
+        socketService.messageDelivered(currentChat.session.id, data.id, data.from_user_id, myUserId);
       }
-    } else {
-      // If chat not open, just mark as delivered
-      socketService.messageDelivered(data.session_id, data.id, data.from_user_id, currentUserId);
+    } else if (messageSessionId !== Number(currentChat?.session?.id)) {
+      // Message for a different chat - just mark as delivered
+      console.log('📬 Message for different chat, marking as delivered');
+      socketService.messageDelivered(messageSessionId, data.id, data.from_user_id, myUserId);
     }
     
     // Always update friends list to show latest message
@@ -537,6 +800,12 @@ export default function Messages() {
         <Alert severity="success">{alert.message}</Alert>
       </Snackbar>
 
+      <MembershipPopup
+        open={showMembershipPopup}
+        onClose={() => setShowMembershipPopup(false)}
+        message="Without membership not able to chat with other users."
+      />
+
       <div className={styles.chatContainer}>
         {/* Chat List Sidebar */}
         <div className={`${styles.chatListSidebar} ${selectedChat ? styles.mobileHidden : ''}`}>
@@ -653,19 +922,26 @@ export default function Messages() {
               {messages.map((msg, index) => {
                 const prevDate = index > 0 ? moment(messages[index - 1].created_at).format("DD-MM-YYYY") : null;
                 const currentDate = moment(msg.created_at).format("DD-MM-YYYY");
-                const isMine = msg.from_user_id === currentUserId;
                 
-                // Debug logging - log all messages status
-                if (index === 0) {
+                // 🔒 CRITICAL: Ensure strict number comparison for message ownership
+                const msgFromUserId = Number(msg.from_user_id);
+                const myUserId = Number(currentUserId);
+                const isMine = msgFromUserId === myUserId;
+                
+                // Debug logging for first message to verify alignment
+                if (index === 0 && currentUserId) {
                   console.log('💬 Message Rendering Debug:', {
                     totalMessages: messages.length,
-                    currentUserId: currentUserId,
-                    messagesStatus: messages.map(m => ({
+                    currentUserId: myUserId,
+                    currentUserIdType: typeof myUserId,
+                    firstMessageFrom: msgFromUserId,
+                    firstMessageFromType: typeof msgFromUserId,
+                    firstMessageIsMine: isMine,
+                    messagesBreakdown: messages.map(m => ({
                       id: m.id,
-                      from: m.from_user_id,
-                      isMine: m.from_user_id === currentUserId,
+                      from: Number(m.from_user_id),
+                      isMine: Number(m.from_user_id) === myUserId,
                       status: m.status,
-                      is_read: m.is_read,
                       message: m.message.substring(0, 20)
                     }))
                   });
@@ -708,7 +984,7 @@ export default function Messages() {
             )}
 
             {/* Message Input */}
-            {!isBlocked() && !userData?.user?.plan_expire ? (
+            {!isBlocked() && (userData?.package_id || userData?.package) ? (
               <div className={styles.messageInputContainer}>
                 <input
                   type="text"
@@ -727,10 +1003,14 @@ export default function Messages() {
                 </button>
               </div>
             ) : (
-              <div style={{ padding: '20px', textAlign: 'center', background: '#fff', borderTop: '1px solid #e0e0e0' }}>
-                {isBlocked() ? "You can't reply to this conversation." : "Upgrade or Buy Plan."}
+              <div 
+                style={{ padding: '20px', textAlign: 'center', background: '#fff', borderTop: '1px solid #e0e0e0', cursor: 'pointer' }}
+                onClick={() => !isBlocked() && setShowMembershipPopup(true)}
+              >
+                {isBlocked() ? "You can't reply to this conversation." : "Without membership not able to send message"}
               </div>
             )}
+
           </div>
         ) : (
           <div className={styles.emptyState}>

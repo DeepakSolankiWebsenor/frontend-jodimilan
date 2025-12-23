@@ -9,22 +9,30 @@ import { Alert, Snackbar } from "@mui/material";
 import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
 import Head from "next/head";
 import CircularLoader from "../../components/common-component/loader";
+import {BASE_URL} from "../../services/appConfig";
+import { useSelector } from "react-redux";
+import CryptoJS from "crypto-js";
+import MembershipPopup from "../../components/common-component/MembershipPopup";
+import { decrypted_key } from "../../services/appConfig";
 
-const BASE_URL = "http://localhost:3006/api/";
-// const BASE_URL = "hhttps://backend-jodimilan-2ekb.vercel.app/api/";
 
 function ShortListProfile() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [profiles, setProfiles] = useState([]);
   const [alert, setAlert] = useState(false);
+  const[page,setPage]=useState(1);
+
+  const [showMembershipPopup, setShowMembershipPopup] = useState(false);
+  const masterData = useSelector((state) => state.user);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const { getWishlist, removeFromShortlist } = useApiService();
 
   const getWishlistProfiles = async () => {
     setLoading(true);
     try {
-      const res = await getWishlist();
+      const res = await getWishlist(page);
       console.log("Wishlist Res:", res);
 
       if (res?.data?.code === 200) {
@@ -42,6 +50,62 @@ function ShortListProfile() {
     else getWishlistProfiles();
   }, []);
 
+  // Decrypt current user data
+  useEffect(() => {
+    try {
+      const raw = masterData?.user?.user || masterData?.user;
+      if (!raw) return;
+
+      if (typeof raw === "object") {
+        setCurrentUser(raw);
+        return;
+      }
+
+      let decryptedText = "";
+
+      // 🔥 Method 1: Laravel-style JSON (Base64 -> JSON {value, iv})
+      try {
+        const decoded = window.atob(raw);
+        if (decoded.trim().startsWith("{")) {
+          const encrypted_json = JSON.parse(decoded);
+          if (encrypted_json.value && encrypted_json.iv) {
+            const dec = CryptoJS.AES.decrypt(
+              encrypted_json.value,
+              CryptoJS.enc.Base64.parse(decrypted_key),
+              { iv: CryptoJS.enc.Base64.parse(encrypted_json.iv) }
+            );
+            decryptedText = dec.toString(CryptoJS.enc.Utf8);
+          }
+        }
+      } catch (err) {}
+
+      // 🔥 Method 2: Simple Ciphertext (Fixed IV from .env)
+      if (!decryptedText) {
+        try {
+          const keyHex = CryptoJS.enc.Hex.parse(process.env.NEXT_PUBLIC_ENC_KEY);
+          const ivHex = CryptoJS.enc.Hex.parse(process.env.NEXT_PUBLIC_ENC_IV);
+          const dec = CryptoJS.AES.decrypt(raw, keyHex, {
+            iv: ivHex,
+            mode: CryptoJS.mode.CBC,
+            padding: CryptoJS.pad.Pkcs7,
+          });
+          decryptedText = dec.toString(CryptoJS.enc.Utf8);
+        } catch (err) {}
+      }
+
+      if (decryptedText) {
+        const jsonStartIndex = decryptedText.indexOf("{");
+        const jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
+        if (jsonStartIndex >= 0 && jsonEndIndex > 0) {
+          const jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
+          setCurrentUser(JSON.parse(jsonData.trim()));
+        }
+      }
+    } catch (error) {
+      console.error("❌ Failed to decrypt master user in ShortListProfile:", error);
+    }
+  }, [masterData]);
+
   const handleRemove = async (id) => {
     try {
       const res = await removeFromShortlist(id);
@@ -55,6 +119,11 @@ function ShortListProfile() {
   };
 
   const handleViewProfile = (id) => {
+    const hasMembership = currentUser?.package_id || currentUser?.package;
+    if (!hasMembership) {
+      setShowMembershipPopup(true);
+      return;
+    }
     console.log("Navigating to profile with ID:", id);
     if (!id) {
         console.error("ID is undefined!");
@@ -70,6 +139,12 @@ function ShortListProfile() {
       <Head>
         <title>ShortList - JodiMilan</title>
       </Head>
+
+      <MembershipPopup
+        open={showMembershipPopup}
+        onClose={() => setShowMembershipPopup(false)}
+        message="Without membership not able to see view details"
+      />
 
       <Snackbar
         open={alert}
@@ -139,7 +214,7 @@ function ShortListProfile() {
 
                     <p className="text-sm text-gray-700 mt-1">
                       Clan:{" "}
-                      <span className="font-bold">{user?.caste || "--"}</span>
+                      <span className="font-bold">{user?.casteRelation?.name || "--"}</span>
                     </p>
 
                     <p className="text-sm text-gray-700 mt-1">

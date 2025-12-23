@@ -4,7 +4,7 @@ import Footer from "./Footer";
 import Header from "./Header";
 import { useDispatch } from "react-redux";
 import useApiService from "../services/ApiService";
-import { COMMON_DATA } from "../services/redux/slices/userSlice";
+import { COMMON_DATA, setUser } from "../services/redux/slices/userSlice";
 import useFirebase from "../hooks/useFirebase";
 import { setNotifications } from "../services/redux/slices/notificationSlice";
 
@@ -13,7 +13,7 @@ function Layout({ children }) {
   const dispatch = useDispatch();
   const { initFirebase } = useFirebase();
   const [hideFooter, setHideFooter] = useState(false);
-  const { commonOption, getNotifications } = useApiService();
+  const { commonOption, getNotifications, getUserProfile } = useApiService();
 
   useEffect(() => {
     const location = window.location.pathname;
@@ -52,6 +52,18 @@ function Layout({ children }) {
     if (token) {
       getNotificationsData();
       initFirebase({ userId });
+      
+      // Sync user profile in Redux
+      getUserProfile()
+        .then((res) => {
+          console.log("💎 LAYOUT SYNC RESPONSE:", res.data);
+          if (res?.data?.code === 200 || res?.data?.status === 200) {
+            const encryptedStr = res?.data?.data?.user;
+            console.log("💎 DISPATCHING ENCRYPTED USER:", encryptedStr ? encryptedStr.substring(0, 20) + "..." : "NULL");
+            dispatch(setUser(encryptedStr));
+          }
+        })
+        .catch(err => console.error("❌ Sync profile error:", err));
     }
   }, []);
 
