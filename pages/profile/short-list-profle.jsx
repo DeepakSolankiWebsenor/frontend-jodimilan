@@ -119,11 +119,6 @@ function ShortListProfile() {
   };
 
   const handleViewProfile = (id) => {
-    const hasMembership = currentUser?.package_id || currentUser?.package;
-    if (!hasMembership) {
-      setShowMembershipPopup(true);
-      return;
-    }
     console.log("Navigating to profile with ID:", id);
     if (!id) {
         console.error("ID is undefined!");

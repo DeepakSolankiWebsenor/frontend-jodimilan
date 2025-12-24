@@ -47,6 +47,7 @@ const Signup = ({ open, onClose }) => {
     register,
     handleSubmit,
     reset,
+    setError,
     formState: { errors },
   } = useForm({ defaultValues });
 
@@ -79,13 +80,49 @@ const Signup = ({ open, onClose }) => {
           setStep("otp");
           setTimer(30);
           setIsResendDisabled(true);
-          reset();
         }
       })
       .catch((err) => {
-        const msg = err?.response?.data?.message || "Signup failed";
-        setSignupError(msg);
-        toast.error(msg);
+        const errorData = err?.response?.data;
+        const msg = errorData?.message || "Signup failed";
+
+        if (errorData?.errors) {
+          setSignupError(""); 
+          
+          if (Array.isArray(errorData.errors)) {
+            // Handle Array format (e.g. 409 Duplicate entry)
+            errorData.errors.forEach((e) => {
+              const field = e.field?.includes("phone") ? "phone" : e.field?.includes("email") ? "email" : "name";
+              let displayMessage = e.message || msg;
+              
+              if (displayMessage.includes("users_dialing_code_phone_unique")) {
+                displayMessage = "This phone number is already registered";
+              } else if (displayMessage.includes("users_email_unique")) {
+                displayMessage = "This email is already registered";
+              }
+
+              setError(field, {
+                type: "server",
+                message: displayMessage,
+              });
+            });
+          } else if (typeof errorData.errors === 'object') {
+            // Handle Object format (e.g. 422 Validation failed)
+            Object.keys(errorData.errors).forEach((field) => {
+              const errorMessage = typeof errorData.errors[field] === 'string' 
+                ? errorData.errors[field] 
+                : (errorData.errors[field]?.message || JSON.stringify(errorData.errors[field]));
+              
+              setError(field, {
+                type: "server",
+                message: errorMessage,
+              });
+            });
+          }
+        } else {
+          setSignupError(msg);
+          toast.error(msg);
+        }
       })
       .finally(() => setLoading(false));
   };
@@ -104,6 +141,7 @@ const Signup = ({ open, onClose }) => {
         if (res.data.code === 200) {
           toast.success("OTP verified successfully");
           localStorage.setItem("token", res.data.data.access_token);
+          reset();
 
           setTimeout(() => {
             onClose();
@@ -157,10 +195,19 @@ const Signup = ({ open, onClose }) => {
             Register Yourself
           </DialogTitle>
 
-          {signupError && (
-            <p className="text-center text-red-500 text-xs mt-1">
-              {signupError}
-            </p>
+          {(signupError || Object.keys(errors).some(k => errors[k]?.type === 'server')) && (
+            <div className="text-center text-red-500 text-xs mt-1">
+              {signupError && <p>{signupError}</p>}
+              {Object.keys(errors).map((key) => 
+                errors[key]?.type === 'server' && (
+                  <p key={key}>
+                    {typeof errors[key].message === 'string' 
+                      ? errors[key].message 
+                      : (errors[key].message?.message || "An error occurred")}
+                  </p>
+                )
+              )}
+            </div>
           )}
 
           <DialogContent>
@@ -293,6 +340,9 @@ const Signup = ({ open, onClose }) => {
                   {...register("last_name")}
                   className="p-3 bg-gray-200 rounded text-xs outline-none"
                 />
+                {errors.last_name && (
+                  <p className="text-red-500 text-xs">{errors.last_name.message}</p>
+                )}
               </div>
 
               <div className="grid gap-1">
@@ -310,7 +360,13 @@ const Signup = ({ open, onClose }) => {
                 <label className="text-sm font-medium">Password</label>
                 <input
                   type="password"
-                  {...register("password", { required: "Required" })}
+                  {...register("password", { 
+                    required: "Required",
+                    pattern: {
+                      value: /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[#$@!%&*?])[A-Za-z\d#$@!%&*?]{6,}$/,
+                      message: "Password must contain letters, numbers, and at least one special character (#$@!%&*?)"
+                    }
+                  })}
                   className="p-3 bg-gray-200 rounded text-xs outline-none"
                 />
                 {errors.password && (

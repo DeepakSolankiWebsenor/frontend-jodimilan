@@ -94,6 +94,7 @@ const ProfileDetail = () => {
   const [blockedObj, setBlockedObj] = useState(null);
 const [alertSeverity, setAlertSeverity] = useState("success");
 const [showMembershipPopup, setShowMembershipPopup] = useState(false);
+const [popupMessage, setPopupMessage] = useState("");
 
 
   const cancelButtonRef = useRef(null);
@@ -155,11 +156,8 @@ const getMasterData = () => {
           const parsed = JSON.parse(jsonData.trim());
           setUserData(parsed);
           
-          // Check membership
+          // Check membership (removed automatic popup trigger)
           const hasMembership = parsed?.package_id || parsed?.package;
-          if (!hasMembership) {
-            setShowMembershipPopup(true);
-          }
         }
       }
     }
@@ -347,6 +345,22 @@ setProfileData(normalized);
   const handleViewContact = () => {
     if (!profileData) return;
 
+    const hasMembership = userData?.package_id || userData?.package;
+    const isFriend = profileData?.friend_request_approved;
+    const isRestrictedByPrivacy = profileData?.access_restricted_by_privacy;
+
+    if (isRestrictedByPrivacy) {
+      setPopupMessage("This user does not allow sharing details with friends. Please upgrade to premium to view.");
+      setShowMembershipPopup(true);
+      return;
+    }
+
+    if (!hasMembership && !isFriend) {
+      setPopupMessage("Without membership and friend not able to see view details");
+      setShowMembershipPopup(true);
+      return;
+    }
+
     if (profileData?.profile?.contact_privacy === "Yes") {
       if (!userData?.user?.plan_expire) {
         viewContact(profileId)
@@ -442,7 +456,7 @@ const partnerPreferences = profileData?.partner_preferences
       <MembershipPopup
         open={showMembershipPopup}
         onClose={() => setShowMembershipPopup(false)}
-        message="Without membership not able to see view details"
+        message={popupMessage || "Without membership and friend not able to see view details"}
       />
 <Snackbar
   open={alert}

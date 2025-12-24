@@ -143,11 +143,6 @@ const InterestReceivePending = () => {
   };
 
   const handleNavigateToProfile = (id) => {
-    const hasMembership = currentUser?.package_id || currentUser?.package;
-    if (!hasMembership) {
-      setShowMembershipPopup(true);
-      return;
-    }
     router.push(`/profile/profile-detail/${id}`);
   };
 

@@ -96,13 +96,6 @@ const Usercard = ({ item, index, className }) => {
       return;
     }
 
-    // Check membership
-    const hasMembership = currentUser?.package_id || currentUser?.package;
-    if (!hasMembership) {
-      setShowMembershipPopup(true);
-      return;
-    }
-
     router.push(`/profile/profile-detail/${id}`);
   };
 

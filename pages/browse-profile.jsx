@@ -180,7 +180,7 @@ const Browseprofile = () => {
     <>
       <Head>
         <title>Browse Profile - JodiMilan</title>
-        <meta name="description" content="Verified Rajput Matrimony Profiles" />
+        <meta name="description" content="Verified Matrimony Profiles" />
       </Head>
 
       <HeaderTwo />
@@ -188,7 +188,7 @@ const Browseprofile = () => {
       <div className="mt-10 text-center">
         <h1 className="text-4xl font-bold">Profiles</h1>
         <p className="text-gray-500 mt-2">
-          Search & explore verified rajput community profiles
+          Search & explore verified community profiles
         </p>
       </div>
 

@@ -930,7 +930,7 @@ function EditProfile() {
                           <div className="my-2">Profile View Count : </div>
                           <div>Profile Remaining View Count : </div>
                           <div className="my-2">
-                            Profile View Count Comsumed :{" "}
+                            Profile View Count Consumed :{" "}
                           </div>
                         </div>
                         <div>
