@@ -286,24 +286,27 @@ export default function Messages() {
               lastMessageSessionId: item.lastMessage?.session_id,
               fullItem: item
             });
+
+
+            console.log("element",item)
             
             // Force unreadCount to 0 if this is the active chat
             const isCurrentChat = currentChat && Number(item.id) === Number(currentChat.session.id);
             
             const friendData = {
-              id: item.friend.id,
-              name: item.friend.name,
-              ryt_id: item.friend.ryt_id,
-              profile: item.friend.profile_photo
-                ? `${process.env.NEXT_PUBLIC_BASE_URL}/${item.friend.profile_photo}`
+              id: item?.friend?.id,
+              name: item?.friend?.name,
+              ryt_id: item?.friend?.ryt_id,
+              profile: item?.friend?.profile_photo
+                ? `${process.env.NEXT_PUBLIC_BASE_URL}/${item?.friend?.profile_photo}`
                 : null,
               session: {
-                id: item.id, // This should be the session ID from backend
-                unreadCount: isCurrentChat ? 0 : (item.unreadCount || 0),
+                id: item?.id, // This should be the session ID from backend
+                unreadCount: isCurrentChat ? 0 : (item?.unreadCount || 0),
               },
               block: item.block ? JSON.parse(item.block) : [],
-              lastMessage: item.lastMessage,
-              lastMessageAt: item.last_message_at,
+              lastMessage: item?.lastMessage,
+              lastMessageAt: item?.last_message_at,
             };
             
             console.log('✅ Formatted friend data:', {
@@ -316,9 +319,9 @@ export default function Messages() {
             // Log if this is the current chat
             if (isCurrentChat) {
               console.log('🔄 Refreshing current chat in sidebar:', {
-                sessionId: item.id,
-                friendName: item.friend.name,
-                lastMessage: item.lastMessage?.message?.substring(0, 30),
+                sessionId: item?.id,
+                friendName: item?.friend?.name,
+                lastMessage: item?.lastMessage?.message?.substring(0, 30),
                 unreadCount: 0
               });
             }
