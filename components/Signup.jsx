@@ -16,6 +16,7 @@ const defaultValues = {
   gender: "",
   mat_status: "",
   religion: "",
+  religion_name: "",
   caste: "",
   dob: "",
   name: "",
@@ -48,6 +49,7 @@ const Signup = ({ open, onClose }) => {
     handleSubmit,
     reset,
     setError,
+    setValue,
     formState: { errors },
   } = useForm({ defaultValues });
 
@@ -273,13 +275,24 @@ const Signup = ({ open, onClose }) => {
               </div>
 
               <div className="grid gap-1">
-                <label className="text-sm font-medium">State</label>
+                <label className="text-sm font-medium">Religion</label>
                 <select
-                  {...register("religion", { required: "Required" })}
+                  {...register("religion", {
+                    required: "Required",
+                    onChange: (e) => {
+                      const selectedId = e.target.value;
+                      const religionObj = options?.religion?.find(
+                        (item) => item.id == selectedId
+                      );
+                      if (religionObj) {
+                        setValue("religion_name", religionObj.name);
+                      }
+                    },
+                  })}
                   className="p-3 bg-gray-200 rounded text-xs outline-none"
                 >
                   <option hidden>Select</option>
-                  {options?.state?.map((item, i) => (
+                  {options?.religion?.map((item, i) => (
                     <option key={i} value={item.id}>
                       {item.name}
                     </option>

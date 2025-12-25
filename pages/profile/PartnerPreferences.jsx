@@ -212,7 +212,7 @@ const PartnerPreferences = ({ data, fetchProfile }) => {
                 </div>
               ) : (
                 <div className="md:w-2/3 w-1/2">
-                  {getNameById(
+                  {data?.religion_name || getNameById(
                     masterData1?.common_data?.religion,
                     data?.religion
                   )}
@@ -254,7 +254,7 @@ const PartnerPreferences = ({ data, fetchProfile }) => {
                 </div>
               ) : (
                 <div className="md:w-2/3 w-1/2">
-                  {getNameById(masterData1?.common_data?.caste, data?.caste)}
+                  {data?.caste_name || getNameById(masterData1?.common_data?.caste, data?.caste)}
                 </div>
               )}
             </div>

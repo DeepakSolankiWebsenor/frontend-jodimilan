@@ -441,7 +441,7 @@ const partnerPreferences = profileData?.partner_preferences
   : null;
 
 
-
+console.log("partnerPreferences", partnerPreferences);
 
 
 
@@ -983,9 +983,9 @@ const partnerPreferences = profileData?.partner_preferences
                           </div>
                           <div>
                             Religion:{" "}
-                            {profileData?.profile?.religionRelation?.name || ""}
+                            {partnerPreferences?.religion_name || ""}
                           </div>
-                          <div>Caste: {profileData?.casteRelation?.name || ""}</div>
+                          <div>Caste: {partnerPreferences?.caste_name || ""}</div>
                           <div>
                             Age Range: {partnerPreferences.min_age} -{" "}
                             {partnerPreferences.max_age}
