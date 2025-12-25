@@ -304,7 +304,7 @@ export default function Messages() {
                 id: item?.id, // This should be the session ID from backend
                 unreadCount: isCurrentChat ? 0 : (item?.unreadCount || 0),
               },
-              block: item.block ? JSON.parse(item.block) : [],
+              block: item.block ? (typeof item.block === 'string' ? JSON.parse(item.block) : item.block) : [],
               lastMessage: item?.lastMessage,
               lastMessageAt: item?.last_message_at,
             };
@@ -513,9 +513,10 @@ export default function Messages() {
   const handleBlockUser = () => {
     if (!selectedChat) return;
 
-    const isBlocked = Array.isArray(selectedChat.block) && selectedChat.block.some(
-      (item) => Number(item.blocked_by) === currentUserId
-    );
+    const block = selectedChat.block;
+    const isBlocked = Array.isArray(block)
+      ? block.some((item) => item && Number(item.blocked_by) === currentUserId)
+      : !!(block && typeof block === 'object' && block[currentUserId]);
 
     blockchatuser(selectedChat.session.id, isBlocked ? "unblock" : "block")
       .then((response) => {
@@ -780,9 +781,16 @@ export default function Messages() {
 
   const isBlocked = () => {
     if (!selectedChat) return false;
-    return Array.isArray(selectedChat.block) && selectedChat.block.some(
-      (item) => Number(item.blocked_by) === currentUserId || Number(item.blocked_by) === selectedChat.id
-    );
+    const block = selectedChat.block;
+    if (Array.isArray(block)) {
+      return block.some(
+        (item) => item && (Number(item.blocked_by) === currentUserId || Number(item.blocked_by) === selectedChat.id)
+      );
+    }
+    if (block && typeof block === 'object') {
+      return !!(block[currentUserId] || block[selectedChat.id]);
+    }
+    return false;
   };
 
   return (

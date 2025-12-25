@@ -282,7 +282,7 @@ const getMasterData = () => {
 
                   <div
                     className="mt-3 font-semibold text-[15px] text-black cursor-pointer hover:text-primary"
-                    onClick={() => router.push("/blocked-list")}
+                    onClick={() => router.push("/Blocked")}
                   >
                     Block List
                   </div>
@@ -522,7 +522,7 @@ const getMasterData = () => {
                       Sent Pending
                     </p>
                     <p
-                      onClick={() => router.push("/blocked-list")}
+                      onClick={() => router.push("/Blocked")}
                       className="cursor-pointer hover:text-primary"
                     >
                       Block List

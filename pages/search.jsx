@@ -465,7 +465,7 @@ function Search() {
                                 </select>
                               </div>
                             </div>
-                            <div className="flex md:justify-between justify-center">
+                            {/* <div className="flex md:justify-between justify-center">
                               <div className="mr-2">
                                 <div className="font-medium mb-2 text-start ml-2">
                                   State
@@ -506,7 +506,7 @@ function Search() {
                                   ))}
                                 </select>
                               </div>
-                            </div>
+                            </div> */}
                             <div className="mb-2">
                               <div className="text-start font-medium mb-2 ml-2">
                                 Age

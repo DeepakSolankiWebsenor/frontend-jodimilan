@@ -189,9 +189,7 @@ const normalizeProfile = (user) => {
       partner_prefernces: profile.partner_prefernces || "",
       
       // 📌 Fix image for UI
-      profile_img_src: profile.profile_image
-        ? `${baseUrl}/${profile.profile_image}`
-        : null,
+      profile_img_src: user.profile_photo || (profile.profile_image ? (profile.profile_image.startsWith('http') ? profile.profile_image : `${baseUrl}/${profile.profile_image}`) : null),
 
       // 📌 Fix location mapping
       thikana_city: { name: profile.thikana_city || "" },
@@ -515,7 +513,7 @@ console.log("partnerPreferences", partnerPreferences);
                   <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <div className="sm:flex sm:items-start">
                       <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                        <ExclamationTriangleIcon
+                         <ExclamationTriangleIcon
                           className="h-6 w-6 text-red-600"
                           aria-hidden="true"
                         />
@@ -714,28 +712,39 @@ console.log("partnerPreferences", partnerPreferences);
                 <div className="ml-4 md:pt-0 pt-2  md:ml-0 lg:ml-4 w-[92%] md:flex bg-white drop-shadow-sm">
                   {/* PROFILE IMAGE */}
                   <div className="lg:w-[320px] my-3 md:w-[300px] relative">
-                    <Image
-                      src={profileData?.gender === "Male" ? MenD : WomenD}
-                      alt="profile image"
-                      height={100}
-                      width={120}
-                      className="md:w-full w-auto mx-auto md:h-full h-56"
-                    />
-                    {profileData?.profile?.photo_privacy === "No" && (
+                    {profileData?.userprofile?.profile_img_src ? (
+                      <img
+                        src={profileData.userprofile.profile_img_src}
+                        alt="profile image"
+                        className="md:w-full w-auto mx-auto md:h-full h-56 object-cover"
+                        style={{
+                          filter: profileData?.profile?.photo_privacy === "No" ? "blur(4px)" : "",
+                        }}
+                      />
+                    ) : (
+                      <Image
+                        src={profileData?.gender === "Male" ? MenD : WomenD}
+                        alt="profile image"
+                        height={100}
+                        width={120}
+                        className="md:w-full w-auto mx-auto md:h-full h-56"
+                      />
+                    )}
+                    {/* {profileData?.profile?.photo_privacy === "No" && (
                       <div className="absolute top-[50%] left-[50%] -translate-x-[50%]">
                         <div className="text-white text-center">
                           <div className="font-medium">Visible On Accept</div>
                           <LockOutlinedIcon />
                         </div>
                       </div>
-                    )}
+                    )} */}
                   </div>
 
                   {/* BASIC INFO */}
                   <div className="w-full bg-white">
                     <div className="px-4 pt-3 flex flex-col justify-around">
                       <div className="flex gap-3 items-center text-xl font-medium">
-                        <div>{profileData?.ryt_id}</div>
+                        <div>{profileData?.name + " " + profileData?.last_name} ({profileData?.ryt_id})</div>
                         {!profileData?.plan_expire ? (
                           <div>
                             <Image
@@ -799,7 +808,7 @@ console.log("partnerPreferences", partnerPreferences);
 
                       <div className="flex">
                         {profileData?.is_blocked ? (
-                          <Tooltip
+                           <Tooltip
                             title="Unblock this profile"
                             onClick={() => setBlockModal(true)}
                           >
@@ -809,6 +818,7 @@ console.log("partnerPreferences", partnerPreferences);
                           </Tooltip>
                         ) : (
                           <button onClick={() => setBlockModal(true)}>
+                            <span className="text-red-600 font-bold mr-2">Blocked </span>
                             <Tooltip title="Block this profile" arrow>
                               <BlockIcon className="text-red-600" />
                             </Tooltip>

@@ -51,13 +51,19 @@ const decryptPayload = (cipherBase64) => {
 const normalizeUser = (user) => {
   if (!user) return null;
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  
+  // Logic: Prioritize top-level profile_photo, then profile.profile_image
+  let profile_img_src = user?.profile_photo || user?.profile?.profile_image;
+  
+  if (profile_img_src && !profile_img_src.startsWith('http')) {
+    profile_img_src = `${baseUrl}/${profile_img_src}`;
+  }
+
   return {
     ...user,
     profile: {
       ...user.profile,
-      profile_img_src: user.profile?.profile_image
-        ? `${baseUrl}/${user.profile.profile_image}`
-        : null,
+      profile_img_src: profile_img_src || null,
     },
   };
 };
@@ -121,12 +127,18 @@ function ProfilePage() {
         const list = res?.data?.data || [];
         const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-        const formatted = list.map((u) => ({
-          ...u,
-          img_src: u.profile?.profile_photo
-            ? `${baseUrl}/${u.profile.profile_photo}`
-            : null,
-        }));
+        const formatted = list.map((u) => {
+          let img_src = u.profile_photo || u.profile?.profile_image;
+          
+          if (img_src && !img_src.startsWith('http')) {
+            img_src = `${baseUrl}/${img_src}`;
+          }
+
+          return {
+            ...u,
+            img_src: img_src || null,
+          };
+        });
 
         setDailyData(formatted);
       })

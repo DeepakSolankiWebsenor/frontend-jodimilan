@@ -327,7 +327,19 @@ const Signup = ({ open, onClose }) => {
                 <label className="text-sm font-medium">Date of Birth</label>
                 <input
                   type="date"
-                  {...register("dob", { required: "Required" })}
+                  {...register("dob", { 
+                    required: "Required",
+                    validate: (value) => {
+                      const today = new Date();
+                      const birthDate = new Date(value);
+                      let age = today.getFullYear() - birthDate.getFullYear();
+                      const m = today.getMonth() - birthDate.getMonth();
+                      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                        age--;
+                      }
+                      return age >= 21 || "User must be 21 years or older";
+                    }
+                  })}
                   max={new Date().toISOString().split("T")[0]}
                   className="p-3 bg-gray-200 rounded text-xs outline-none"
                 />

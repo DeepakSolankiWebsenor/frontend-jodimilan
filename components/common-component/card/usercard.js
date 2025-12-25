@@ -9,8 +9,10 @@ import MembershipPopup from "../MembershipPopup";
 import { decrypted_key } from "../../../services/appConfig";
 
 const Usercard = ({ item, index, className }) => {
-  const { profile_img_src, height, occupation, birthCity, photo_privacy } =
-    item.userprofile || item.profile || {};
+  const profile = item.userprofile || item.profile || {};
+  const { height, occupation, birthCity, photo_privacy } = profile;
+  const profile_img_src = item?.profile_photo || profile?.profile_image || null;
+
   const [user, setUser] = useState(false);
   const [showMembershipPopup, setShowMembershipPopup] = useState(false);
   const router = useRouter();
@@ -144,7 +146,7 @@ const Usercard = ({ item, index, className }) => {
           <div className="my-1 lineLimit font-medium text-[16px]">
             Clan :
             <span className="font-semibold ml-1">
-              {item?.casteRelation?.name || "--"}
+              {item?.profile?.gothra || "--"}
             </span>
           </div>
           <div className="my-1 font-medium text-[15px]">
@@ -163,7 +165,7 @@ const Usercard = ({ item, index, className }) => {
           <div className="my-1 font-medium text-[15px]">
             Location :
             <span className="font-semibold ml-1">
-              {birthCity?.name || "--"}
+              {item?.city_name + ", " + (item?.state_name) || "--"}
             </span>
           </div>
         </div>

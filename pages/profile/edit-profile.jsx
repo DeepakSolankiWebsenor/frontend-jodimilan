@@ -2081,7 +2081,7 @@ function EditProfile() {
               data={displayUser?.partner_preferences || userData?.partner_preferences}
             />
 
-            <div className="mt-4">
+            {/* <div className="mt-4">
               <div className="mt-5">
                 <div className="font-medium text-[20px]">
                   <CollectionsOutlinedIcon /> Album
@@ -2180,7 +2180,7 @@ function EditProfile() {
                   </div>
                 )}
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

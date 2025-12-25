@@ -343,4 +343,52 @@ button {
 .animate-scaleUp {
   animation: scaleUp 0.25s ease-out;
 }
-/* contact form end */
+/* Modern Utilities */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+}
+
+.floating {
+  animation: floating 3s ease-in-out infinite;
+}
+
+.floating-delayed {
+  animation: floating 3.5s ease-in-out 0.5s infinite;
+}
+
+@keyframes floating {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+  100% { transform: translateY(0px); }
+}
+
+.btn-glow {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.btn-glow:hover {
+  box-shadow: 0 0 20px rgba(193, 49, 77, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-glow::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+  transform: rotate(45deg);
+  transition: all 0.5s;
+}
+
+.btn-glow:hover::after {
+  left: 100%;
+}

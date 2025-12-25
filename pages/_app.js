@@ -3,14 +3,16 @@ import "slick-carousel/slick/slick-theme.css";
 import Layout from "../components/Layout";
 import "../styles/globals.css";
 import TopBarProgress from "react-topbar-progress-indicator";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Router } from "next/router";
-import { Provider} from "react-redux";
+import { Provider } from "react-redux";
 import Store from "../services/redux/store";
 import { PersistGate } from "redux-persist/integration/react";
 import { persistStore } from "redux-persist";
 import NotificationBar from "../components/NotificationBar";
-import { GoogleAnalytics } from '@next/third-parties/google'
+import { GoogleAnalytics } from '@next/third-parties/google';
+import AOS from "aos";
+import "aos/dist/aos.css";
 
 TopBarProgress.config({
   barColors: {
@@ -21,6 +23,14 @@ TopBarProgress.config({
 
 export default function App({ Component, pageProps }) {
   const [progress, setProgress] = useState(false);
+
+  useEffect(() => {
+    AOS.init({
+      duration: 1000,
+      once: true,
+      easing: "ease-in-out",
+    });
+  }, []);
 
   let persistor = persistStore(Store);
 
