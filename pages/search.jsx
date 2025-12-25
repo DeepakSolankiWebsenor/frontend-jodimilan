@@ -320,6 +320,9 @@ function Search() {
                 setUserSearchData(parsed);
                 setDataById(parsed);
                 setMessage("");
+            } else {
+                setMessage(res.data.message || "User not found");
+                setDataById("");
             }
           } else if (res.data.status === 404 || res.data.code === 404) {
             setMessage(res.data.message);
@@ -465,7 +468,7 @@ function Search() {
                             <div className="flex md:justify-between justify-center">
                               <div className="mr-2">
                                 <div className="font-medium mb-2 text-start ml-2">
-                                  Community
+                                  State
                                 </div>
                                 <select
                                   name="religion"
@@ -474,9 +477,9 @@ function Search() {
                                   onChange={handleChange}
                                 >
                                   <option value="" hidden>
-                                    Select Community
+                                    Select State
                                   </option>
-                                  {options?.religion?.map((item, index) => (
+                                  {options?.state?.map((item, index) => (
                                     <option value={item.id} key={index}>
                                       {item.name}
                                     </option>

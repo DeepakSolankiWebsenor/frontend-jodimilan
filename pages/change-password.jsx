@@ -159,7 +159,19 @@ const ChangePassword = () => {
               type={showNew ? "text" : "password"}
               className="w-full border border-gray-400 rounded-md p-2 pr-10"
               placeholder="Enter new password"
-              {...register("new_password", { required: true, minLength: 6 })}
+              {...register("new_password", {
+                required: "New password is required",
+                minLength: {
+                  value: 6,
+                  message: "New password must be at least 6 characters",
+                },
+                pattern: {
+                  value:
+                    /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).*$/,
+                  message:
+                    "Password must contain at least one letter, one number, and one special character",
+                },
+              })}
             />
             <IconButton
               onClick={() => setShowNew(!showNew)}
@@ -169,7 +181,7 @@ const ChangePassword = () => {
             </IconButton>
             {errors.new_password && (
               <p className="text-red-600 text-sm mt-1">
-                New password must be at least 6 characters
+                {errors.new_password.message}
               </p>
             )}
 

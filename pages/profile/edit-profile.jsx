@@ -908,8 +908,8 @@ function EditProfile() {
               </div>
             </div>
 
-            {displayUser?.pacakge_id !== null &&
-              displayUser?.pacakge_id !== "" && (
+            {displayUser?.package_id !== null &&
+              displayUser?.package_id !== "" && (
                 <div className="bg-white drop-shadow-lg md:w-4/5 w-full  text-[15px] font-medium my-4">
                   <div className="p-2 bg-primary flex justify-between items-center">
                     <div className="text-white font-semibold">
@@ -939,7 +939,7 @@ function EditProfile() {
                             {displayUser?.package?.package_duration} Days
                           </div>
                           <div>
-                            {moment(displayUser?.pacakge_expiry).format(
+                            {moment(displayUser?.package_expiry).format(
                               "DD-MMMM-YYYY"
                             )}
                           </div>

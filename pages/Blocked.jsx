@@ -21,22 +21,8 @@ const Blocked = () => {
   useEffect(() => {
     getBlockedUsers()
       .then((res) => {
-        if (res.data.status === 200) {
-          var encrypted_json = JSON.parse(atob(res?.data?.user));
-          var dec = CryptoJS.AES.decrypt(
-            encrypted_json.value,
-            CryptoJS.enc.Base64.parse(decrypted_key),
-            {
-              iv: CryptoJS.enc.Base64.parse(encrypted_json.iv),
-            }
-          );
-          var decryptedText = dec.toString(CryptoJS.enc.Utf8);
-          var jsonStartIndex = decryptedText.indexOf("[");
-          var jsonEndIndex = decryptedText.lastIndexOf("]") + 1;
-          var jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
-          jsonData.trim();
-          const parsed = JSON.parse(jsonData);
-          setData(parsed);
+        if (res.data.success) {
+          setData(res.data.data);
         }
       })
       .catch((error) => {
@@ -52,8 +38,8 @@ const Blocked = () => {
 
     unblockUser(id, params)
       .then((res) => {
-        if (res?.data?.status === 200) {
-          setData(res?.data?.user);
+        if (res?.data?.success) {
+          setData(res?.data?.data);
           setAlert(true);
         }
       })
@@ -97,27 +83,32 @@ const Blocked = () => {
           )}
 
           {data?.map((item, index) => {
-            const { userprofile, ryt_id, age } = item?.users;
+            const blockedUser = item?.blockedUser;
+            const profile = blockedUser?.profile;
+            
+            const { ryt_id, age, name, last_name, gender, mat_status, profile_photo } = blockedUser || {};
             const {
               height,
               birth_city,
-              profile_img_src,
               educations,
               annual_income,
               occupation,
               photo_privacy,
-            } = userprofile || {};
+              profile_image
+            } = profile || {};
+
+            const displayImage = profile_image || profile_photo;
 
             return (
               <div key={index} className="w-full mb-3">
                 <div className="lg:w-full lg:h-[150px] md:h-[150px] lg:flex md:flex items-center justify-between">
                   <div className="flex md:items-center lg:items-center items-start gap-4">
                     <div>
-                      {profile_img_src ? (
+                      {displayImage ? (
                         <img
-                          src={profile_img_src}
-                          alt="sadf"
-                          className="lg:h-[150px] md:h-[150px] w-[150px]"
+                          src={displayImage}
+                          alt="profile"
+                          className="lg:h-[150px] md:h-[150px] w-[150px] object-cover rounded-lg"
                           style={{
                             filter: photo_privacy === "No" ? "blur(3px)" : "",
                           }}
@@ -127,33 +118,30 @@ const Blocked = () => {
                           src={Avatar}
                           height={150}
                           width={150}
-                          alt="sf"
-                          className="lg:h-[150px] md:h-[150px] w-[150px]"
+                          alt="avatar"
+                          className="lg:h-[150px] md:h-[150px] w-[150px] object-cover rounded-lg"
                         />
                       )}
                     </div>
                     <div>
                       <div className="text-gray-700 font-semibold text-lg">
-                        {ryt_id || "RYT_ID"}
+                        {name} {last_name} ({ryt_id || "RYT_ID"})
                       </div>
-                      <div className="text-gray-600 font-medium mt-2">
-                        {age && <span>{age},</span>}
-                        {height && <span className="ml-1">{height},</span>}
-                        {birth_city?.name && <span>{birth_city?.name},</span>}
+                      <div className="text-gray-600 font-medium mt-1">
+                        {age && <span>{age} Years,</span>}
+                        {gender && <span className="ml-1">{gender},</span>}
+                        {height && <span className="ml-1">{height}</span>}
                       </div>
-                      <div className="text-gray-600 font-medium mt-2">
+                      <div className="text-gray-600 font-medium mt-1">
                         {educations && <span>{educations},</span>}
+                        {occupation && <span>{occupation},</span>}
                         {annual_income && (
-                          <span className="ml-1">Rs. {annual_income},</span>
+                          <span className="ml-1">{annual_income}</span>
                         )}
-                        {occupation && (
-                          <span className="ml-1">{occupation},</span>
-                        )}
-                        {item?.users?.mat_status && (
-                          <span className="ml-1">
-                            {item?.users?.mat_status}
-                          </span>
-                        )}
+                      </div>
+                      <div className="text-gray-600 font-medium mt-1">
+                        {mat_status && <span>{mat_status}</span>}
+                        {birth_city && <span className="ml-1">from {birth_city}</span>}
                       </div>
                     </div>
                   </div>

@@ -256,6 +256,9 @@ setProfileData(normalized);
         if (err?.response?.status === 403) {
           setShowMembershipPopup(true);
         }
+        if (err?.response?.status === 404) {
+          setUserNotFound(true);
+        }
       })
       .finally(() => setIsDataLoading(false));
   };
@@ -456,25 +459,26 @@ const partnerPreferences = profileData?.partner_preferences
       <MembershipPopup
         open={showMembershipPopup}
         onClose={() => setShowMembershipPopup(false)}
-        message={popupMessage || "Without membership and friend not able to see view details"}
+        message={
+          popupMessage ||
+          "Without membership and friend not able to see view details"
+        }
       />
-<Snackbar
-  open={alert}
-  autoHideDuration={3000}
-  anchorOrigin={{ vertical: "top", horizontal: "right" }}
-  onClose={() => setAlert(false)}
->
-  <Alert
-    icon={<ThumbUpAltIcon />}
-    severity={alertSeverity}
-    onClose={() => setAlert(false)}
-    variant="filled"
-  >
-    {alertMsg || ""}
-  </Alert>
-</Snackbar>
-
-
+      <Snackbar
+        open={alert}
+        autoHideDuration={3000}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        onClose={() => setAlert(false)}
+      >
+        <Alert
+          icon={<ThumbUpAltIcon />}
+          severity={alertSeverity}
+          onClose={() => setAlert(false)}
+          variant="filled"
+        >
+          {alertMsg || ""}
+        </Alert>
+      </Snackbar>
 
       {/* Block / Unblock Modal */}
       <Transition.Root show={blockModal} as={Fragment}>
@@ -521,7 +525,9 @@ const partnerPreferences = profileData?.partner_preferences
                           as="h3"
                           className="text-lg font-medium leading-6 text-gray-900"
                         >
-                          {profileData?.is_blocked ? "Unblock User" : "Block User"}
+                          {profileData?.is_blocked
+                            ? "Unblock User"
+                            : "Block User"}
                         </Dialog.Title>
                         <div className="mt-2">
                           {profileData?.is_blocked ? (
@@ -760,8 +766,10 @@ const partnerPreferences = profileData?.partner_preferences
                           </div>
 
                           <div className="mt-2">
-                            <span className="font-semibold"> Clan : </span>
-                            <span>{profileData?.profile?.gothra || ""}</span>
+                            <span className="font-semibold"> Gothra : </span>
+                            <span>
+                              {profileData?.profile?.gothra || ""}
+                            </span>
                           </div>
                         </div>
 
@@ -820,7 +828,12 @@ const partnerPreferences = profileData?.partner_preferences
                             ? "hover:bg-primary cursor-pointer"
                             : "opacity-60 cursor-default"
                         }  md:flex items-center md:px-2 md:py-0 my-auto`}
-                        onClick={(!profileData?.friend_request_sent && !profileData?.friend_request_approved) ? handleSendRequest : undefined}
+                        onClick={
+                          !profileData?.friend_request_sent &&
+                          !profileData?.friend_request_approved
+                            ? handleSendRequest
+                            : undefined
+                        }
                       >
                         <button
                           disabled={
@@ -852,7 +865,11 @@ const partnerPreferences = profileData?.partner_preferences
                             ? "hover:bg-primary cursor-pointer"
                             : "opacity-60 cursor-default"
                         }  md:flex my-auto items-center lg:px-3 md:px-1 `}
-                        onClick={!profileData?.shortlist_profile_id ? handleWishlist : undefined}
+                        onClick={
+                          !profileData?.shortlist_profile_id
+                            ? handleWishlist
+                            : undefined
+                        }
                       >
                         <div className="md:block md:text-base text-xs lg:px-2 md:pl-2 py-2">
                           {profileData?.shortlist_profile_id
@@ -953,31 +970,41 @@ const partnerPreferences = profileData?.partner_preferences
                     </div>
 
                     {/* Partner preferences */}
-                  {/* Partner preferences */}
-<div className="bg-white p-3 lg:h-[180px] flex flex-col justify-center mt-5">
-  <div className="font-semibold lg:text-[20px] text-[17px] text-[#0560af] flex items-center gap-2">
-    <InfoOutlinedIcon /> Partner Preferences
-  </div>
+                    {/* Partner preferences */}
+                    <div className="bg-white p-3 lg:h-[180px] flex flex-col justify-center mt-5">
+                      <div className="font-semibold lg:text-[20px] text-[17px] text-[#0560af] flex items-center gap-2">
+                        <InfoOutlinedIcon /> Partner Preferences
+                      </div>
 
-  {partnerPreferences ? (
-    <div className="mt-2 font-medium text-[#34495e] text-sm md:text-sm lg:text-base space-y-1">
-      <div>Marital Status: {partnerPreferences.marital_status}</div>
-      <div>Religion: {partnerPreferences.religion}</div>
-      <div>Caste: {partnerPreferences.caste}</div>
-      <div>Age Range: {partnerPreferences.min_age} - {partnerPreferences.max_age}</div>
-    </div>
-  ) : (
-    <div className="mt-2 text-gray-400 text-sm">No preferences added</div>
-  )}
-</div>
-
+                      {partnerPreferences ? (
+                        <div className="mt-2 font-medium text-[#34495e] text-sm md:text-sm lg:text-base space-y-1">
+                          <div>
+                            Marital Status: {partnerPreferences.marital_status}
+                          </div>
+                          <div>
+                            Religion:{" "}
+                            {profileData?.profile?.religionRelation?.name || ""}
+                          </div>
+                          <div>Caste: {profileData?.casteRelation?.name || ""}</div>
+                          <div>
+                            Age Range: {partnerPreferences.min_age} -{" "}
+                            {partnerPreferences.max_age}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-2 text-gray-400 text-sm">
+                          No preferences added
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Right side similar profiles etc. — you can re-add later */}
                   <div className="w-[25%] md:block hidden">
                     <div className="font-semibold pb-2 ">Similar Profiles</div>
                     <div className="text-sm text-gray-500">
-                      (Bind your similar profile data here once backend is ready)
+                      (Bind your similar profile data here once backend is
+                      ready)
                     </div>
                   </div>
                 </div>
