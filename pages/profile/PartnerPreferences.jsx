@@ -7,29 +7,23 @@ import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import useApiService from "../../services/ApiService";
 
-const minAge = [
-  { id: 1, name: 21 },
-  { id: 2, name: 22 },
-  { id: 3, name: 23 },
-  { id: 4, name: 24 },
-  { id: 5, name: 25 },
-];
 
-const maxAge = [
-  { id: 1, name: 26 },
-  { id: 2, name: 27 },
-  { id: 3, name: 28 },
-  { id: 4, name: 29 },
-  { id: 5, name: 30 },
-];
 
 const schema = yup.object().shape({
   marital_status: yup.string().required("Marital status is required"),
   religion: yup.string().required("Religion is required"),
   caste: yup.string().required("Caste is required"),
   clan: yup.string().nullable(),
-  min_age: yup.string().required("Min age is required"),
-  max_age: yup.string().required("Max age is required"),
+  min_age: yup
+    .number()
+    .transform((value) => (isNaN(value) ? undefined : value))
+    .required("Min age is required")
+    .min(18, "Min age must be at least 18"),
+  max_age: yup
+    .number()
+    .transform((value) => (isNaN(value) ? undefined : value))
+    .required("Max age is required")
+    .min(yup.ref("min_age"), "Max age must be greater than or equal to min age"),
 });
 
 const defaultValues = {
@@ -348,21 +342,13 @@ const PartnerPreferences = ({ data, fetchProfile }) => {
                     name="min_age"
                     control={control}
                     render={({ field }) => (
-                      <select
+                      <input
                         {...field}
+                        type="number"
+                        min="18"
+                        placeholder="Enter Min Age"
                         className="outline-none md:w-52 w-36 text-sm border border-gray-300 rounded px-2 py-2 font-medium"
-                      >
-                        <option value="" hidden>
-                          Select
-                        </option>
-                        {minAge
-                          ?.filter((v) => v?.id != watch("max_age"))
-                          .map((item, index) => (
-                            <option key={index} value={item?.name}>
-                              {item?.name}
-                            </option>
-                          ))}
-                      </select>
+                      />
                     )}
                   />
                   {errors.min_age && (
@@ -387,21 +373,12 @@ const PartnerPreferences = ({ data, fetchProfile }) => {
                     name="max_age"
                     control={control}
                     render={({ field }) => (
-                      <select
+                      <input
                         {...field}
+                        type="number"
+                        placeholder="Enter Max Age"
                         className="outline-none md:w-52 w-36 text-sm border border-gray-300 rounded px-2 py-2 font-medium"
-                      >
-                        <option value="" hidden>
-                          Select
-                        </option>
-                        {maxAge
-                          ?.filter((v) => v?.id != watch("min_age"))
-                          .map((item, index) => (
-                            <option key={index} value={item?.name}>
-                              {item?.name}
-                            </option>
-                          ))}
-                      </select>
+                      />
                     )}
                   />
                   {errors.max_age && (

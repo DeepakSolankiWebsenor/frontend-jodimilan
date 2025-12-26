@@ -1,5 +1,6 @@
 'use client';
 import React, { useEffect, useRef, useState } from "react";
+import { shouldShowPhoto } from "../utils/PrivacyUtils";
 import Image from "next/image";
 import Head from "next/head";
 import { useSelector } from "react-redux";
@@ -291,22 +292,35 @@ export default function Messages() {
             console.log("element",item)
             
             // Force unreadCount to 0 if this is the active chat
+            // Force unreadCount to 0 if this is the active chat
             const isCurrentChat = currentChat && Number(item.id) === Number(currentChat.session.id);
             
+            let blockObj = item.block;
+            if (typeof blockObj === 'string') {
+              try { blockObj = JSON.parse(blockObj); } catch(e) { blockObj = {}; }
+            }
+            if (!blockObj || typeof blockObj !== 'object' || Array.isArray(blockObj)) {
+                blockObj = {};
+            }
+
             const friendData = {
               id: item?.friend?.id,
               name: item?.friend?.name,
               ryt_id: item?.friend?.ryt_id,
               profile: item?.friend?.profile_photo
-                ? `${process.env.NEXT_PUBLIC_BASE_URL}/${item?.friend?.profile_photo}`
+                ? item?.friend?.profile_photo.startsWith("http") 
+                  ? item?.friend?.profile_photo 
+                  : `${process.env.NEXT_PUBLIC_API_BASE_URL}/${item?.friend?.profile_photo}`
                 : null,
               session: {
                 id: item?.id, // This should be the session ID from backend
                 unreadCount: isCurrentChat ? 0 : (item?.unreadCount || 0),
               },
-              block: item.block ? (typeof item.block === 'string' ? JSON.parse(item.block) : item.block) : [],
+              block: blockObj,
+              is_friend: item?.is_friend,
               lastMessage: item?.lastMessage,
               lastMessageAt: item?.last_message_at,
+              friend: item.friend,
             };
             
             console.log('✅ Formatted friend data:', {
@@ -779,18 +793,31 @@ export default function Messages() {
     return typingUsers[userId] && typingUsers[userId].sessionId === selectedChat?.session?.id;
   };
 
+  const checkIsBlocked = (friend) => {
+    if (!friend) return false;
+    const block = friend.block;
+    if (!block || typeof block !== 'object' || Array.isArray(block)) return false;
+    
+    // Check if THEY have blocked ME
+    return !!(block[friend.id] || block[String(friend.id)]);
+  };
+
   const isBlocked = () => {
     if (!selectedChat) return false;
     const block = selectedChat.block;
-    if (Array.isArray(block)) {
-      return block.some(
-        (item) => item && (Number(item.blocked_by) === currentUserId || Number(item.blocked_by) === selectedChat.id)
-      );
-    }
-    if (block && typeof block === 'object') {
-      return !!(block[currentUserId] || block[selectedChat.id]);
-    }
-    return false;
+    if (!block || typeof block !== 'object' || Array.isArray(block)) return false;
+
+    // Only restrict input if THEY have blocked ME
+    return !!(block[selectedChat.id] || block[String(selectedChat.id)]);
+  };
+
+  const didIBlock = (friend = selectedChat) => {
+    if (!friend) return false;
+    const block = friend.block;
+    if (!block || typeof block !== 'object' || Array.isArray(block)) return false;
+    
+    // Check if I have blocked THEM
+    return !!(block[currentUserId] || block[String(currentUserId)]);
   };
 
   return (
@@ -843,9 +870,25 @@ export default function Messages() {
                 >
                   <div className={styles.avatarContainer}>
                     {friend.profile ? (
-                      <img src={friend.profile} alt={friend.name} className={styles.avatar} />
+                      <img 
+                        src={friend.profile} 
+                        alt={friend.name} 
+                        className={styles.avatar} 
+                        style={{
+                          filter: (!checkIsBlocked(friend) && shouldShowPhoto(friend?.friend || friend, userData, friend.is_friend ? 'friend' : 'public')) ? "none" : "blur(5px)",
+                        }}
+                      />
                     ) : (
-                      <Image src={Avatar1} alt="avatar" className={styles.avatar} width={50} height={50} />
+                      <Image 
+                        src={Avatar1} 
+                        alt="avatar" 
+                        className={styles.avatar} 
+                        width={50} 
+                        height={50} 
+                        style={{
+                          filter: (!checkIsBlocked(friend) && shouldShowPhoto(friend?.friend || friend, userData, friend.is_friend ? 'friend' : 'public')) ? "none" : "blur(5px)",
+                        }}
+                      />
                     )}
                     {isUserOnline(friend.id) && <div className={styles.onlineIndicator} />}
                   </div>
@@ -898,9 +941,25 @@ export default function Messages() {
 
               <div className={styles.chatHeaderInfo}>
                 {selectedChat.profile ? (
-                  <img src={selectedChat.profile} alt={selectedChat.name} className={styles.chatHeaderAvatar} />
+                  <img 
+                    src={selectedChat.profile} 
+                    alt={selectedChat.name} 
+                    className={styles.chatHeaderAvatar} 
+                    style={{
+                      filter: (!isBlocked() && shouldShowPhoto(selectedChat?.friend || selectedChat, userData, selectedChat.is_friend ? 'friend' : 'public')) ? "none" : "blur(5px)",
+                    }}
+                  />
                 ) : (
-                  <Image src={Avatar1} alt="avatar" className={styles.chatHeaderAvatar} width={45} height={45} />
+                  <Image 
+                    src={Avatar1} 
+                    alt="avatar" 
+                    className={styles.chatHeaderAvatar} 
+                    width={45} 
+                    height={45} 
+                    style={{
+                      filter: (!isBlocked() && shouldShowPhoto(selectedChat?.friend || selectedChat, userData, selectedChat.is_friend ? 'friend' : 'public')) ? "none" : "blur(5px)",
+                    }}
+                  />
                 )}
 
                 <div className={styles.chatHeaderDetails}>
@@ -994,31 +1053,61 @@ export default function Messages() {
               <TypingIndicator userName={typingUsers[selectedChat.id]?.userName} />
             )}
 
-            {/* Message Input */}
-            {!isBlocked() && (userData?.package_id || userData?.package) ? (
-              <div className={styles.messageInputContainer}>
-                <input
-                  type="text"
-                  placeholder="Type a message..."
-                  className={styles.messageInputField}
-                  value={message}
-                  onChange={handleInputChange}
-                  onKeyPress={handleKeyPress}
-                />
-                <button
-                  className={styles.sendButton}
-                  onClick={handleSendMessage}
-                  disabled={!message.trim()}
+            {/* Blocking Status Notifier (Asymmetrical) */}
+            {didIBlock() && (
+              <div style={{ 
+                padding: '8px 20px', 
+                backgroundColor: '#fffbe6', 
+                borderBottom: '1px solid #ffe58f', 
+                fontSize: '13px', 
+                color: '#856404', 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center' 
+              }}>
+                <span>You have blocked this user. They cannot see your photo or reply to you.</span>
+                <button 
+                  onClick={handleBlockUser}
+                  style={{ border: 'none', background: 'none', color: '#1890ff', cursor: 'pointer', fontWeight: 'bold' }}
                 >
-                  <SendIcon />
+                  Unblock
                 </button>
               </div>
+            )}
+
+            {/* Message Input */}
+            {!isBlocked() && userData ? (
+                (userData.package_id || userData.package) ? (
+                  <div className={styles.messageInputContainer}>
+                    <input
+                      type="text"
+                      placeholder="Type a message..."
+                      className={styles.messageInputField}
+                      value={message}
+                      onChange={handleInputChange}
+                      onKeyPress={handleKeyPress}
+                    />
+                    <button
+                      className={styles.sendButton}
+                      onClick={handleSendMessage}
+                      disabled={!message.trim()}
+                    >
+                      <SendIcon />
+                    </button>
+                  </div>
+                ) : (
+                  <div 
+                    style={{ padding: '20px', textAlign: 'center', background: '#fff', borderTop: '1px solid #e0e0e0', cursor: 'pointer' }}
+                    onClick={() => setShowMembershipPopup(true)}
+                  >
+                    Without membership not able to send message
+                  </div>
+                )
             ) : (
               <div 
-                style={{ padding: '20px', textAlign: 'center', background: '#fff', borderTop: '1px solid #e0e0e0', cursor: 'pointer' }}
-                onClick={() => !isBlocked() && setShowMembershipPopup(true)}
+                style={{ padding: '20px', textAlign: 'center', background: '#fff', borderTop: '1px solid #e0e0e0' }}
               >
-                {isBlocked() ? "You can't reply to this conversation." : "Without membership not able to send message"}
+                {isBlocked() ? "You can't reply to this conversation." : "Loading chat access..."}
               </div>
             )}
 

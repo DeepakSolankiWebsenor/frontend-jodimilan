@@ -224,6 +224,7 @@ function Search() {
   }, [page]);
 
   const handleChange = (e) => {
+    if (error) setError("");
     // If religion changes, reset caste and clan
     if (e.target.name === 'religion') {
         setData({ 
@@ -246,13 +247,8 @@ function Search() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (!data?.gender) {
-      setError("Please select gender");
-      return;
-    }
-
-    if (!data?.mat_status) {
-      setError("Please select marital status");
+    if (!data?.gender || !data?.mat_status) {
+      setError("Minimum required is Gender and Marital Status to search users");
       return;
     }
 
@@ -450,7 +446,7 @@ function Search() {
                             <div className="flex md:justify-between justify-center">
                               <div className="mr-2">
                                 <div className="font-medium mb-2 text-start ml-2">
-                                  I&apos;m looking for
+                                  I&apos;m looking for *
                                 </div>
                                 <select
                                   name="gender"
@@ -467,15 +463,10 @@ function Search() {
                                     </option>
                                   ))}
                                 </select>
-                                {error && (
-                                  <div className="text-sm text-red-600">
-                                    Please Select*
-                                  </div>
-                                )}
                               </div>
                               <div>
                                 <div className="font-medium mb-2 text-start ml-2">
-                                  Marital Status
+                                  Marital Status *
                                 </div>
                                 <select
                                   name="mat_status"
@@ -543,7 +534,7 @@ function Search() {
                             <div className="flex md:justify-between justify-center">
                               <div>
                                 <div className="font-medium mb-2 text-start ml-2">
-                                  Clan (Optional)
+                                  Clan 
                                 </div>
                                 <select
                                   name="clan"
@@ -600,13 +591,21 @@ function Search() {
                                 </div>
                               )}
                             </div>
-                            <button
-                              className="bg-primary text-white rounded-md p-2 text-center cursor-pointer"
+                            <div className="mb-2">
+                                {error && !error.toLowerCase().includes("age") && (
+                                    <div className="text-sm text-red-600 mb-2 text-start ml-2">
+                                        {error}
+                                    </div>
+                                )}
+                                <button
+                                  className="bg-primary text-white rounded-md p-2 text-center cursor-pointer"
                               onClick={handleSearch}
                             >
                               Search
                             </button>
                           </div>
+                          </div>
+
                         </form>
                         {data?.gender && (
                           <div className="w-full mt-3">

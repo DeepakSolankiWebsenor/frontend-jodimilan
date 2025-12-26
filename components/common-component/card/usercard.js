@@ -117,13 +117,17 @@ const Usercard = ({ item, index, className }) => {
         <div className="flex justify-center ">
           {profile_img_src ? (
             <img
-              src={profile_img_src}
+              src={
+                profile_img_src?.startsWith("http")
+                  ? profile_img_src
+                  : `${process.env.NEXT_PUBLIC_API_BASE_URL}/${profile_img_src}`
+              }
               height={100}
               width={100}
               alt="ss"
               className="md:w-[270px] w-64 md:h-[240px] h-48"
               style={{
-                filter: shouldShowPhoto(item, currentUser, 'public') ? "none" : "blur(5px)",
+                filter: shouldShowPhoto(item, currentUser, item.is_friend ? 'friend' : 'public') ? "none" : "blur(5px)",
               }}
             />
           ) : (
@@ -144,12 +148,29 @@ const Usercard = ({ item, index, className }) => {
           <div className="my-1 font-medium text-[15px]">
             Height :<span className="font-semibold ml-1">{height || "--"}</span>
           </div>
-          <div className="my-1 lineLimit font-medium text-[16px]">
-            Clan :
-            <span className="font-semibold ml-1">
-              {item?.profile?.gothra || "--"}
-            </span>
-          </div>
+         <div className="my-1 lineLimit font-medium text-[16px]">
+  {item?.casteRelation?.name ? (
+    <>
+      Caste :
+      <span className="font-semibold ml-1">
+        {item.casteRelation.name}
+      </span>
+    </>
+  ) : item?.religion_name ? (
+    <>
+      Religion :
+      <span className="font-semibold ml-1">
+        {item.religion_name}
+      </span>
+    </>
+  ) : (
+    <>
+      Caste :
+      <span className="font-semibold ml-1">--</span>
+    </>
+  )}
+</div>
+
           <div className="my-1 font-medium text-[15px]">
             Age :<span className="font-semibold ml-1">{item?.age || "--"}</span>
           </div>

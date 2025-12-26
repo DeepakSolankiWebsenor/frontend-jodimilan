@@ -206,10 +206,10 @@ const normalizeProfile = (user) => {
 
 
   // 🔓 Get profile by RYT ID + decrypt response.data.data.user
-  const fetchProfileById = () => {
+  const fetchProfileById = (silent = false) => {
     if (!profileId) return;
 
-    setIsDataLoading(true);
+    if (!silent) setIsDataLoading(true);
 
     profileById(profileId)
       .then((res) => {
@@ -366,15 +366,28 @@ setProfileData(normalized);
     if (profileData?.profile?.contact_privacy === "Yes") {
       if (!userData?.user?.plan_expire) {
         viewContact(profileId)
-          .then(() => {})
-          .catch((error) => console.error(error));
+          .then(() => {
+            fetchProfileById(true); // silent re-fetch
+            setViewContactShow(true);
+          })
+          .catch((error) => {
+            console.error(error);
+            if (error?.response?.status === 403) {
+                setPopupMessage(error?.response?.data?.message || "Membership profile count limit reached. Please upgrade your package.");
+                setShowMembershipPopup(true);
+            }
+          });
       }
     } else if (profileData?.friend_request_approved) {
       viewContact(profileId)
-        .then(() => {})
+        .then(() => {
+          fetchProfileById(true); // silent re-fetch
+          setViewContactShow(true);
+        })
         .catch((error) => console.error(error));
+    } else {
+        setViewContactShow(true);
     }
-    setViewContactShow(true);
   };
 
  const handleSendRequest = () => {
@@ -719,7 +732,7 @@ console.log("partnerPreferences", partnerPreferences);
                         alt="profile image"
                         className="md:w-full w-auto mx-auto md:h-full h-56 object-cover"
                         style={{
-                          filter: shouldShowPhoto(profileData, userData, profileData?.friend_request_approved ? 'friend' : 'public') ? "none" : "blur(5px)",
+                          filter: shouldShowPhoto(profileData, userData, (profileData?.friend_request_approved || profileData?.friend_request_received) ? 'friend' : 'public') ? "none" : "blur(5px)",
                         }}
                       />
                     ) : (
@@ -776,9 +789,9 @@ console.log("partnerPreferences", partnerPreferences);
                           </div>
 
                           <div className="mt-2">
-                            <span className="font-semibold"> Gothra : </span>
+                            <span className="font-semibold"> Caste : </span>
                             <span>
-                              {profileData?.profile?.gothra || ""}
+                              {profileData?.casteRelation?.name || ""}
                             </span>
                           </div>
                         </div>
@@ -819,7 +832,7 @@ console.log("partnerPreferences", partnerPreferences);
                           </Tooltip>
                         ) : (
                           <button onClick={() => setBlockModal(true)}>
-                            <span className="text-red-600 font-bold mr-2">Blocked </span>
+                            <span className="text-red-600 font-bold mr-2">Block</span>
                             <Tooltip title="Block this profile" arrow>
                               <BlockIcon className="text-red-600" />
                             </Tooltip>
@@ -997,6 +1010,7 @@ console.log("partnerPreferences", partnerPreferences);
                             {partnerPreferences?.religion_name || ""}
                           </div>
                           <div>Caste: {partnerPreferences?.caste_name || ""}</div>
+                          <div>Clan: {partnerPreferences?.clan_name || ""}</div>
                           <div>
                             Age Range: {partnerPreferences.min_age} -{" "}
                             {partnerPreferences.max_age}

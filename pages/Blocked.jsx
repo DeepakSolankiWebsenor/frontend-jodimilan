@@ -11,12 +11,15 @@ import { useSelector } from "react-redux";
 import CryptoJS from "crypto-js";
 import { decrypted_key } from "../services/appConfig";
 
+import { shouldShowPhoto } from "../utils/PrivacyUtils";
+
 const Blocked = () => {
   const router = useRouter();
   const [data, setData] = useState([]);
   const { getBlockedUsers, unblockUser } = useApiService();
   const [alert, setAlert] = useState(false);
   const masterData = useSelector((state) => state.user);
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     getBlockedUsers()
@@ -29,6 +32,62 @@ const Blocked = () => {
         console.log(error);
       });
   }, []);
+
+  // Decrypt current user data
+  useEffect(() => {
+    try {
+      const raw = masterData?.user?.user || masterData?.user;
+      if (!raw) return;
+
+      if (typeof raw === "object") {
+        setCurrentUser(raw);
+        return;
+      }
+
+      let decryptedText = "";
+
+      // 🔥 Method 1: Laravel-style JSON (Base64 -> JSON {value, iv})
+      try {
+        const decoded = window.atob(raw);
+        if (decoded.trim().startsWith("{")) {
+          const encrypted_json = JSON.parse(decoded);
+          if (encrypted_json.value && encrypted_json.iv) {
+            const dec = CryptoJS.AES.decrypt(
+              encrypted_json.value,
+              CryptoJS.enc.Base64.parse(decrypted_key),
+              { iv: CryptoJS.enc.Base64.parse(encrypted_json.iv) }
+            );
+            decryptedText = dec.toString(CryptoJS.enc.Utf8);
+          }
+        }
+      } catch (err) {}
+
+      // 🔥 Method 2: Simple Ciphertext (Fixed IV from .env)
+      if (!decryptedText) {
+        try {
+          const keyHex = CryptoJS.enc.Hex.parse(process.env.NEXT_PUBLIC_ENC_KEY);
+          const ivHex = CryptoJS.enc.Hex.parse(process.env.NEXT_PUBLIC_ENC_IV);
+          const dec = CryptoJS.AES.decrypt(raw, keyHex, {
+            iv: ivHex,
+            mode: CryptoJS.mode.CBC,
+            padding: CryptoJS.pad.Pkcs7,
+          });
+          decryptedText = dec.toString(CryptoJS.enc.Utf8);
+        } catch (err) {}
+      }
+
+      if (decryptedText) {
+        const jsonStartIndex = decryptedText.indexOf("{");
+        const jsonEndIndex = decryptedText.lastIndexOf("}") + 1;
+        if (jsonStartIndex >= 0 && jsonEndIndex > 0) {
+          const jsonData = decryptedText.substring(jsonStartIndex, jsonEndIndex);
+          setCurrentUser(JSON.parse(jsonData.trim()));
+        }
+      }
+    } catch (error) {
+      console.error("❌ Failed to decrypt master user in Blocked:", error);
+    }
+  }, [masterData]);
 
   const handleUnblockUser = (id, block_profile_id) => {
     let params = {
@@ -86,18 +145,17 @@ const Blocked = () => {
             const blockedUser = item?.blockedUser;
             const profile = blockedUser?.profile;
             
-            const { ryt_id, age, name, last_name, gender, mat_status, profile_photo } = blockedUser || {};
+            const { ryt_id, age, name, last_name, gender, mat_status, profile_photo,state_name,city_name } = blockedUser || {};
             const {
               height,
               birth_city,
               educations,
               annual_income,
               occupation,
-              photo_privacy,
               profile_image
             } = profile || {};
 
-            const displayImage = profile_image || profile_photo;
+            const displayImage = profile_photo || profile_image;
 
             return (
               <div key={index} className="w-full mb-3">
@@ -106,11 +164,15 @@ const Blocked = () => {
                     <div>
                       {displayImage ? (
                         <img
-                          src={displayImage}
+                          src={
+                            displayImage?.startsWith("http")
+                              ? displayImage
+                              : `${process.env.NEXT_PUBLIC_API_BASE_URL}/${displayImage}`
+                          }
                           alt="profile"
                           className="lg:h-[150px] md:h-[150px] w-[150px] object-cover rounded-lg"
                           style={{
-                            filter: photo_privacy === "No" ? "blur(3px)" : "",
+                            filter: shouldShowPhoto(blockedUser, currentUser, 'public') ? "none" : "blur(5px)",
                           }}
                         />
                       ) : (
@@ -141,19 +203,19 @@ const Blocked = () => {
                       </div>
                       <div className="text-gray-600 font-medium mt-1">
                         {mat_status && <span>{mat_status}</span>}
-                        {birth_city && <span className="ml-1">from {birth_city}</span>}
+                        {state_name  && <span className="ml-1">from {state_name + " " +(city_name)}</span>}
                       </div>
                     </div>
                   </div>
                   <div className="md:block lg:block flex items-center gap-4 ml-4 justify-end">
-                    <button
+                    {/* <button
                       className="mt-2 bg-slate-700 text-white text-sm font-semibold px-4 py-1 rounded"
                       onClick={() =>
                         handleNavigateToProfile(item?.block_profile_id)
                       }
                     >
                       View Profile
-                    </button>
+                    </button> */}
                     <button
                       className="mt-2 lg:ml-2 md:ml-2 bg-green-700 text-white text-sm font-semibold px-4 py-1 rounded"
                       onClick={() =>

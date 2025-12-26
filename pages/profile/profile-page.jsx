@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import useApiService from "../../services/ApiService";
+import { shouldShowPhoto } from "../../utils/PrivacyUtils";
 import WomenD from "../../public/images/girldefault.png";
 import MenD from "../../public/images/mendefault.png";
 import { Alert, Snackbar } from "@mui/material";
@@ -405,6 +406,9 @@ function ProfilePage() {
                   }
                   alt="profile"
                   className="w-32 h-32 rounded-full mx-auto object-cover"
+                  style={{
+                    filter: shouldShowPhoto(user, profileData, 'public') ? "none" : "blur(5px)",
+                  }}
                 />
 
                 <div className="text-center font-semibold mt-2">

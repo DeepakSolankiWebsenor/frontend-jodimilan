@@ -219,7 +219,7 @@ const InterestReceivePending = () => {
                             alt="Profile"
                             className="h-24 w-24 sm:h-28 sm:w-28 object-cover rounded-full border-4 border-white shadow-md group-hover:scale-105 transition-transform duration-300"
                             style={{
-                                filter: shouldShowPhoto(user, currentUser, 'pending') ? "none" : "blur(5px)",
+                                filter: shouldShowPhoto(user, currentUser, 'friend') ? "none" : "blur(5px)",
                             }}
                         />
                     </div>

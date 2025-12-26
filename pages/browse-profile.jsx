@@ -186,9 +186,15 @@ const Browseprofile = () => {
     const value = event.target.value;
     const filters = { ...filterTags };
     
-    filters[type] = filters[type].includes(value)
-      ? filters[type].filter((v) => v !== value)
-      : [...filters[type], value];
+    if (type === 'state') {
+        // Single select for state
+        filters[type] = filters[type].includes(value) ? [] : [value];
+    } else {
+        // Multi select for others
+        filters[type] = filters[type].includes(value)
+          ? filters[type].filter((v) => v !== value)
+          : [...filters[type], value];
+    }
 
     setFilterTags(filters);
   };
@@ -386,7 +392,7 @@ const Browseprofile = () => {
           {filterTags.caste.length > 0 && (
             <Accordion expanded={expanded === "panelClan"} onChange={handleChange("panelClan")}>
               <AccordionSummary>
-              BY Clan (Optional) {filterTags.clan.length > 0 && `[${filterTags.clan.length}]`}
+              BY Clan  {filterTags.clan.length > 0 && `[${filterTags.clan.length}]`}
             </AccordionSummary>
               <AccordionDetails>
                 <div className="max-h-60 overflow-y-auto">

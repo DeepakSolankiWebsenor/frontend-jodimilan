@@ -177,11 +177,15 @@ function ShortListProfile() {
                   <div className="w-full h-64 bg-gray-100">
                     {user?.profile_photo ? (
                       <img
-                        src={`${API_BASE_URL }${user.profile_photo}`}
+                        src={
+                          user?.profile_photo?.startsWith("http")
+                            ? user?.profile_photo
+                            : `${API_BASE_URL}${user?.profile_photo}`
+                        }
                         alt="Profile"
-                        className="w-24 h-32 object-cover rounded-md mx-auto"
+                        className="w-full h-full object-cover"
                         style={{
-                            filter: shouldShowPhoto(user, currentUser, 'public') ? "none" : "blur(5px)",
+                            filter: shouldShowPhoto(user, currentUser, user.is_friend ? 'friend' : 'public') ? "none" : "blur(5px)",
                         }}
                       />
                     ) : (
@@ -212,7 +216,7 @@ function ShortListProfile() {
                     </p>
 
                     <p className="text-sm text-gray-700 mt-1">
-                      Clan:{" "}
+                      Caste:{" "}
                       <span className="font-bold">{user?.casteRelation?.name || "--"}</span>
                     </p>
 
