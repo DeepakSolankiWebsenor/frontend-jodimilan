@@ -73,6 +73,10 @@ const Signup = ({ open, onClose }) => {
   }, [timer]);
 
   const onSubmit = (data) => {
+
+    console.log("data we are sending",data)
+
+
     setLoading(true);
     setSignupError("");
 

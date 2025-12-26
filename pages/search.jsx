@@ -24,6 +24,7 @@ function Search() {
     mat_status: "",
     religion: "",
     caste: "",
+    clan: "",
     minAge: "",
     maxAge: "",
   });
@@ -147,9 +148,10 @@ function Search() {
     minAge,
     maxAge,
     religion,
-    caste
+    caste,
+    clan
   ) => {
-    userSearch(page, gender, mat_status, minAge, maxAge, religion, caste)
+    userSearch(page, gender, mat_status, minAge, maxAge, religion, caste, clan)
       .then((res) => {
         console.log(res, "res search");
 
@@ -190,8 +192,9 @@ function Search() {
       maxAge = "",
       religion = "",
       caste = "",
+      clan = ""
     } = router.query;
-    if (gender || mat_status || minAge || maxAge || religion || caste) {
+    if (gender || mat_status || minAge || maxAge || religion || caste || clan) {
       saerchFunction(
         pageN,
         gender,
@@ -199,7 +202,8 @@ function Search() {
         minAge,
         maxAge,
         religion,
-        caste
+        caste,
+        clan
       );
     } else if (page > 0) {
       saerchFunction(
@@ -209,7 +213,8 @@ function Search() {
         data.minAge,
         data.maxAge,
         data.religion,
-        data.caste
+        data.caste,
+        data.clan
       );
     }
   };
@@ -219,7 +224,24 @@ function Search() {
   }, [page]);
 
   const handleChange = (e) => {
-    setData({ ...data, [e.target.name]: e.target.value });
+    // If religion changes, reset caste and clan
+    if (e.target.name === 'religion') {
+        setData({ 
+            ...data, 
+            [e.target.name]: e.target.value,
+            caste: "", // Reset caste
+            clan: ""   // Reset clan
+        });
+    } else if (e.target.name === 'caste') {
+        // If caste changes, reset clan
+        setData({ 
+            ...data, 
+            [e.target.name]: e.target.value,
+            clan: ""   // Reset clan
+        });
+    } else {
+        setData({ ...data, [e.target.name]: e.target.value });
+    }
   };
 
   const handleSearch = (e) => {
@@ -229,20 +251,22 @@ function Search() {
       return;
     }
 
+    if (!data?.mat_status) {
+      setError("Please select marital status");
+      return;
+    }
+
     const age = Number(data?.minAge);
-    if (!data?.minAge) {
-      setError("Please enter minimum age");
-      return;
-    }
+    if (data?.minAge) {
+      if (data?.gender === "Male" && age < 21) {
+        setError("For Male, minimum age must be 21");
+        return;
+      }
 
-    if (data?.gender === "Male" && age < 21) {
-      setError("For Male, minimum age must be 21");
-      return;
-    }
-
-    if (data?.gender === "Female" && age < 18) {
-      setError("For Female, minimum age must be 18");
-      return;
+      if (data?.gender === "Female" && age < 18) {
+        setError("For Female, minimum age must be 18");
+        return;
+      }
     }
 
     setError("");
@@ -254,7 +278,8 @@ function Search() {
       data?.minAge,
       data?.maxAge,
       data?.religion,
-      data?.caste
+      data?.caste,
+      data?.clan
     );
   };
 
@@ -265,6 +290,7 @@ function Search() {
         mat_status: "",
         religion: "",
         caste: "",
+        clan: "",
         minAge: "",
         maxAge: "",
       });
@@ -274,6 +300,7 @@ function Search() {
         mat_status: "",
         religion: "",
         caste: "",
+        clan: "",
         minAge: "",
         maxAge: "",
       });
@@ -419,7 +446,7 @@ function Search() {
                         id="link1"
                       >
                         <form>
-                          <div className="grid grid-rows-[200px_minmax(900px,_1fr)_100px gap-2">
+                          <div className="grid grid-cols-1 gap-4">
                             <div className="flex md:justify-between justify-center">
                               <div className="mr-2">
                                 <div className="font-medium mb-2 text-start ml-2">
@@ -467,10 +494,10 @@ function Search() {
                                 </select>
                               </div>
                             </div>
-                            {/* <div className="flex md:justify-between justify-center">
+                            <div className="flex md:justify-between justify-center">
                               <div className="mr-2">
                                 <div className="font-medium mb-2 text-start ml-2">
-                                  State
+                                  Religion
                                 </div>
                                 <select
                                   name="religion"
@@ -479,9 +506,9 @@ function Search() {
                                   onChange={handleChange}
                                 >
                                   <option value="" hidden>
-                                    Select State
+                                    Select Religion
                                   </option>
-                                  {options?.state?.map((item, index) => (
+                                  {options?.religion?.map((item, index) => (
                                     <option value={item.id} key={index}>
                                       {item.name}
                                     </option>
@@ -490,7 +517,7 @@ function Search() {
                               </div>
                               <div>
                                 <div className="font-medium mb-2 text-start ml-2">
-                                  Select Clan
+                                  Caste
                                 </div>
                                 <select
                                   name="caste"
@@ -499,17 +526,50 @@ function Search() {
                                   onChange={handleChange}
                                 >
                                   <option value="" hidden>
+                                    Select Caste
+                                  </option>
+                                  {(() => {
+                                      const selectedReligion = data?.religion;
+                                      const religionData = options?.religion?.find(r => r.id == selectedReligion);
+                                      return religionData?.castes?.map((item, index) => (
+                                         <option value={item.id} key={index}>
+                                            {item.name}
+                                         </option>
+                                      ));
+                                  })()}
+                                </select>
+                              </div> 
+                            </div>
+                            <div className="flex md:justify-between justify-center">
+                              <div>
+                                <div className="font-medium mb-2 text-start ml-2">
+                                  Clan (Optional)
+                                </div>
+                                <select
+                                  name="clan"
+                                  className="md:w-52 text-sm w-36 border border-gray-300 rounded px-2 py-2 font-medium"
+                                  value={data?.clan}
+                                  onChange={handleChange}
+                                >
+                                  <option value="">
                                     Select Clan
                                   </option>
-                                  {options?.caste?.map((item, index) => (
-                                    <option value={item.id} key={index}>
-                                      {item.name}
-                                    </option>
-                                  ))}
+                                   {(() => {
+                                      const selectedReligion = data?.religion;
+                                      const religionData = options?.religion?.find(r => r.id == selectedReligion);
+                                      const selectedCaste = data?.caste;
+                                      const casteData = religionData?.castes?.find(c => c.id == selectedCaste);
+                                      
+                                      return casteData?.clans?.map((item, index) => (
+                                         <option value={item.id} key={index}>
+                                            {item.name}
+                                         </option>
+                                      ));
+                                  })()}
                                 </select>
                               </div>
-                            </div> */}
-                             <div className="mb-2">
+                            </div> 
+                            <div className="mb-2">
                               <div className="text-start font-medium mb-2 ml-2">
                                 Age
                               </div>

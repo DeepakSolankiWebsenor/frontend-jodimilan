@@ -103,19 +103,20 @@ function useApiService() {
     minAge,
     maxAge,
     religion,
-    caste
+    caste,
+    clan
   ) {
     return localStorage.getItem("token") ? http
       .get(
         `/user/customer/search?page=${page}&gender=${gender}&mat_status=${mat_status}&minAge=${minAge}&maxAge=${maxAge}
-         &religion=${religion}&caste=${caste}`, {
+         &religion=${religion}&caste=${caste}&clan=${clan}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       }
       ) : http.get(
         `/user/customer/search?page=${page}&gender=${gender}&mat_status=${mat_status}&minAge=${minAge}&maxAge=${maxAge}
-        &religion=${religion}&caste=${caste}`)
+        &religion=${religion}&caste=${caste}&clan=${clan}`)
         .then((res) => {
           return res;
         });

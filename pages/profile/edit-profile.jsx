@@ -876,7 +876,7 @@ function EditProfile() {
                   </div>
                 </div>
                 <div className="flex">
-                  <div className="md:w-1/3 w-1/2">Clan :</div>
+                  <div className="md:w-1/3 w-1/2">Caste:</div>
                   <div className="md:w-2/3 w-1/2">
                     {displayUser?.caste?.name || displayUser?.caste || "---"}
                   </div>
