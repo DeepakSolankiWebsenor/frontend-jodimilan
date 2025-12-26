@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { Alert, Snackbar, Tooltip } from "@mui/material";
+import { shouldShowPhoto } from "../utils/PrivacyUtils";
 import { useRouter } from "next/router";
 import React, { useEffect, useRef, useState } from "react";
 import useApiService from "../services/ApiService";
@@ -189,9 +190,22 @@ const InterestReceivePending = () => {
             </div>
           ) : data?.length > 0 ? (
             data.map((item) => {
-              const user = item?.user || {};
+              // Prioritize 'friend' object as per API sample, fallback to 'user'
+              const user = item?.friend || item?.user || {};
               const profile = user?.profile || {};
-              const imgSrc = profile?.profile_img_src || (user?.gender === "Male" ? MenD.src : WomenD.src);
+              
+              let imgSrc;
+              if (user?.profile_photo) {
+                  imgSrc = user.profile_photo.startsWith("http") 
+                      ? user.profile_photo 
+                      : `${process.env.NEXT_PUBLIC_API_BASE_URL}/${user.profile_photo}`;
+              } else if (profile?.profile_image) {
+                   imgSrc = profile.profile_image.startsWith("http")
+                      ? profile.profile_image
+                      : `${process.env.NEXT_PUBLIC_API_BASE_URL}/${profile.profile_image}`;
+              } else {
+                  imgSrc = user?.gender === "Male" ? MenD.src : WomenD.src;
+              }
 
               return (
                  <div
@@ -205,7 +219,7 @@ const InterestReceivePending = () => {
                             alt="Profile"
                             className="h-24 w-24 sm:h-28 sm:w-28 object-cover rounded-full border-4 border-white shadow-md group-hover:scale-105 transition-transform duration-300"
                             style={{
-                                filter: profile?.photo_privacy === "No" ? "blur(3px)" : "none",
+                                filter: shouldShowPhoto(user, currentUser, 'pending') ? "none" : "blur(5px)",
                             }}
                         />
                     </div>

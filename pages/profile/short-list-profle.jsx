@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
+import { shouldShowPhoto } from "../../utils/PrivacyUtils";
 import { useRouter } from "next/router";
 import useApiService from "../../services/ApiService";
 import MenD from "../../public/images/mendefault.png";
@@ -179,6 +180,9 @@ function ShortListProfile() {
                         src={`${API_BASE_URL }${user.profile_photo}`}
                         alt="Profile"
                         className="w-24 h-32 object-cover rounded-md mx-auto"
+                        style={{
+                            filter: shouldShowPhoto(user, currentUser, 'public') ? "none" : "blur(5px)",
+                        }}
                       />
                     ) : (
                       <Image

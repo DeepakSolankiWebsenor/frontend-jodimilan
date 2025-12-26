@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
+import { shouldShowPhoto } from "../utils/PrivacyUtils";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import React, { useEffect, useRef, useState } from "react";
@@ -134,11 +135,14 @@ const InterestSentAccept = () => {
           ) : data?.sent?.length > 0 ? (
             data.sent.map((item, index) => {
               const user = item.friend;
-              const imgSrc = user?.profile_photo
-                ? user.profile_photo
-                : user?.gender === "Male"
-                ? MenD.src
-                : WomenD.src;
+              let imgSrc;
+              if (user?.profile_photo) {
+                imgSrc = user.profile_photo.startsWith("http")
+                  ? user.profile_photo
+                  : `${process.env.NEXT_PUBLIC_API_BASE_URL}/${user.profile_photo}`;
+              } else {
+                imgSrc = user?.gender === "Male" ? MenD.src : WomenD.src;
+              }
 
               return (
                  <div
@@ -151,6 +155,9 @@ const InterestSentAccept = () => {
                             src={imgSrc}
                             alt="Profile"
                             className="h-24 w-24 sm:h-28 sm:w-28 object-cover rounded-full border-4 border-white shadow-md group-hover:scale-105 transition-transform duration-300"
+                            style={{
+                                filter: shouldShowPhoto(user, currentUser, 'friend') ? "none" : "blur(5px)",
+                            }}
                         />
                     </div>
 

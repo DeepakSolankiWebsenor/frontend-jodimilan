@@ -50,6 +50,8 @@ const Signup = ({ open, onClose }) => {
     reset,
     setError,
     setValue,
+    getValues,
+    watch,
     formState: { errors },
   } = useForm({ defaultValues });
 
@@ -287,6 +289,9 @@ const Signup = ({ open, onClose }) => {
                       if (religionObj) {
                         setValue("religion_name", religionObj.name);
                       }
+                      // Reset child fields
+                      setValue("caste", "");
+                      setValue("clan", "");
                     },
                   })}
                   className="p-3 bg-gray-200 rounded text-xs outline-none"
@@ -308,19 +313,52 @@ const Signup = ({ open, onClose }) => {
               <div className="grid gap-1">
                 <label className="text-sm font-medium">Caste</label>
                 <select
-                  {...register("caste", { required: "Required" })}
+                  {...register("caste", { 
+                    required: "Required",
+                    onChange: () => {
+                       setValue("clan", "");
+                    }
+                  })}
                   className="p-3 bg-gray-200 rounded text-xs outline-none"
                 >
                   <option hidden>Select</option>
-                  {options?.caste?.map((item, i) => (
-                    <option key={i} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
+                  {/* Derive castes from selected religion */}
+                  {(() => {
+                      const selectedReligionId = watch("religion");
+                      const religion = options?.religion?.find(r => r.id == selectedReligionId);
+                      return religion?.castes?.map((item, i) => (
+                        <option key={i} value={item.id}>
+                          {item.name}
+                        </option>
+                      ));
+                  })()}
                 </select>
                 {errors.caste && (
                   <p className="text-red-500 text-xs">{errors.caste.message}</p>
                 )}
+              </div>
+
+              <div className="grid gap-1">
+                <label className="text-sm font-medium">Clan (Optional)</label>
+                <select
+                  {...register("clan")}
+                  className="p-3 bg-gray-200 rounded text-xs outline-none"
+                >
+                  <option value="">Select</option>
+                  {/* Derive clans from selected caste */}
+                  {(() => {
+                      const selectedReligionId = watch("religion");
+                      const religion = options?.religion?.find(r => r.id == selectedReligionId);
+                      const selectedCasteId = watch("caste");
+                      const caste = religion?.castes?.find(c => c.id == selectedCasteId);
+                      
+                      return caste?.clans?.map((item, i) => (
+                        <option key={i} value={item.id}>
+                          {item.name}
+                        </option>
+                      ));
+                  })()}
+                </select>
               </div>
 
               <div className="grid gap-1">
@@ -330,6 +368,7 @@ const Signup = ({ open, onClose }) => {
                   {...register("dob", { 
                     required: "Required",
                     validate: (value) => {
+                      const gender = getValues("gender");
                       const today = new Date();
                       const birthDate = new Date(value);
                       let age = today.getFullYear() - birthDate.getFullYear();
@@ -337,7 +376,13 @@ const Signup = ({ open, onClose }) => {
                       if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
                         age--;
                       }
-                      return age >= 21 || "User must be 21 years or older";
+                      
+                      if (gender === "Male") {
+                        return age >= 21 || "Male must be 21 years or older";
+                      } else if (gender === "Female") {
+                        return age >= 18 || "Female must be 18 years or older";
+                      }
+                      return age >= 18 || "User must be 18 years or older";
                     }
                   })}
                   max={new Date().toISOString().split("T")[0]}
@@ -390,6 +435,12 @@ const Signup = ({ open, onClose }) => {
                     pattern: {
                       value: /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[#$@!%&*?])[A-Za-z\d#$@!%&*?]{6,}$/,
                       message: "Password must contain letters, numbers, and at least one special character (#$@!%&*?)"
+                    },
+                    onChange: () => {
+                       // Trigger validation for confirm password when password changes
+                       if (getValues("confirm_password")) {
+                          // trigger("confirm_password"); // Optional: if we want immediate feedback
+                       }
                     }
                   })}
                   className="p-3 bg-gray-200 rounded text-xs outline-none"
@@ -397,6 +448,27 @@ const Signup = ({ open, onClose }) => {
                 {errors.password && (
                   <p className="text-red-500 text-xs">
                     {errors.password.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid gap-1">
+                <label className="text-sm font-medium">Confirm Password</label>
+                <input
+                  type="password"
+                  {...register("confirm_password", { 
+                    required: "Required",
+                    validate: (val) => {
+                      if (watch("password") !== val) {
+                        return "Your passwords do no match";
+                      }
+                    }
+                  })}
+                  className="p-3 bg-gray-200 rounded text-xs outline-none"
+                />
+                {errors.confirm_password && (
+                  <p className="text-red-500 text-xs">
+                    {errors.confirm_password.message}
                   </p>
                 )}
               </div>

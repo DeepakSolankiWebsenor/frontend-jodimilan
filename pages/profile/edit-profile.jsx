@@ -1754,7 +1754,7 @@ function EditProfile() {
                     <div className="my-2">Father Occupation :</div>
                     <div className="">Mother Contact :</div>
                     <div className="my-2">Mother Occupation :</div>
-                    <div className="my-2">Mother Clan :</div>
+                    {/* <div className="my-2">Mother Clan :</div> */}
                   </div>
                   {familyDetailEdit ? (
                     <div className="md:w-2/3 w-1/2">
@@ -1778,9 +1778,9 @@ function EditProfile() {
                       <div className="">
                         {displayUser?.mother_occupation ?? "--"}
                       </div>
-                      <div className="my-2">
+                      {/* <div className="my-2">
                         {displayUser?.motherCaste?.name || displayUser?.mother_caste || "--"}
-                      </div>
+                      </div> */}
                     </div>
                   ) : (
                     <div className="md:w-2/3 w-1/2">
@@ -1879,7 +1879,7 @@ function EditProfile() {
                         </select>
                       </div>
 
-                      <div className="mt-2">
+                      {/* <div className="mt-2">
                         <select
                           name="mother_caste"
                           className="md:w-52 w-full border border-gray-300 rounded px-2 text-sm font-medium"
@@ -1894,7 +1894,7 @@ function EditProfile() {
                             </option>
                           ))}
                         </select>
-                      </div>
+                      </div> */}
                     </div>
                   )}
                 </div>

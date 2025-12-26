@@ -27,6 +27,7 @@ const schema = yup.object().shape({
   marital_status: yup.string().required("Marital status is required"),
   religion: yup.string().required("Religion is required"),
   caste: yup.string().required("Caste is required"),
+  clan: yup.string().nullable(),
   min_age: yup.string().required("Min age is required"),
   max_age: yup.string().required("Max age is required"),
 });
@@ -35,6 +36,7 @@ const defaultValues = {
   marital_status: "",
   religion: "",
   caste: "",
+  clan: "",
   min_age: "",
   max_age: "",
 };
@@ -50,6 +52,7 @@ const PartnerPreferences = ({ data, fetchProfile }) => {
     reset,
     control,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm({
     defaultValues,
@@ -66,6 +69,7 @@ const PartnerPreferences = ({ data, fetchProfile }) => {
         marital_status: data?.marital_status || "",
         religion: data?.religion?.toString?.() || data?.religion || "",
         caste: data?.caste?.toString?.() || data?.caste || "",
+        clan: data?.clan?.toString?.() || data?.clan || "",
         min_age: data?.min_age?.toString?.() || "",
         max_age: data?.max_age?.toString?.() || "",
       });
@@ -80,9 +84,24 @@ const PartnerPreferences = ({ data, fetchProfile }) => {
     return item?.name || item || "—";
   };
 
+  const getClanNameById = (religionId, casteId, clanId) => {
+      if(!clanId) return "—";
+      const religion = masterData1?.common_data?.religion?.find(r => r.id == religionId);
+      const caste = religion?.castes?.find(c => c.id == casteId);
+      const clan = caste?.clans?.find(c => c.id == clanId);
+      return clan?.name || "—";
+  }
+
   const onSubmit = async (data) => {
+    const selectedReligion = masterData1?.common_data?.religion?.find(r => r.id == data.religion);
+    const selectedCaste = selectedReligion?.castes?.find(c => c.id == data.caste);
+    const selectedClan = selectedCaste?.clans?.find(c => c.id == data.clan);
+
     const payload = {
       ...data,
+      religion_name: selectedReligion?.name,
+      caste_name: selectedCaste?.name,
+      clan_name: selectedClan?.name,
       enabled: 1
     };
 
@@ -189,6 +208,11 @@ const PartnerPreferences = ({ data, fetchProfile }) => {
                     render={({ field }) => (
                       <select
                         {...field}
+                         onChange={(e) => {
+                            field.onChange(e);
+                            setValue("caste", "");
+                            setValue("clan", "");
+                        }}
                         className="outline-none md:w-52 w-36 text-sm border border-gray-300 rounded px-2 py-2 font-medium"
                       >
                         <option value="" hidden>
@@ -224,7 +248,7 @@ const PartnerPreferences = ({ data, fetchProfile }) => {
           {/* Caste */}
           <div>
             <div className="flex items-center">
-              <div className="md:w-1/3 w-1/2">Clan :</div>
+              <div className="md:w-1/3 w-1/2">Caste :</div>
               {isEdit ? (
                 <div>
                   <Controller
@@ -233,16 +257,24 @@ const PartnerPreferences = ({ data, fetchProfile }) => {
                     render={({ field }) => (
                       <select
                         {...field}
+                        onChange={(e) => {
+                            field.onChange(e);
+                            setValue("clan", "");
+                        }}
                         className="outline-none md:w-52 w-36 text-sm border border-gray-300 rounded px-2 py-2 font-medium"
                       >
                         <option value="" hidden>
                           Select
                         </option>
-                        {masterData1?.common_data?.caste?.map((item, index) => (
-                          <option key={index} value={item?.id}>
-                            {item?.name}
-                          </option>
-                        ))}
+                         {(() => {
+                            const selectedReligionId = watch("religion");
+                            const religion = masterData1?.common_data?.religion?.find(r => r.id == selectedReligionId);
+                            return religion?.castes?.map((item, index) => (
+                              <option key={index} value={item?.id}>
+                                {item?.name}
+                              </option>
+                            ));
+                        })()}
                       </select>
                     )}
                   />
@@ -255,6 +287,52 @@ const PartnerPreferences = ({ data, fetchProfile }) => {
               ) : (
                 <div className="md:w-2/3 w-1/2">
                   {data?.caste_name || getNameById(masterData1?.common_data?.caste, data?.caste)}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Clan - Optional */}
+          <div>
+            <div className="flex items-center">
+              <div className="md:w-1/3 w-1/2">Clan (Optional) :</div>
+              {isEdit ? (
+                <div>
+                  <Controller
+                    name="clan"
+                    control={control}
+                    render={({ field }) => (
+                      <select
+                        {...field}
+                        className="outline-none md:w-52 w-36 text-sm border border-gray-300 rounded px-2 py-2 font-medium"
+                      >
+                        <option value="">
+                          Select
+                        </option>
+                        {(() => {
+                            const selectedReligionId = watch("religion");
+                            const religion = masterData1?.common_data?.religion?.find(r => r.id == selectedReligionId);
+                            const selectedCasteId = watch("caste");
+                            const caste = religion?.castes?.find(c => c.id == selectedCasteId);
+                            
+                            return caste?.clans?.map((item, index) => (
+                              <option key={index} value={item?.id}>
+                                {item?.name}
+                              </option>
+                            ));
+                        })()}
+                      </select>
+                    )}
+                  />
+                  {errors.clan && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.clan.message}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="md:w-2/3 w-1/2">
+                   {data?.clan_name || getClanNameById(data?.religion, data?.caste, data?.clan)}
                 </div>
               )}
             </div>

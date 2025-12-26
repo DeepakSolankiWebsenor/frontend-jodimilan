@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState, Fragment } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
+import { shouldShowPhoto } from "../../../utils/PrivacyUtils";
 import { decrypted_key } from "../../../services/appConfig";
 import {
   Alert,
@@ -718,7 +719,7 @@ console.log("partnerPreferences", partnerPreferences);
                         alt="profile image"
                         className="md:w-full w-auto mx-auto md:h-full h-56 object-cover"
                         style={{
-                          filter: profileData?.profile?.photo_privacy === "No" ? "blur(4px)" : "",
+                          filter: shouldShowPhoto(profileData, userData, profileData?.friend_request_approved ? 'friend' : 'public') ? "none" : "blur(5px)",
                         }}
                       />
                     ) : (

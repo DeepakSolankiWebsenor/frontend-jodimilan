@@ -14,21 +14,6 @@ import CryptoJS from "crypto-js";
 import { decrypted_key } from "../services/appConfig";
 import { Pagination } from "@mui/material";
 
-const minAge = [
-  { id: 1, name: 21 },
-  { id: 2, name: 22 },
-  { id: 3, name: 23 },
-  { id: 4, name: 24 },
-  { id: 5, name: 25 },
-];
-
-const maxAge = [
-  { id: 1, name: 26 },
-  { id: 2, name: 27 },
-  { id: 3, name: 28 },
-  { id: 4, name: 29 },
-  { id: 5, name: 30 },
-];
 
 function Search() {
   const [openTab, setOpenTab] = useState(1);
@@ -239,21 +224,38 @@ function Search() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (data?.gender) {
-      setError("");
-      setPage(1);
-      saerchFunction(
-        page,
-        data?.gender,
-        data?.mat_status,
-        data?.minAge,
-        data?.maxAge,
-        data?.religion,
-        data?.caste
-      );
-    } else {
+    if (!data?.gender) {
       setError("Please select gender");
+      return;
     }
+
+    const age = Number(data?.minAge);
+    if (!data?.minAge) {
+      setError("Please enter minimum age");
+      return;
+    }
+
+    if (data?.gender === "Male" && age < 21) {
+      setError("For Male, minimum age must be 21");
+      return;
+    }
+
+    if (data?.gender === "Female" && age < 18) {
+      setError("For Female, minimum age must be 18");
+      return;
+    }
+
+    setError("");
+    setPage(1);
+    saerchFunction(
+      1, // reset to page 1 on new search
+      data?.gender,
+      data?.mat_status,
+      data?.minAge,
+      data?.maxAge,
+      data?.religion,
+      data?.caste
+    );
   };
 
   const handleClearFilters = () => {
@@ -507,45 +509,36 @@ function Search() {
                                 </select>
                               </div>
                             </div> */}
-                            <div className="mb-2">
+                             <div className="mb-2">
                               <div className="text-start font-medium mb-2 ml-2">
                                 Age
                               </div>
-                              <div className="flex">
-                                <select
+                              <div className="flex gap-2">
+                                <input
+                                  type="number"
                                   name="minAge"
-                                  className="text-sm border w-full border-gray-300 rounded px-2 py-2 font-medium"
+                                  placeholder="Min Age"
+                                  className="text-sm border w-full border-gray-300 rounded px-2 py-2 font-medium focus:outline-none focus:ring-1 focus:ring-primary"
                                   value={data?.minAge}
                                   onChange={handleChange}
-                                >
-                                  <option value="" hidden>
-                                    Select Min Age
-                                  </option>
-                                  {minAge.map((item, index) => (
-                                    <option value={item.name} key={index}>
-                                      {item.name}
-                                    </option>
-                                  ))}
-                                </select>
-                                <span className="self-center px-2 font-medium">
+                                />
+                                <span className="self-center font-medium">
                                   To
                                 </span>
-                                <select
+                                <input
+                                  type="number"
                                   name="maxAge"
-                                  className="text-sm border w-full border-gray-300 rounded px-2 py-2 font-medium"
+                                  placeholder="Max Age"
+                                  className="text-sm border w-full border-gray-300 rounded px-2 py-2 font-medium focus:outline-none focus:ring-1 focus:ring-primary"
                                   value={data?.maxAge}
                                   onChange={handleChange}
-                                >
-                                  <option value="" hidden>
-                                    Select Max Age
-                                  </option>
-                                  {maxAge.map((item, index) => (
-                                    <option value={item.name} key={index}>
-                                      {item.name}
-                                    </option>
-                                  ))}
-                                </select>
+                                />
                               </div>
+                              {error && error.includes("age") && (
+                                <div className="text-sm text-red-600 text-start ml-2 mt-1">
+                                  {error}
+                                </div>
+                              )}
                             </div>
                             <button
                               className="bg-primary text-white rounded-md p-2 text-center cursor-pointer"

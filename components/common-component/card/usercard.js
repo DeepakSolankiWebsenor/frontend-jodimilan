@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { shouldShowPhoto } from "../../../utils/PrivacyUtils";
 import Image from "next/image";
 import WomenD from "../../../public/images/girldefault.png";
 import MenD from "../../../public/images/mendefault.png";
@@ -122,7 +123,7 @@ const Usercard = ({ item, index, className }) => {
               alt="ss"
               className="md:w-[270px] w-64 md:h-[240px] h-48"
               style={{
-                filter: photo_privacy === "No" ? "blur(2px)" : "",
+                filter: shouldShowPhoto(item, currentUser, 'public') ? "none" : "blur(5px)",
               }}
             />
           ) : (

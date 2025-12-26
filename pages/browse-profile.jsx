@@ -61,10 +61,13 @@ const Browseprofile = () => {
     occupation: [],
     state: [],
     birth_city: [],
+    religion: [],
     caste: [],
+    clan: [],
   });
 
-  console.log("DEBUG: Current Filter Tags:", filterTags);
+  const [availableCastes, setAvailableCastes] = useState([]);
+  const [availableClans, setAvailableClans] = useState([]);
 
   useEffect(() => {
     setOptions(filterMaster);
@@ -73,6 +76,60 @@ const Browseprofile = () => {
       if (res?.data) setStates(res.data);
     });
   }, [filterMaster]);
+
+  // Derive Available Castes based on Selected Religions
+  useEffect(() => {
+    if (filterTags.religion.length > 0 && options?.religion) {
+      const selectedReligionIds = filterTags.religion.map(id => Number(id));
+      const newCastes = options.religion
+        .filter(r => selectedReligionIds.includes(r.id))
+        .flatMap(r => r.castes || []);
+      setAvailableCastes(newCastes);
+    } else {
+      setAvailableCastes([]);
+    }
+  }, [filterTags.religion, options]);
+
+  // Derive Available Clans based on Selected Castes
+  useEffect(() => {
+    if (filterTags.caste.length > 0 && availableCastes.length > 0) {
+      const selectedCasteIds = filterTags.caste.map(id => Number(id));
+      const newClans = availableCastes
+        .filter(c => selectedCasteIds.includes(c.id))
+        .flatMap(c => c.clans || []);
+      setAvailableClans(newClans);
+    } else {
+      setAvailableClans([]);
+    }
+  }, [filterTags.caste, availableCastes]);
+
+  // Auto-clear logic: If dependencies change, remove invalid child selections
+  useEffect(() => {
+    if (availableCastes.length === 0 && filterTags.caste.length > 0) {
+      setFilterTags(prev => ({ ...prev, caste: [], clan: [] }));
+    } else if (availableCastes.length > 0) {
+        // Optional: Filter out castes that are no longer available
+        const currentCasteIds = new Set(availableCastes.map(c => String(c.id)));
+        const validCastes = filterTags.caste.filter(id => currentCasteIds.has(id));
+        if (validCastes.length !== filterTags.caste.length) {
+             setFilterTags(prev => ({ ...prev, caste: validCastes }));
+        }
+    }
+  }, [availableCastes]);
+
+  useEffect(() => {
+     if (availableClans.length === 0 && filterTags.clan.length > 0) {
+       setFilterTags(prev => ({ ...prev, clan: [] }));
+     } else if (availableClans.length > 0) {
+         // Optional: Filter out clans that are no longer available
+         const currentClanIds = new Set(availableClans.map(c => String(c.id)));
+         const validClans = filterTags.clan.filter(id => currentClanIds.has(id));
+         if (validClans.length !== filterTags.clan.length) {
+              setFilterTags(prev => ({ ...prev, clan: validClans }));
+         }
+     }
+  }, [availableClans]);
+
 
   // Fetch Cities when State changes
   useEffect(() => {
@@ -141,12 +198,14 @@ const Browseprofile = () => {
     let query = "";
     
     try {
-        const { occupation, state, birth_city, caste } = filterTags;
+        const { occupation, state, birth_city, caste, religion, clan } = filterTags;
 
         if (Array.isArray(occupation)) occupation.forEach((v, i) => (query += `occupation[${i}]=${v}&`));
         if (Array.isArray(state)) state.forEach((v, i) => (query += `state[${i}]=${v}&`));
         if (Array.isArray(birth_city)) birth_city.forEach((v, i) => (query += `city[${i}]=${v}&`));
+        if (Array.isArray(religion)) religion.forEach((v, i) => (query += `religion[${i}]=${v}&`));
         if (Array.isArray(caste)) caste.forEach((v, i) => (query += `caste[${i}]=${v}&`));
+        if (Array.isArray(clan)) clan.forEach((v, i) => (query += `clan[${i}]=${v}&`));
 
         const res = await BrowseProfileData(query);
 
@@ -168,9 +227,13 @@ const Browseprofile = () => {
       occupation: [],
       state: [],
       birth_city: [],
+      religion: [],
       caste: [],
+      clan: [],
     });
     setCities([]);
+    setAvailableCastes([]);
+    setAvailableClans([]);
     setPage(1);
     // Directly fetch users to reset list
     fetchUsers(); 
@@ -269,20 +332,20 @@ const Browseprofile = () => {
             </AccordionDetails>
           </Accordion>
 
-          {/* CASTE */}
-          <Accordion expanded={expanded === "panel3"} onChange={handleChange("panel3")}>
+           {/* RELIGION */}
+           <Accordion expanded={expanded === "panelReligion"} onChange={handleChange("panelReligion")}>
             <AccordionSummary>
-              BY Clan {filterTags.caste.length > 0 && `[${filterTags.caste.length}]`}
+              BY Religion {filterTags.religion.length > 0 && `[${filterTags.religion.length}]`}
             </AccordionSummary>
             <AccordionDetails>
               <div className="max-h-60 overflow-y-auto">
-              {options?.caste?.map((item, idx) => (
+              {options?.religion?.map((item, idx) => (
                 <label key={idx} className="block mt-2 text-gray-700">
                   <input
                     type="checkbox"
-                    checked={filterTags.caste.includes(String(item.id))}
+                    checked={filterTags.religion.includes(String(item.id))}
                     value={item.id}
-                    onChange={(e) => handleFilterChange("caste", e)}
+                    onChange={(e) => handleFilterChange("religion", e)}
                   />
                   <span className="ml-2">{item.name}</span>
                 </label>
@@ -290,6 +353,62 @@ const Browseprofile = () => {
               </div>
             </AccordionDetails>
           </Accordion>
+
+          {/* CASTE */}
+          {filterTags.religion.length > 0 && (
+            <Accordion expanded={expanded === "panel3"} onChange={handleChange("panel3")}>
+              <AccordionSummary>
+                BY Caste {filterTags.caste.length > 0 && `[${filterTags.caste.length}]`}
+              </AccordionSummary>
+              <AccordionDetails>
+                <div className="max-h-60 overflow-y-auto">
+                {availableCastes.length > 0 ? (
+                  availableCastes.map((item, idx) => (
+                    <label key={idx} className="block mt-2 text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={filterTags.caste.includes(String(item.id))}
+                        value={item.id}
+                        onChange={(e) => handleFilterChange("caste", e)}
+                      />
+                      <span className="ml-2">{item.name}</span>
+                    </label>
+                  ))
+                ) : (
+                   <div className="text-gray-500 text-sm">No castes available</div>
+                )}
+                </div>
+              </AccordionDetails>
+            </Accordion>
+          )}
+
+          {/* CLAN */}
+          {filterTags.caste.length > 0 && (
+            <Accordion expanded={expanded === "panelClan"} onChange={handleChange("panelClan")}>
+              <AccordionSummary>
+              BY Clan (Optional) {filterTags.clan.length > 0 && `[${filterTags.clan.length}]`}
+            </AccordionSummary>
+              <AccordionDetails>
+                <div className="max-h-60 overflow-y-auto">
+                {availableClans.length > 0 ? (
+                  availableClans.map((item, idx) => (
+                    <label key={idx} className="block mt-2 text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={filterTags.clan.includes(String(item.id))}
+                        value={item.id}
+                        onChange={(e) => handleFilterChange("clan", e)}
+                      />
+                      <span className="ml-2">{item.name}</span>
+                    </label>
+                  ))
+                ) : (
+                   <div className="text-gray-500 text-sm">No clans available</div>
+                )}
+                </div>
+              </AccordionDetails>
+            </Accordion>
+          )}
 
           <button
             onClick={handleFilterEvent}
