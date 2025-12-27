@@ -437,7 +437,7 @@ const Browseprofile = () => {
               <CircularLoader />
             </div>
           ) : filteredUsers?.length > 0 ? (
-            <div className="grid lg:grid-cols-3 sm:grid-cols-2 gap-4">
+            <div className="grid lg:grid-cols-3 sm:grid-cols-2 gap-4 justify-items-center">
               {filteredUsers.map((user, idx) => (
                 <Usercard key={idx} item={user} />
               ))}

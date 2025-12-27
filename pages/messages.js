@@ -864,7 +864,8 @@ export default function Messages() {
         message="Without membership not able to chat with other users."
       />
 
-      <div className={styles.chatContainer}>
+      <div style={{ margin: 0, padding: 0, width: '100%', height: '100vh' }}>
+        <div className={styles.chatContainer}>
         {/* Chat List Sidebar */}
         <div className={`${styles.chatListSidebar} ${selectedChat ? styles.mobileHidden : ''}`}>
           <div className={styles.chatListHeader}>
@@ -1145,6 +1146,7 @@ export default function Messages() {
             </div>
           </div>
         )}
+        </div>
       </div>
     </>
   );

@@ -241,13 +241,13 @@ function ProfilePage() {
                       {profileData?.ryt_id})
                     </div>
 
-                    {/* Mobile actions */}
-                    <div className="bg-[#1585DB] w-full text-white font-semibold px-4 py-2 flex items-center justify-between lg:hidden mt-2">
+                    {/* Mobile actions - 2x2 Grid */}
+                    <div className="bg-[#1585DB] w-full text-white font-semibold px-6 py-6 grid grid-cols-2 gap-y-6 lg:hidden mt-2">
                       <div
-                        className="cursor-pointer flex gap-1 flex-col items-center"
+                        className="cursor-pointer flex gap-1 flex-col items-center border-r border-white/20 sm:border-r"
                         onClick={() => router.push("/search")}
                       >
-                        <BiSearchAlt />
+                        <BiSearchAlt size={24} />
                         <div>Search</div>
                       </div>
 
@@ -255,25 +255,25 @@ function ProfilePage() {
                         className="cursor-pointer flex gap-1 flex-col items-center"
                         onClick={() => router.push("/messages")}
                       >
-                        <BsFillChatFill />
+                        <BsFillChatFill size={24} />
                         <div>Inbox</div>
                       </div>
 
                       <div
-                        className="cursor-pointer flex gap-1 flex-col items-center"
+                        className="cursor-pointer flex gap-1 flex-col items-center border-r border-t border-white/20 pt-4"
                         onClick={() =>
                           router.push("/profile/short-list-profle")
                         }
                       >
-                        <BsFillStarFill />
+                        <BsFillStarFill size={24} />
                         <div>Shortlisted</div>
                       </div>
 
                       <div
-                        className="cursor-pointer flex gap-1 flex-col items-center"
+                        className="cursor-pointer flex gap-1 flex-col items-center border-t border-white/20 pt-4"
                         onClick={() => router.push("/profile/edit-profile")}
                       >
-                        <FaUserEdit />
+                        <FaUserEdit size={24} />
                         <div>Edit</div>
                       </div>
                     </div>

@@ -41,30 +41,31 @@ const UpdateMobileEmail = () => {
   // ==========================
   // 📌 Send OTP for Mobile
   // ==========================
-  const handleMobileUpdate = (e) => {
-    e.preventDefault();
-    setErrors({});
-    setServerError("");
+ const handleMobileUpdate = (e) => {
+  e.preventDefault();
+  setErrors({});
+  setServerError("");
 
-    if (!phone || phone.length !== 10) {
-      setErrors({ phone: "Please enter a valid 10-digit phone number" });
-      return;
-    }
+  if (!phone || phone.length !== 10) {
+    setErrors({ phone: "Please enter a valid 10-digit phone number" });
+    return;
+  }
 
-    const form = new FormData();
-    form.append("phone", phone);
+  setLoading(true);
+  createOTP({
+    phone: phone,
+    dialing_code: "91",
+  })
+    .then(() => {
+      setOtpShow(true);
+    })
+    .catch((err) => {
+      const message = err?.response?.data?.message || "Unable to send OTP";
+      setServerError(message);
+    })
+    .finally(() => setLoading(false));
+};
 
-    setLoading(true);
-    createOTP(form)
-      .then(() => {
-        setOtpShow(true);
-      })
-      .catch((err) => {
-        const message = err?.response?.data?.message || "Unable to send OTP";
-        setServerError(message);
-      })
-      .finally(() => setLoading(false));
-  };
 
   // ==========================
   // 📌 Verify Mobile OTP
@@ -112,32 +113,29 @@ const UpdateMobileEmail = () => {
   // 📌 Send OTP for Email
   // ==========================
   const handleEmailUpdate = (e) => {
-    e.preventDefault();
-    setErrors({});
-    setServerError("");
+  e.preventDefault();
+  setErrors({});
+  setServerError("");
 
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !emailPattern.test(email)) {
+    setErrors({ email: "Enter a valid email address" });
+    return;
+  }
 
-    if (!email || !emailPattern.test(email)) {
-      setErrors({ email: "Enter a valid email address" });
-      return;
-    }
+  setLoading(true);
+  createEmailOTP({ email })
+    .then(() => {
+      setEmailCodeShow(true);
+    })
+    .catch((err) => {
+      const message =
+        err?.response?.data?.message || "Unable to send verification email";
+      setServerError(message);
+    })
+    .finally(() => setLoading(false));
+};
 
-    const form = new FormData();
-    form.append("email", email);
-
-    setLoading(true);
-    createEmailOTP(form)
-      .then(() => {
-        setEmailCodeShow(true);
-      })
-      .catch((err) => {
-        const message =
-          err?.response?.data?.message || "Unable to send verification email";
-        setServerError(message);
-      })
-      .finally(() => setLoading(false));
-  };
 
   // ==========================
   // 📌 Verify Email OTP
@@ -258,6 +256,10 @@ const UpdateMobileEmail = () => {
               <p className="text-red-600 text-sm mt-1">{errors.phone}</p>
             )}
 
+            {serverError && !otpShow && (
+              <p className="text-red-600 text-sm mt-1">{serverError}</p>
+            )}
+
             {otpShow && (
               <>
                 <label className="font-medium block mt-4 mb-2">Enter OTP</label>
@@ -310,6 +312,10 @@ const UpdateMobileEmail = () => {
             />
             {errors.email && (
               <p className="text-red-600 text-sm mt-1">{errors.email}</p>
+            )}
+
+            {serverError && !emailCodeShow && (
+              <p className="text-red-600 text-sm mt-1">{serverError}</p>
             )}
 
             {emailCodeShow && (

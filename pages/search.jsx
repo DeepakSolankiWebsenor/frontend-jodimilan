@@ -10,6 +10,7 @@ import WomenD from "../public/images/girldefault.png";
 import MenD from "../public/images/mendefault.png";
 import PaginationControlled from "../components/common-component/pagination";
 import Usercard from "../components/common-component/card/usercard";
+import CircularLoader from "../components/common-component/loader";
 import CryptoJS from "crypto-js";
 import { decrypted_key } from "../services/appConfig";
 import { Pagination } from "@mui/material";
@@ -39,6 +40,7 @@ function Search() {
   const [message, setMessage] = useState("");
   const [user, setUser] = useState(false);
   const [userData, setUserData] = useState("");
+  const [loading, setLoading] = useState(false);
   const masterData1 = useSelector((state) => state.user);
 
   // ensure CryptoJS is imported
@@ -151,6 +153,7 @@ function Search() {
     caste,
     clan
   ) => {
+    setLoading(true);
     userSearch(page, gender, mat_status, minAge, maxAge, religion, caste, clan)
       .then((res) => {
         console.log(res, "res search");
@@ -180,6 +183,9 @@ function Search() {
       .catch((error) => {
         console.error(error);
         setMessage("Something went wrong!");
+      })
+      .finally(() => {
+        setLoading(false);
       });
   };
 
@@ -598,7 +604,7 @@ function Search() {
                                     </div>
                                 )}
                                 <button
-                                  className="bg-primary text-white rounded-md p-2 text-center cursor-pointer"
+                                  className="bg-primary w-full text-white rounded-md p-2 text-center cursor-pointer"
                               onClick={handleSearch}
                             >
                               Search
@@ -645,45 +651,57 @@ function Search() {
             </div>
           </div>
 
-          {searchData?.length > 0 && (
+          {userSearchData?.length > 0 && (
             <div className="lg:px-32 mt-2 lg:text-left md:text-left text-center font-medium lg:text-[20px] md:text-[20px] text-[16px] px-10 text-gray-700">
               HERE IS YOUR RESULT
               <hr className="my-4 border" />
             </div>
           )}
 
-          {message && (
-            <div className="text-center font-medium text-[20px] text-gray-700">
-              {message}
-            </div>
-          )}
-
           {dataById && (
-            <Usercard
-              item={dataById}
-              index={1}
-              className="w-[300px]  mx-auto "
-            />
-          )}
-
-          <div className="grid justify-center md:grid-cols-3 lg:grid-cols-4 gap-2 lg:px-32 md:px-8">
-            {searchData &&
-              searchData?.map((item, index) => {
-                if (item.ryt_id !== userData?.user?.ryt_id) {
-                  return <Usercard item={item} index={index} />;
-                }
-              })}
-          </div>
-
-          {searchData?.length > 1 && (
-            <div className="flex justify-center mt-5">
-              <Pagination
-                page={page}
-                count={totalPage}
-                onChange={(e, value) => setPage(value)}
-              />
+            <div className="flex justify-center py-10">
+                <Usercard
+                item={dataById}
+                index={1}
+                className="w-[300px] mx-auto"
+                />
             </div>
           )}
+
+          <div className="flex-1 lg:ml-8 mt-8 lg:mt-0">
+            {loading ? (
+              <div className="flex justify-center items-center py-20">
+                <CircularLoader />
+              </div>
+            ) : (
+              <>
+                <div className="grid justify-center justify-items-center md:grid-cols-3 lg:grid-cols-4 gap-5 lg:px-32 md:px-8">
+                  {userSearchData &&
+                    userSearchData.map((item, index) => (
+                      <Usercard item={item} key={index} />
+                    ))}
+                </div>
+                {message && !dataById && (
+                  <div className="text-center font-medium text-[20px] text-gray-700 py-10">
+                    {message}
+                  </div>
+                )}
+              </>
+            )}
+
+            {userSearchData?.length > 0 && !loading && (
+              <div className="flex justify-center mt-10 mb-10">
+                <Pagination
+                  page={page}
+                  count={totalPage}
+                  onChange={(e, value) => {
+                      setPage(value);
+                      window.scrollTo({ top: 600, behavior: 'smooth' });
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </>

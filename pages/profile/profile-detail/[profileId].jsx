@@ -844,65 +844,71 @@ console.log("partnerPreferences", partnerPreferences);
 
                   {/* ACTION BUTTONS */}
                   <div className="md:w-[27%] lg:h-[225px] md:h-[254px]">
-                    <div className="bg-[#34495e] py-2 font-medium text-white flex flex-col justify-evenly px-6 md:px-0 md:py-0 min-h-full">
-                      <div
-                        className={`${
-                          !profileData?.friend_request_sent &&
-                          !profileData?.friend_request_approved
-                            ? "hover:bg-primary cursor-pointer"
-                            : "opacity-60 cursor-default"
-                        }  md:flex items-center md:px-2 md:py-0 my-auto`}
-                        onClick={
-                          !profileData?.friend_request_sent &&
-                          !profileData?.friend_request_approved
-                            ? handleSendRequest
-                            : undefined
-                        }
-                      >
-                        <button
-                          disabled={
-                            profileData?.friend_request_sent ||
-                            profileData?.friend_request_approved
-                          }
-                          className="block md:w-auto md:text-left md:text-base text-xs lg:px-2 md:pl-2 md:py-2"
-                        >
-                          {profileData?.friend_request_approved
-                            ? "Interest Approved"
-                            : profileData?.friend_request_sent
-                            ? "Interest Sent"
-                            : "Send Interest"}
-                        </button>
-                      </div>
+  <div className="bg-[#34495e] text-white flex flex-col justify-between h-full">
 
-                      <div
-                        className="hover:bg-primary md:flex items-center my-auto lg:px-3 md:px-1 cursor-pointer"
-                        onClick={handleViewContact}
-                      >
-                        <div className="md:block md:text-base text-xs lg:px-2 md:pl-2 py-2">
-                          View Contacts
-                        </div>
-                      </div>
+    {/* SEND INTEREST */}
+    <div
+      className={`h-[48px] flex items-center px-4 text-sm whitespace-nowrap
+        ${
+          !profileData?.friend_request_sent &&
+          !profileData?.friend_request_approved
+            ? "hover:bg-primary cursor-pointer"
+            : "opacity-60 cursor-default"
+        }`}
+      onClick={
+        !profileData?.friend_request_sent &&
+        !profileData?.friend_request_approved
+          ? handleSendRequest
+          : undefined
+      }
+    >
+      <button
+        disabled={
+          profileData?.friend_request_sent ||
+          profileData?.friend_request_approved
+        }
+        className="w-full text-left font-medium"
+      >
+        {profileData?.friend_request_approved
+          ? "Interest Approved"
+          : profileData?.friend_request_sent
+          ? "Interest Sent"
+          : "Send Interest"}
+      </button>
+    </div>
 
-                      <div
-                        className={`${
-                          !profileData?.shortlist_profile_id
-                            ? "hover:bg-primary cursor-pointer"
-                            : "opacity-60 cursor-default"
-                        }  md:flex my-auto items-center lg:px-3 md:px-1 `}
-                        onClick={
-                          !profileData?.shortlist_profile_id
-                            ? handleWishlist
-                            : undefined
-                        }
-                      >
-                        <div className="md:block md:text-base text-xs lg:px-2 md:pl-2 py-2">
-                          {profileData?.shortlist_profile_id
-                            ? "Shortlisted"
-                            : "Shortlist"}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+    {/* VIEW CONTACT */}
+    <div
+      className="h-[48px] flex items-center px-4 text-sm whitespace-nowrap hover:bg-primary cursor-pointer"
+      onClick={handleViewContact}
+    >
+      <span className="font-medium">View Contacts</span>
+    </div>
+
+    {/* SHORTLIST */}
+    <div
+      className={`h-[48px] flex items-center px-4 text-sm whitespace-nowrap
+        ${
+          !profileData?.shortlist_profile_id
+            ? "hover:bg-primary cursor-pointer"
+            : "opacity-60 cursor-default"
+        }`}
+      onClick={
+        !profileData?.shortlist_profile_id
+          ? handleWishlist
+          : undefined
+      }
+    >
+      <span className=" font-semibold">
+        {profileData?.shortlist_profile_id
+          ? "Shortlisted"
+          : "Shortlist"}
+      </span>
+    </div>
+
+  </div>
+</div>
+
                 </div>
               </div>
 
@@ -1025,13 +1031,13 @@ console.log("partnerPreferences", partnerPreferences);
                   </div>
 
                   {/* Right side similar profiles etc. — you can re-add later */}
-                  <div className="w-[25%] md:block hidden">
+                  {/* <div className="w-[25%] md:block hidden">
                     <div className="font-semibold pb-2 ">Similar Profiles</div>
                     <div className="text-sm text-gray-500">
                       (Bind your similar profile data here once backend is
                       ready)
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </div>
