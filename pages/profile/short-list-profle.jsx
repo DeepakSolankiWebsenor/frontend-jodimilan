@@ -15,6 +15,7 @@ import { useSelector } from "react-redux";
 import CryptoJS from "crypto-js";
 import MembershipPopup from "../../components/common-component/MembershipPopup";
 import { decrypted_key } from "../../services/appConfig";
+import PaginationControlled from "../../components/common-component/pagination";
 
 
 function ShortListProfile() {
@@ -23,6 +24,7 @@ function ShortListProfile() {
   const [profiles, setProfiles] = useState([]);
   const [alert, setAlert] = useState(false);
   const[page,setPage]=useState(1);
+  const[totalPage,setTotalPage]=useState(1);
 
   const [showMembershipPopup, setShowMembershipPopup] = useState(false);
   const masterData = useSelector((state) => state.user);
@@ -37,7 +39,8 @@ function ShortListProfile() {
       console.log("Wishlist Res:", res);
 
       if (res?.data?.code === 200) {
-        setProfiles(res?.data?.data || []);
+        setProfiles(res?.data?.data?.items || []);
+        setTotalPage(res?.data?.data?.pagination?.total_pages || 1);
       }
     } catch (error) {
       console.log("Wishlist Fetch Error:", error);
@@ -49,7 +52,7 @@ function ShortListProfile() {
     const token = localStorage.getItem("token");
     if (!token) router.push("/Login");
     else getWishlistProfiles();
-  }, []);
+  }, [page]);
 
   // Decrypt current user data
   useEffect(() => {
@@ -248,6 +251,16 @@ function ShortListProfile() {
               );
             })}
           </div>
+
+          {profiles?.length > 0 && totalPage > 1 && (
+            <div className="flex justify-center mt-12">
+              <PaginationControlled
+                page={page}
+                last_page={totalPage}
+                setPage={setPage}
+              />
+            </div>
+          )}
         </div>
       ) : (
         <div className="text-center my-12">

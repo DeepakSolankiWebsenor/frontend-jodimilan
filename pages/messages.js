@@ -8,6 +8,7 @@ import moment from "moment";
 import SendIcon from "@mui/icons-material/Send";
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
 import BlockIcon from "@mui/icons-material/Block";
+import LockOpenIcon from "@mui/icons-material/LockOpen";
 import { Snackbar, Alert, Tooltip } from "@mui/material";
 import Avatar1 from "../public/images/avtar.png";
 import useApiService from "../services/ApiService";
@@ -525,24 +526,43 @@ export default function Messages() {
   };
 
   const handleBlockUser = () => {
-    if (!selectedChat) return;
+    if (!selectedChat || !currentUserId) return;
 
-    const block = selectedChat.block;
-    const isBlocked = Array.isArray(block)
-      ? block.some((item) => item && Number(item.blocked_by) === currentUserId)
-      : !!(block && typeof block === 'object' && block[currentUserId]);
+    const block = selectedChat.block || {};
+    const isCurrentlyBlocked = !!block[currentUserId] || !!block[String(currentUserId)];
+    const action = isCurrentlyBlocked ? "unblock" : "block";
 
-    blockchatuser(selectedChat.session.id, isBlocked ? "unblock" : "block")
+    // Optimistically update local state
+    const newBlock = { ...block };
+    if (isCurrentlyBlocked) {
+      delete newBlock[currentUserId];
+      delete newBlock[String(currentUserId)];
+    } else {
+      newBlock[currentUserId] = { blocked_by: currentUserId, status: 'Yes' };
+    }
+
+    const updatedSelectedChat = { ...selectedChat, block: newBlock };
+    setSelectedChat(updatedSelectedChat);
+
+    // Update friends list as well for consistency
+    setFriends(prev => prev.map(f => f.id === selectedChat.id ? updatedSelectedChat : f));
+    setAllFriends(prev => prev.map(f => f.id === selectedChat.id ? updatedSelectedChat : f));
+
+    blockchatuser(selectedChat.session.id, action)
       .then((response) => {
         if (response.status === 200) {
           setAlert({
             open: true,
-            message: isBlocked ? "User unblocked successfully" : "User blocked successfully",
+            message: isCurrentlyBlocked ? "User unblocked successfully" : "User blocked successfully",
           });
+          // Final sync with server
           fetchFriends();
         }
       })
-      .catch((error) => console.log(error));
+      .catch((error) => {
+        console.error('❌ Block check failed:', error);
+        // Revert on error could be added here if needed
+      });
   };
 
   const handleSearch = (e) => {
@@ -979,9 +999,13 @@ export default function Messages() {
               </div>
 
               <div className={styles.chatHeaderActions}>
-                <Tooltip title={isBlocked() ? "Unblock user" : "Block user"}>
-                  <button className={styles.iconButton} onClick={handleBlockUser}>
-                    <BlockIcon />
+                <Tooltip title={didIBlock() ? "Unblock user" : "Block user"}>
+                  <button 
+                    className={styles.iconButton} 
+                    onClick={handleBlockUser}
+                    style={{ color: didIBlock() ? '#52c41a' : '#ff4d4f' }}
+                  >
+                    {didIBlock() ? <LockOpenIcon /> : <BlockIcon />}
                   </button>
                 </Tooltip>
               </div>

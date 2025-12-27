@@ -17,6 +17,7 @@ import { fetchNotifications } from "../services/redux/slices/notificationSlice";
 import CryptoJS from "crypto-js";
 import MembershipPopup from "../components/common-component/MembershipPopup";
 import { decrypted_key } from "../services/appConfig";
+import PaginationControlled from "../components/common-component/pagination";
 
 const InterestReceivePending = () => {
   const [data, setData] = useState([]);
@@ -32,12 +33,16 @@ const InterestReceivePending = () => {
   const masterData = useSelector((state) => state.user);
   const dispatch = useDispatch();
   const [currentUser, setCurrentUser] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalPage, setTotalPage] = useState(1);
 
-  const getFriendRequestData = () => {
-    getFriendRequest()
+  const getFriendRequestData = (pageNum) => {
+    setLoading(true);
+    getFriendRequest(pageNum)
       .then((res) => {
         if (res?.data?.success) {
-          setData(res?.data?.data || []);
+          setData(res?.data?.data?.items || []);
+          setTotalPage(res?.data?.data?.pagination?.total_pages || 1);
         }
       })
       .catch((error) => {
@@ -47,16 +52,13 @@ const InterestReceivePending = () => {
   };
 
   useEffect(() => {
-    if (dataFetchedRef.current) return;
-    dataFetchedRef.current = true;
-
     const token = localStorage.getItem("token");
     if (token) {
-      getFriendRequestData();
+      getFriendRequestData(page);
     } else {
       router.push("/Login");
     }
-  }, []);
+  }, [page]);
 
   // Decrypt current user data
   useEffect(() => {
@@ -245,9 +247,9 @@ const InterestReceivePending = () => {
                                     {profile.height}
                                 </span>
                              )}
-                              {(profile?.birthCity?.name || profile?.birthState?.name) && (
+                              {(user?.state_name && user?.city_name) && (
                                 <span className="px-3 py-1 bg-gray-50 rounded-full border border-gray-100 font-semibold truncate max-w-[150px]">
-                                    {profile?.birthCity?.name}{profile?.birthCity?.name && profile?.birthState?.name ? ", " : ""}{profile?.birthState?.name}
+                                    {user?.state_name}{user?.state_name && user?.city_name ? ", " : ""}{user?.city_name}
                                 </span>
                              )}
                          </div>
@@ -287,6 +289,16 @@ const InterestReceivePending = () => {
             <div className="flex flex-col items-center justify-center mt-20 text-gray-400">
                 <div className="text-xl font-semibold">No Pending Interests</div>
                 <p className="text-sm">New requests will appear here.</p>
+            </div>
+          )}
+
+          {data?.length > 0 && totalPage > 1 && (
+            <div className="flex justify-center mt-8">
+              <PaginationControlled
+                page={page}
+                last_page={totalPage}
+                setPage={setPage}
+              />
             </div>
           )}
         </div>

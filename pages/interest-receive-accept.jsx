@@ -13,6 +13,7 @@ import { useSelector } from "react-redux";
 import CryptoJS from "crypto-js";
 import MembershipPopup from "../components/common-component/MembershipPopup";
 import { decrypted_key } from "../services/appConfig";
+import PaginationControlled from "../components/common-component/pagination";
 
 const InterestReceiveAccept = () => {
   const [data, setData] = useState({ sent: [], received: [] });
@@ -24,14 +25,18 @@ const InterestReceiveAccept = () => {
   const [showMembershipPopup, setShowMembershipPopup] = useState(false);
   const masterData = useSelector((state) => state.user);
   const [currentUser, setCurrentUser] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalPage, setTotalPage] = useState(1);
 
-  const getAcceptedRequestData = () => {
-    acceptedRequests()
+  const getAcceptedRequestData = (pageNum) => {
+    setLoading(true);
+    acceptedRequests(pageNum)
       .then((res) => {
         console.log("API RESPONSE:", res?.data);
 
         if (res?.data?.success === true || res?.data?.code === 200) {
           setData(res?.data?.data);
+          setTotalPage(res?.data?.data?.pagination?.total_pages || 1);
         } else {
           toast.error("Failed to load data");
         }
@@ -46,13 +51,10 @@ const InterestReceiveAccept = () => {
   };
 
   useEffect(() => {
-    if (dataFetchedRef.current) return;
-    dataFetchedRef.current = true;
-
     const token = localStorage.getItem("token");
-    if (token) getAcceptedRequestData();
+    if (token) getAcceptedRequestData(page);
     else router.push("/Login");
-  }, []);
+  }, [page]);
 
   // Decrypt current user data
   useEffect(() => {
@@ -203,6 +205,16 @@ const InterestReceiveAccept = () => {
         ) : (
           <div className="font-semibold text-lg text-gray-500 text-center mt-10">
             No Data Found!
+          </div>
+        )}
+
+        {data?.received?.length > 0 && totalPage > 1 && (
+          <div className="flex justify-center mt-8">
+            <PaginationControlled
+              page={page}
+              last_page={totalPage}
+              setPage={setPage}
+            />
           </div>
         )}
       </div>

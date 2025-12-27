@@ -336,7 +336,7 @@ function EditProfile() {
     profileUpdate(formData)
       .then((res) => {
         if (res.status === 200) {
-          const encryptedUser = res?.data?.user_profile;
+          const encryptedUser = res?.data?.data?.user || res?.data?.user_profile || res?.data?.user;
           const decrypted = decryptPayload(encryptedUser);
 
           if (decrypted) {
@@ -347,7 +347,11 @@ function EditProfile() {
           setTimeout(() => {
             setLoading(false);
             setIsImageUpload(false);
+            setProfileremove(false);
             setAlert(true);
+            setProfileImage([]); // Clear upload selection
+            // Re-fetch to ensure everything is perfectly in sync
+            getUserPorofileData();
           }, 2000);
         }
       })
@@ -358,16 +362,19 @@ function EditProfile() {
 
   const handleProfileremove = () => {
     profileImageRemove().then((res) => {
-      if (res.data.status === 200) {
-        const encryptedUser = res?.data?.user;
+      const code = res?.data?.code ?? res?.data?.status;
+      if (code === 200 || res?.data?.success) {
+        const encryptedUser = res?.data?.data?.user || res?.data?.user || res?.data?.user_profile;
         const decrypted = decryptPayload(encryptedUser);
 
         if (decrypted) {
           setUserData(alignUserData(decrypted));
           dispatch(setUser({ user: encryptedUser }));
         }
-        setAlert(true);
         setProfileremove(true);
+        setAlert(true);
+        // Also call re-fetch for safety
+        getUserPorofileData();
       }
     });
   };
@@ -399,6 +406,7 @@ function EditProfile() {
             setThikanaEdit(true);
             setAboutEdit(true);
             setPreferenceEdit(true);
+            setProfileremove(false);
             setAlert(true);
             
             // Re-fetch to ensure all relational data (like caste names) is fresh
@@ -569,8 +577,12 @@ function EditProfile() {
           if (decrypted) {
             const parsed = alignUserData(decrypted);
             setUserData(parsed);
+            setProfileremove(false);
             setAlert(true);
             
+            // Re-fetch to sync Global UI
+            getUserPorofileData();
+
             // Sync with final server value just in case
             if (key === "photo") {
               setPhotoPrivacy(parsed?.photo_privacy);

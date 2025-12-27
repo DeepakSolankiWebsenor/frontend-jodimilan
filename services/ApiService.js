@@ -272,9 +272,9 @@ function useApiService() {
       });
   }
 
-  function getFriendRequest() {
+  function getFriendRequest(page = 1) {
     return http
-      .get("/user/auth/user/friend/requests", {
+      .get(`/user/auth/user/friend/requests?page=${page}&limit=10`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -284,9 +284,9 @@ function useApiService() {
       });
   }
 
-  function sentFriendRequest() {
+  function sentFriendRequest(page = 1) {
     return http
-      .get("/user/friend/requests/pending", {
+      .get(`/user/friend/requests/pending?page=${page}&limit=10`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -322,9 +322,9 @@ function acceptRequest(id) {
       });
   }
 
-  function acceptedRequests() {
+  function acceptedRequests(page = 1) {
     return http
-      .get("/user/friend/requests/accepted", {
+      .get(`/user/friend/requests/accepted?page=${page}&limit=10`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },

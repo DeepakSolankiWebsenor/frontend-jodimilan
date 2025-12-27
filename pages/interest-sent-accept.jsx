@@ -13,6 +13,7 @@ import { useSelector } from "react-redux";
 import CryptoJS from "crypto-js";
 import MembershipPopup from "../components/common-component/MembershipPopup";
 import { decrypted_key } from "../services/appConfig";
+import PaginationControlled from "../components/common-component/pagination";
 
 const InterestSentAccept = () => {
   const [loading, setLoading] = useState(true);
@@ -24,13 +25,17 @@ const InterestSentAccept = () => {
   const [showMembershipPopup, setShowMembershipPopup] = useState(false);
   const masterData = useSelector((state) => state.user);
   const [currentUser, setCurrentUser] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalPage, setTotalPage] = useState(1);
 
-  const getAcceptedRequestData = () => {
-    acceptedRequests()
+  const getAcceptedRequestData = (pageNum) => {
+    setLoading(true);
+    acceptedRequests(pageNum)
       .then((res) => {
         console.log("Sent Accepted API:", res.data);
         if (res?.data?.success === true) {
           setData(res?.data?.data);
+          setTotalPage(res?.data?.data?.pagination?.total_pages || 1);
         } else {
           toast.error("Failed to load data");
         }
@@ -44,16 +49,13 @@ const InterestSentAccept = () => {
   };
 
   useEffect(() => {
-    if (dataFetchedRef.current) return;
-    dataFetchedRef.current = true;
-
     const token = localStorage.getItem("token");
     if (token) {
-      getAcceptedRequestData();
+      getAcceptedRequestData(page);
     } else {
       router.push("/Login");
     }
-  }, []);
+  }, [page]);
 
   // Decrypt current user data
   useEffect(() => {
@@ -193,6 +195,16 @@ const InterestSentAccept = () => {
             <div className="flex flex-col items-center justify-center mt-20 text-gray-400">
                 <div className="text-xl font-semibold">No Accepted Sent Interests</div>
                 <p className="text-sm">Interests you send that get accepted will appear here.</p>
+            </div>
+          )}
+
+          {data?.sent?.length > 0 && totalPage > 1 && (
+            <div className="flex justify-center mt-8">
+              <PaginationControlled
+                page={page}
+                last_page={totalPage}
+                setPage={setPage}
+              />
             </div>
           )}
         </div>

@@ -16,6 +16,7 @@ const Usercard = ({ item, index, className }) => {
 
   const [user, setUser] = useState(false);
   const [showMembershipPopup, setShowMembershipPopup] = useState(false);
+  const [showBlockedPopup, setShowBlockedPopup] = useState(false);
   const router = useRouter();
 
   // Logged-in user data from redux
@@ -99,6 +100,11 @@ const Usercard = ({ item, index, className }) => {
       return;
     }
 
+    if (item?.is_blocked) {
+      setShowBlockedPopup(true);
+      return;
+    }
+
     router.push(`/profile/profile-detail/${id}`);
   };
 
@@ -109,6 +115,42 @@ const Usercard = ({ item, index, className }) => {
         onClose={() => setShowMembershipPopup(false)}
         message="Without membership not able to see view details"
       />
+
+      {/* Blocked User Popup */}
+      {showBlockedPopup && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 transform transition-all animate-in fade-in zoom-in duration-300">
+            <div className="text-center">
+              <div className="bg-red-100 text-red-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">Profile Blocked</h3>
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                You have blocked this user. You are not able to see their profile. Please unblock this user from your blocklist to see their profile.
+              </p>
+              <div className="flex gap-4 justify-center">
+                <button
+                  onClick={() => setShowBlockedPopup(false)}
+                  className="px-6 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowBlockedPopup(false);
+                    router.push("/Blocked");
+                  }}
+                  className="px-6 py-2.5 bg-primary text-white font-semibold rounded-lg hover:bg-opacity-90 transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  Go to Blocklist
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div
         key={index}
         className={`h-[500px]  ${className} cursor-pointer rounded-md border-2 sm:w-full w-80 mb-6 hover:shadow-lg `}

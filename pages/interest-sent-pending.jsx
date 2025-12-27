@@ -15,6 +15,7 @@ import { useSelector } from "react-redux";
 import CryptoJS from "crypto-js";
 import MembershipPopup from "../components/common-component/MembershipPopup";
 import { decrypted_key } from "../services/appConfig";
+import PaginationControlled from "../components/common-component/pagination";
 
 const InterestSentPending = () => {
   const [data, setData] = useState([]);
@@ -24,15 +25,19 @@ const InterestSentPending = () => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const masterData = useSelector((state) => state.user);
+  const [page, setPage] = useState(1);
+  const [totalPage, setTotalPage] = useState(1);
 
   const [showMembershipPopup, setShowMembershipPopup] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
-  const getSentFriendRequestData = () => {
-    sentFriendRequest()
+  const getSentFriendRequestData = (pageNum) => {
+    setLoading(true);
+    sentFriendRequest(pageNum)
       .then((res) => {
         if (res?.data?.success) {
-          setData(res.data.data);
+          setData(res.data.data.items || []);
+          setTotalPage(res.data.data.pagination.total_pages || 1);
           setLoading(false);
         }
       })
@@ -41,9 +46,9 @@ const InterestSentPending = () => {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) getSentFriendRequestData();
+    if (token) getSentFriendRequestData(page);
     else router.push("/Login");
-  }, [alertMsg]);
+  }, [page, alertMsg]);
 
   // Decrypt current user data
   useEffect(() => {
@@ -189,9 +194,9 @@ const InterestSentPending = () => {
 
                         <div className="flex flex-wrap justify-center sm:justify-start gap-2 text-xs sm:text-sm text-gray-500 font-medium">
                             {user?.age && <span className="px-3 py-1 bg-gray-50 rounded-full border border-gray-100">{user.age} Years Old</span>}
-                             {(profile?.birthCity?.name || profile?.birthState?.name) && (
-                                <span className="px-3 py-1 bg-gray-50 rounded-full border border-gray-100 truncate max-w-[200px]">
-                                    {profile?.birthCity?.name || "City"}, {profile?.birthState?.name || "State"}
+                             {(user?.state_name && user?.city_name) && (
+                                <span className="px-3 py-1 bg-gray-50 rounded-full border border-gray-100 font-semibold truncate max-w-[150px]">
+                                    {user?.state_name}{user?.state_name && user?.city_name ? ", " : ""}{user?.city_name}
                                 </span>
                              )}
                         </div>
@@ -223,6 +228,16 @@ const InterestSentPending = () => {
             <div className="flex flex-col items-center justify-center mt-20 text-gray-400">
                 <div className="text-xl font-semibold">No Pending Sent Interests</div>
                 <p className="text-sm">Interests you send will appear here.</p>
+            </div>
+          )}
+
+          {data?.length > 0 && totalPage > 1 && (
+            <div className="flex justify-center mt-8">
+              <PaginationControlled
+                page={page}
+                last_page={totalPage}
+                setPage={setPage}
+              />
             </div>
           )}
         </div>
